@@ -94,3 +94,82 @@
 button, a {
     transition: all 0.3s ease;
 }
+
+/* Light Mode Visibility Improvements */
+[data-bs-theme="light"] body {
+    color: #212529 !important;
+}
+
+[data-bs-theme="light"] h1, 
+[data-bs-theme="light"] h2, 
+[data-bs-theme="light"] h3, 
+[data-bs-theme="light"] h4, 
+[data-bs-theme="light"] h5, 
+[data-bs-theme="light"] h6 {
+    color: #1a1e21 !important;
+    font-weight: 700;
+}
+
+[data-bs-theme="light"] .text-muted {
+    color: #6c757d !important;
+}
+
+[data-bs-theme="light"] .elegant-card {
+    background: #ffffff;
+    border: 1px solid rgba(0,0,0,0.125);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+[data-bs-theme="light"] .card-title {
+    color: #000000;
+}
+
+[data-bs-theme="light"] .badge {
+    color: #ffffff; 
+}
+
+[data-bs-theme="light"] .badge.bg-secondary {
+    background-color: #6c757d !important;
+    color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .badge.bg-success {
+    background-color: #198754 !important;
+    color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .badge.bg-warning {
+    background-color: #ffc107 !important;
+    color: #000000 !important;
+}
+/* Additional Light Mode Overrides for Specific Elements */
+
+[data-bs-theme="light"] .hero-section {
+    background: linear-gradient(135deg, rgba(67, 97, 238, 0.05) 0%, rgba(255, 255, 255, 0.8) 100%);
+    color: #212529;
+}
+
+[data-bs-theme="light"] table {
+    color: #212529 !important;
+}
+
+/* Ensure text-white remains white on dark badges/buttons even in light mode */
+[data-bs-theme="light"] .text-white {
+    color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .navbar-brand {
+    color: #000000 !important;
+    font-weight: 700;
+}
+
+[data-bs-theme="light"] .card-body {
+    color: #212529;
+}
+
+/* Fix for specific sections */
+[data-bs-theme="light"] h1.display-4,
+[data-bs-theme="light"] h3.fw-bold {
+   color: #1a1e21 !important;
+   text-shadow: none !important;
+}

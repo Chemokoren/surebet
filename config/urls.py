@@ -11,9 +11,10 @@ from django.contrib.auth import views as auth_views
 
 # Import views
 from apps.api.views import (
-    HomeView, PredictionsView, PredictionDetailView, TeamAnalysisView, 
+    HomeView, PredictionsView, PredictionDetailView, TeamAnalysisView,
     SubscriptionView, ProfileView, PaymentView, LoginView, LogoutView,
-    DataExportView, AccountDeleteView, UnlockPredictionView
+    DataExportView, AccountDeleteView, UnlockPredictionView,
+    PaymentSuccessView, PaymentCancelView
 )
 
 # Webhook views
@@ -47,6 +48,8 @@ urlpatterns = [
         path('profile/', ProfileView.as_view(), name='profile'),
         path('subscription/', SubscriptionView.as_view(), name='subscription'),
         path('payment/', PaymentView.as_view(), name='payment'),
+        path('payment/success/', PaymentSuccessView.as_view(), name='payment_success'),
+        path('payment/cancel/', PaymentCancelView.as_view(), name='payment_cancel'),
         # GDPR
         path('export/', DataExportView.as_view(), name='data_export'),
         path('delete/', AccountDeleteView.as_view(), name='account_delete'),

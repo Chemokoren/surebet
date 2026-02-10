@@ -174,6 +174,11 @@ PAYMENT_CONFIG = {
         'CONSUMER_SECRET': os.getenv('MPESA_CONSUMER_SECRET', ''),
         'SHORTCODE': os.getenv('MPESA_SHORTCODE', ''),
         'PASSKEY': os.getenv('MPESA_PASSKEY', ''),
+    },
+    'PAYPAL': {
+        'CLIENT_ID': os.getenv('PAYPAL_CLIENT_ID', ''),
+        'SECRET': os.getenv('PAYPAL_SECRET', ''),
+        'ENVIRONMENT': os.getenv('PAYPAL_MODE', 'live'),  # Default to live
     }
 }
 

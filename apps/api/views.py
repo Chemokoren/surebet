@@ -365,10 +365,22 @@ class PaymentView(LoginRequiredMixin, TemplateView):
         region = getattr(profile, 'region', 'global')
         
         # Get Tiers
-        context['tiers'] = PaymentService.get_pricing_tiers(region)
+        # Get Tiers - Exclude 'single' type as requested
+        tiers_qs = PaymentService.get_pricing_tiers(region).exclude(tier_type='single')
+        
+        # If a specific tier_id is requested, prioritize it in the list (or ensure it's selected in template)
+        selected_tier_id = self.request.GET.get('tier_id')
+        tiers = list(tiers_qs)
+        
+        if selected_tier_id:
+            # Sort to put selected tier first
+            tiers.sort(key=lambda t: str(t.id) != selected_tier_id)
+            
+        context['tiers'] = tiers
         
         # Get Channels
-        context['channels'] = PaymentService.get_available_channels(region)
+        context['available_channels'] = PaymentService.get_available_channels(region)
+        context['payment_channels'] = context['available_channels'] # Alias for template
         
         return context
 
@@ -379,7 +391,7 @@ class PaymentView(LoginRequiredMixin, TemplateView):
 
         if not tier_id or not provider:
             messages.error(request, "Invalid selection.")
-            return redirect('payment_page')
+            return redirect('payment')
 
         try:
             txn, result = PaymentService.initiate_credit_purchase(
@@ -397,11 +409,11 @@ class PaymentView(LoginRequiredMixin, TemplateView):
                  return redirect('payment_success')
             else:
                  messages.error(request, f"Payment failed: {result.message}")
-                 return redirect('payment_page')
+                 return redirect('payment')
                  
         except Exception as e:
             messages.error(request, f"Error: {str(e)}")
-            return redirect('payment_page')
+            return redirect('payment')
 
 
 class PaymentSuccessView(LoginRequiredMixin, TemplateView):

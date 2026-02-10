@@ -28,11 +28,14 @@
                             <div class="row g-2">
                                 {% for tier in tiers %}
                                 <div class="col-md-6 col-lg-4">
-                                    <label class="card tier-option w-100 text-center p-3 border cursor-pointer {% if forloop.first %}border-primary selected{% endif %}" data-tier-id="{{ tier.id }}" data-price="{{ tier.price|floatformat:0 }}" data-currency="{{ tier.currency }}">
+                                    <label
+                                        class="card tier-option w-100 text-center p-3 border cursor-pointer {% if forloop.first %}border-primary selected{% endif %}"
+                                        data-tier-id="{{ tier.id }}" data-price="{{ tier.price|floatformat:0 }}"
+                                        data-currency="{{ tier.currency }}">
                                         <input type="radio" name="selected_tier" value="{{ tier.id }}" {% if forloop.first %}checked{% endif %} class="d-none">
                                         <div class="fw-bold">{{ tier.name }}</div>
                                         <div class="fs-4 text-primary fw-bold">
-                                            {{ currency_symbol }}{{ tier.price|floatformat:0 }}
+                                            {{ tier.currency }} {{ tier.price|floatformat:0 }}
                                         </div>
                                         <small class="text-muted">
                                             {% if tier.tier_type == 'credit_pack' %}
@@ -53,7 +56,7 @@
                                 <div class="col-8"><strong>Total</strong></div>
                                 <div class="col-4 text-end">
                                     <h4 class="text-primary mb-0" id="total-amount">
-                                        {% if tiers %}{{ currency_symbol }}{{ tiers.0.price|floatformat:0 }}{% endif %}
+                                        {% if tiers %}{{ tiers.0.currency }} {{ tiers.0.price|floatformat:0 }}{% endif %}
                                     </h4>
                                 </div>
                             </div>
@@ -72,7 +75,9 @@
                             <h5 class="mb-3">Payment Method</h5>
                             <div class="d-grid gap-2">
                                 {% for channel in payment_channels %}
-                                <label class="payment-method-option btn btn-outline-secondary text-start py-3 {% if channel.is_default %}active{% endif %}" data-provider="{{ channel.provider }}">
+                                <label
+                                    class="payment-method-option btn btn-outline-secondary text-start py-3 {% if channel.is_default %}active{% endif %}"
+                                    data-provider="{{ channel.provider }}">
                                     <input type="radio" name="provider" value="{{ channel.provider }}" {% if channel.is_default %}checked{% endif %} class="d-none">
                                     <div class="d-flex align-items-center">
                                         <i class="{{ channel.icon }} fa-lg me-3"></i>
@@ -219,10 +224,11 @@
 
             const tierId = this.dataset.tierId;
             const price = this.dataset.price;
-            const currency = '{{ currency_symbol }}';
+            const currency = this.dataset.currency;
 
             document.getElementById('tier-id').value = tierId;
-            document.getElementById('total-amount').textContent = currency + price;
+            // Update total with correct currency
+            document.getElementById('total-amount').textContent = currency + ' ' + price;
         });
     });
 

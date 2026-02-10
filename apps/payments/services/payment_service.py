@@ -72,16 +72,15 @@ class PaymentService:
         return channels
 
     @staticmethod
-    def get_pricing_tiers(region: str) -> list[PricingTier]:
+    def get_pricing_tiers(region: str):
         """Return active pricing tiers for a region."""
-        tiers = list(
-            PricingTier.objects.filter(region=region, is_active=True).order_by('display_order', 'price')
-        )
-        if not tiers:
-            tiers = list(
-                PricingTier.objects.filter(region='global', is_active=True).order_by('display_order', 'price')
-            )
-        return tiers
+        # Return QuerySet if possible for further filtering
+        qs = PricingTier.objects.filter(region=region, is_active=True).order_by('display_order', 'price')
+        
+        if not qs.exists():
+            qs = PricingTier.objects.filter(region='global', is_active=True).order_by('display_order', 'price')
+            
+        return qs
 
     # ── Payment initiation ──────────────────────
 
@@ -103,7 +102,21 @@ class PaymentService:
         4. Return transaction + result
         """
         tier = PricingTier.objects.get(pk=pricing_tier_id, is_active=True)
-        channel = PaymentChannel.objects.get(provider=provider, is_enabled=True)
+
+        # Detect Region
+        profile = getattr(user, 'userprofile', None)
+        region = getattr(profile, 'region', 'global') if profile else 'global'
+
+        # Select Channel (Prioritize Region, then Global)
+        qs = PaymentChannel.objects.filter(provider=provider, is_enabled=True)
+        channel = qs.filter(region=region).first()
+        if not channel:
+            channel = qs.filter(region='global').first()
+        if not channel:
+             # Last resort
+             channel = qs.first()
+        if not channel:
+            raise ValueError(f"No active payment channel found for provider {provider}")
         strategy = get_strategy(provider)
 
         # Create transaction
@@ -155,7 +168,20 @@ class PaymentService:
     ) -> tuple[PaymentTransaction, PaymentResult]:
         """Start a subscription payment flow."""
         plan = SubscriptionPlan.objects.get(pk=plan_id, is_active=True)
-        channel = PaymentChannel.objects.get(provider=provider, is_enabled=True)
+        
+        # Detect Region
+        profile = getattr(user, 'userprofile', None)
+        region = getattr(profile, 'region', 'global') if profile else 'global'
+
+        # Select Channel
+        qs = PaymentChannel.objects.filter(provider=provider, is_enabled=True)
+        channel = qs.filter(region=region).first()
+        if not channel:
+            channel = qs.filter(region='global').first()
+        if not channel:
+             channel = qs.first()
+        if not channel:
+            raise ValueError(f"No active payment channel found for provider {provider}")
         strategy = get_strategy(provider)
 
         txn = PaymentTransaction.objects.create(
