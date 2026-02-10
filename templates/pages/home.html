@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - FuturaPredict Pro+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-image { opacity: 0.3; }
+    .stat-item { padding: 1rem; }
+    .match-time { font-size: 0.9rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section mb-5 animate-fade-in-up">
+    <div class="row align-items-center">
+        <div class="col-lg-8">
+            <h1 class="display-4 fw-bold mb-3">
+                Welcome back, <span class="gradient-text">{% if user.is_authenticated %}{{ user.username }}{% else %}Guest{% endif %}</span>
+            </h1>
+            <p class="lead mb-4 text-muted">
+                AI-powered soccer predictions with <span class="text-primary fw-bold">86.3% accuracy</span> across major leagues.
+            </p>
+            <div class="d-flex gap-3">
+                <a href="/predictions/" class="btn btn-premium btn-lg">
+                    <i class="fas fa-bolt me-2"></i> View Predictions
+                </a>
+                <a href="/analytics/teams/" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-chart-bar me-2"></i> Analytics
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-4 d-none d-lg-block hero-image text-center">
+            <i class="fas fa-futbol fa-6x text-primary opacity-25"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Overview -->
+{% if user.is_authenticated %}
+<div class="row mb-4">
+    <div class="col-md-3 col-6 mb-3">
+        <div class="stats-card elegant-card">
+            <div class="mb-2"><i class="fas fa-bullseye fa-2x text-success"></i></div>
+            <div class="stats-number gradient-text">86.3%</div>
+            <div class="stats-label">Prediction Accuracy</div>
+            <small class="text-success"><i class="fas fa-arrow-up"></i> +2.4% this week</small>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-3">
+        <div class="stats-card elegant-card">
+            <div class="mb-2"><i class="fas fa-chart-line fa-2x text-primary"></i></div>
+            <div class="stats-number">42</div>
+            <div class="stats-label">Today's Predictions</div>
+            <small class="text-info"><i class="fas fa-sync-alt"></i> Updated 15 min ago</small>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-3">
+        <div class="stats-card elegant-card">
+            <div class="mb-2"><i class="fas fa-trophy fa-2x text-warning"></i></div>
+            <div class="stats-number">5</div>
+            <div class="stats-label">Active Leagues</div>
+            <small class="text-warning"><i class="fas fa-check-circle"></i> All systems go</small>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-3">
+        <div class="stats-card elegant-card">
+            <div class="mb-2"><i class="fas fa-crown fa-2x text-info"></i></div>
+            <div class="stats-number">28</div>
+            <div class="stats-label">Days Remaining</div>
+            <small class="text-info"><i class="fas fa-calendar-alt"></i> Renewal due soon</small>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="row">
+    <!-- Left Column: Predictions -->
+    <div class="col-lg-8 mb-4">
+        <div class="elegant-card">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 class="mb-0">
+                    <i class="fas fa-star text-warning me-2"></i>
+                    Today's Top Predictions
+                </h3>
+                <a href="/predictions/" class="btn btn-outline-primary btn-sm">
+                    View All <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+            
+            <div class="row g-3">
+                {% for i in "12345" %}
+                <div class="col-md-6">
+                    <div class="prediction-card elegant-card">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="league-badge premier-league">EPL</span>
+                            <small class="match-time">20:00 Today</small>
+                        </div>
+                        <div class="mb-3">
+                            <div class="fw-bold small">Manchester United vs Liverpool</div>
+                        </div>
+                        <div class="prediction-result text-center mb-3">
+                            <span class="badge bg-success">Home Win</span>
+                        </div>
+                        <div class="confidence-meter mb-2">
+                            <div class="confidence-fill" style="width: 78%"></div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">78% confidence</small>
+                            <a href="/predictions/1/" class="btn btn-outline-primary btn-sm">Details</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right Column: Analytics -->
+    <div class="col-lg-4 mb-4">
+        <!-- League Performance -->
+        <div class="elegant-card mb-4">
+            <h5 class="mb-3"><i class="fas fa-trophy me-2"></i> League Performance</h5>
+            
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="league-badge premier-league">Premier League</span>
+                    <span class="fw-bold">88%</span>
+                </div>
+                <small class="text-muted">120 predictions</small>
+            </div>
+            
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="league-badge la-liga">La Liga</span>
+                    <span class="fw-bold">85%</span>
+                </div>
+                <small class="text-muted">95 predictions</small>
+            </div>
+            
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="league-badge bundesliga">Bundesliga</span>
+                    <span class="fw-bold">87%</span>
+                </div>
+                <small class="text-muted">85 predictions</small>
+            </div>
+            
+            <a href="/analytics/accuracy/" class="btn btn-outline-primary btn-sm w-100">
+                View Full Analytics
+            </a>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="elegant-card">
+            <h5 class="mb-3"><i class="fas fa-bolt me-2"></i> Quick Actions</h5>
+            
+            <div class="row g-2">
+                <div class="col-6">
+                    <a href="/analytics/teams/" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-users"></i>
+                        <div class="small">Teams</div>
+                    </a>
+                </div>
+                <div class="col-6">
+                    <a href="/analytics/historical/" class="btn btn-outline-success w-100">
+                        <i class="fas fa-chart-bar"></i>
+                        <div class="small">History</div>
+                    </a>
+                </div>
+                <div class="col-6">
+                    <a href="/predictions/?confidence=high" class="btn btn-outline-warning w-100">
+                        <i class="fas fa-star"></i>
+                        <div class="small">High Conf</div>
+                    </a>
+                </div>
+                <div class="col-6">
+                    <a href="/account/subscription/" class="btn btn-outline-info w-100">
+                        <i class="fas fa-crown"></i>
+                        <div class="small">Upgrade</div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<!-- Not Authenticated -->
+<div class="elegant-card text-center py-5 my-5">
+    <i class="fas fa-lock fa-3x text-muted mb-3"></i>
+    <h3 class="mb-3">Sign in to get started</h3>
+    <p class="text-muted mb-4">Get access to AI-powered soccer predictions and advanced analytics</p>
+    <div class="d-flex gap-3 justify-content-center">
+        <a href="/account/login/" class="btn btn-primary btn-lg">Login</a>
+        <a href="/account/register/" class="btn btn-premium btn-lg">Create Account</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,246 @@
+{% extends 'base_account.html' %}
+{% load static %}
+
+{% block title %}Payment - FuturaPredict{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-lg">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <h2 class="gradient-text">Complete Your Payment</h2>
+                        <p class="text-muted">Secure payment processing</p>
+                    </div>
+
+                    <!-- Order Summary -->
+                    <div class="card mb-4 bg-light">
+                        <div class="card-body">
+                            <h5 class="card-title">Order Summary</h5>
+                            <div class="row">
+                                <div class="col-8">
+                                    <p class="mb-1">Pro Plan Subscription</p>
+                                    <small class="text-muted">Monthly subscription</small>
+                                </div>
+                                <div class="col-4 text-end">
+                                    <h5 class="text-primary mb-0">$9.99</h5>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-8">
+                                    <strong>Total</strong>
+                                </div>
+                                <div class="col-4 text-end">
+                                    <h4 class="text-primary mb-0">$9.99</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Form -->
+                    <form id="payment-form" method="post">
+                        {% csrf_token %}
+
+                        <!-- Payment Method Selection -->
+                        <div class="mb-4">
+                            <h5 class="mb-3">Payment Method</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="form-check payment-method-option active" data-method="card">
+                                        <input class="form-check-input" type="radio" name="payment_method" id="card" value="card" checked>
+                                        <label class="form-check-label d-flex align-items-center" for="card">
+                                            <i class="fas fa-credit-card me-2"></i>
+                                            Credit/Debit Card
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check payment-method-option" data-method="paypal">
+                                        <input class="form-check-input" type="radio" name="payment_method" id="paypal" value="paypal">
+                                        <label class="form-check-label d-flex align-items-center" for="paypal">
+                                            <i class="fab fa-paypal me-2"></i>
+                                            PayPal
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card Payment Form -->
+                        <div id="card-form">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label for="card_number" class="form-label">Card Number</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="fas fa-credit-card"></i>
+                                        </span>
+                                        <input type="text" class="form-control" id="card_number" name="card_number"
+                                               placeholder="1234 5678 9012 3456" required>
+                                        <span class="input-group-text">
+                                            <i class="fab fa-cc-visa text-primary"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="expiry_date" class="form-label">Expiry Date</label>
+                                    <input type="text" class="form-control" id="expiry_date" name="expiry_date"
+                                           placeholder="MM/YY" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="cvv" class="form-label">CVV</label>
+                                    <input type="text" class="form-control" id="cvv" name="cvv"
+                                           placeholder="123" required>
+                                </div>
+                                <div class="col-12">
+                                    <label for="cardholder_name" class="form-label">Cardholder Name</label>
+                                    <input type="text" class="form-control" id="cardholder_name" name="cardholder_name"
+                                           placeholder="John Doe" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PayPal Form -->
+                        <div id="paypal-form" style="display: none;">
+                            <div class="text-center py-4">
+                                <p class="text-muted mb-3">You will be redirected to PayPal to complete your payment</p>
+                                <button type="button" class="btn btn-primary" onclick="processPayPal()">
+                                    <i class="fab fa-paypal"></i> Continue with PayPal
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Billing Address -->
+                        <div class="mt-4">
+                            <h5 class="mb-3">Billing Address</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="first_name" class="form-label">First Name</label>
+                                    <input type="text" class="form-control" id="first_name" name="first_name" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="last_name" class="form-label">Last Name</label>
+                                    <input type="text" class="form-control" id="last_name" name="last_name" required>
+                                </div>
+                                <div class="col-12">
+                                    <label for="email" class="form-label">Email Address</label>
+                                    <input type="email" class="form-control" id="email" name="email" required>
+                                </div>
+                                <div class="col-12">
+                                    <label for="address" class="form-label">Address</label>
+                                    <input type="text" class="form-control" id="address" name="address" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="city" class="form-label">City</label>
+                                    <input type="text" class="form-control" id="city" name="city" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="state" class="form-label">State</label>
+                                    <input type="text" class="form-control" id="state" name="state" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="zip_code" class="form-label">ZIP Code</label>
+                                    <input type="text" class="form-control" id="zip_code" name="zip_code" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Terms and Conditions -->
+                        <div class="mt-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="terms" name="terms" required>
+                                <label class="form-check-label" for="terms">
+                                    I agree to the <a href="#" class="text-decoration-none">Terms of Service</a> and
+                                    <a href="#" class="text-decoration-none">Privacy Policy</a>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary w-100 py-3">
+                                <i class="fas fa-lock"></i> Complete Payment - $9.99
+                            </button>
+                        </div>
+
+                        <!-- Security Notice -->
+                        <div class="text-center mt-3">
+                            <small class="text-muted">
+                                <i class="fas fa-shield-alt"></i>
+                                Your payment information is secure and encrypted
+                            </small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Payment method switching
+document.querySelectorAll('.payment-method-option').forEach(option => {
+    option.addEventListener('click', function() {
+        // Remove active class from all options
+        document.querySelectorAll('.payment-method-option').forEach(opt => {
+            opt.classList.remove('active');
+        });
+
+        // Add active class to clicked option
+        this.classList.add('active');
+
+        // Show/hide forms
+        const method = this.dataset.method;
+        document.getElementById('card-form').style.display = method === 'card' ? 'block' : 'none';
+        document.getElementById('paypal-form').style.display = method === 'paypal' ? 'block' : 'none';
+
+        // Update radio button
+        this.querySelector('input[type="radio"]').checked = true;
+    });
+});
+
+// Card number formatting
+document.getElementById('card_number').addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
+    e.target.value = formattedValue;
+});
+
+// Expiry date formatting
+document.getElementById('expiry_date').addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length >= 2) {
+        value = value.substring(0, 2) + '/' + value.substring(2, 4);
+    }
+    e.target.value = value;
+});
+
+// CVV validation
+document.getElementById('cvv').addEventListener('input', function(e) {
+    e.target.value = e.target.value.replace(/\D/g, '').substring(0, 4);
+});
+
+function processPayPal() {
+    alert('Redirecting to PayPal...');
+    // Implement PayPal integration here
+}
+
+// Form validation
+document.getElementById('payment-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    if (this.checkValidity()) {
+        // Process payment
+        alert('Payment processed successfully! Thank you for your subscription.');
+        // Redirect to success page
+        // window.location.href = '/account/subscription/success/';
+    }
+
+    this.classList.add('was-validated');
+});
+</script>
+{% endblock %}

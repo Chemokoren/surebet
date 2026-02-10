@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: futurapredict
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  web:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile
+    command: gunicorn --bind 0.0.0.0:8000 --reload futurapredict.wsgi:application
+    volumes:
+      - ../..:/app
+    ports:
+      - "8000:8000"
+    environment:
+      DEBUG: "True"
+      DB_ENGINE: django.db.backends.postgresql
+      DB_NAME: futurapredict
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: db
+      DB_PORT: "5432"
+      CELERY_BROKER_URL: redis://redis:6379
+      CELERY_RESULT_BACKEND: redis://redis:6379
+    depends_on:
+      - db
+      - redis
+
+  celery:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile
+    command: celery -A futurapredict worker -l info
+    volumes:
+      - ../..:/app
+    environment:
+      DEBUG: "True"
+      DB_ENGINE: django.db.backends.postgresql
+      DB_NAME: futurapredict
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: db
+      DB_PORT: "5432"
+      CELERY_BROKER_URL: redis://redis:6379
+      CELERY_RESULT_BACKEND: redis://redis:6379
+    depends_on:
+      - db
+      - redis
+
+  celery-beat:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile
+    command: celery -A futurapredict beat -l info
+    volumes:
+      - ../..:/app
+    environment:
+      DEBUG: "True"
+      DB_ENGINE: django.db.backends.postgresql
+      DB_NAME: futurapredict
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: db
+      DB_PORT: "5432"
+      CELERY_BROKER_URL: redis://redis:6379
+      CELERY_RESULT_BACKEND: redis://redis:6379
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data:

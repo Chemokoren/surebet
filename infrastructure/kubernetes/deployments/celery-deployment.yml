@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Deployment
+metadata:
+  name: futurapredict-celery-worker
+  labels:
+    app: futurapredict
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: futurapredict
+      component: celery-worker
+  template:
+    metadata:
+      labels:
+        app: futurapredict
+        component: celery-worker
+    spec:
+      containers:
+      - name: celery-worker
+        image: futurapredict:latest
+        command: ["celery", "-A", "futurapredict", "worker", "-l", "info"]
+        env:
+        - name: DEBUG
+          value: "False"
+        - name: DB_HOST
+          value: postgres-service
+        - name: CELERY_BROKER_URL
+          value: redis://redis-service:6379
+        - name: CELERY_RESULT_BACKEND
+          value: redis://redis-service:6379
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"

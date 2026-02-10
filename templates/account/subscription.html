@@ -1,0 +1,183 @@
+{% extends 'base_account.html' %}
+{% load static %}
+
+{% block title %}Subscription - FuturaPredict{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="text-center mb-5">
+                <h1 class="gradient-text">Choose Your Plan</h1>
+                <p class="text-muted">Unlock premium features and get the most out of FuturaPredict</p>
+            </div>
+
+            <div class="row g-4">
+                <!-- Free Plan -->
+                <div class="col-lg-4">
+                    <div class="card h-100 border">
+                        <div class="card-body text-center p-4">
+                            <div class="mb-3">
+                                <i class="fas fa-star text-warning fa-3x"></i>
+                            </div>
+                            <h3 class="card-title">Free</h3>
+                            <h2 class="text-primary mb-4">$0<span class="fs-6 text-muted">/month</span></h2>
+
+                            <ul class="list-unstyled mb-4">
+                                <li class="mb-2"><i class="fas fa-check text-success"></i> Basic predictions</li>
+                                <li class="mb-2"><i class="fas fa-check text-success"></i> 5 matches per day</li>
+                                <li class="mb-2"><i class="fas fa-check text-success"></i> Email notifications</li>
+                                <li class="mb-2"><i class="fas fa-times text-muted"></i> Advanced analytics</li>
+                                <li class="mb-2"><i class="fas fa-times text-muted"></i> Live match updates</li>
+                                <li class="mb-2"><i class="fas fa-times text-muted"></i> Priority support</li>
+                            </ul>
+
+                            <button class="btn btn-outline-primary w-100" disabled>
+                                Current Plan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pro Plan -->
+                <div class="col-lg-4">
+                    <div class="card h-100 border-primary shadow-lg position-relative">
+                        <div class="position-absolute top-0 start-50 translate-middle">
+                            <span class="badge bg-primary px-3 py-2">Most Popular</span>
+                        </div>
+                        <div class="card-body text-center p-4">
+                            <div class="mb-3">
+                                <i class="fas fa-crown text-primary fa-3x"></i>
+                            </div>
+                            <h3 class="card-title">Pro</h3>
+                            <h2 class="text-primary mb-4">$9.99<span class="fs-6 text-muted">/month</span></h2>
+
+                            <ul class="list-unstyled mb-4">
+                                <li class="mb-2"><i class="fas fa-check text-success"></i> Advanced predictions</li>
+                                <li class="mb-2"><i class="fas fa-check text-success"></i> Unlimited matches</li>
+                                <li class="mb-2"><i class="fas fa-check text-success"></i> Real-time updates</li>
+                                <li class="mb-2"><i class="fas fa-check text-success"></i> Team analytics</li>
+                                <li class="mb-2"><i class="fas fa-check text-success"></i> Historical data</li>
+                                <li class="mb-2"><i class="fas fa-check text-success"></i> Email support</li>
+                            </ul>
+
+                            <button class="btn btn-primary w-100" onclick="selectPlan('pro')">
+                                Upgrade to Pro
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Premium Plan -->
+                <div class="col-lg-4">
+                    <div class="card h-100 border">
+                        <div class="card-body text-center p-4">
+                            <div class="mb-3">
+                                <i class="fas fa-diamond text-info fa-3x"></i>
+                            </div>
+                            <h3 class="card-title">Premium</h3>
+                            <h2 class="text-primary mb-4">$19.99<span class="fs-6 text-muted">/month</span></h2>
+
+                            <ul class="list-unstyled mb-4">
+                                <li class="mb-2"><i class="fas fa-check text-success"></i> All Pro features</li>
+                                <li class="mb-2"><i class="fas fa-check text-success"></i> AI-powered insights</li>
+                                <li class="mb-2"><i class="fas fa-check text-success"></i> Custom predictions</li>
+                                <li class="mb-2"><i class="fas fa-check text-success"></i> VIP match alerts</li>
+                                <li class="mb-2"><i class="fas fa-check text-success"></i> Expert analysis</li>
+                                <li class="mb-2"><i class="fas fa-check text-success"></i> Priority phone support</li>
+                            </ul>
+
+                            <button class="btn btn-outline-primary w-100" onclick="selectPlan('premium')">
+                                Upgrade to Premium
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Subscription Status -->
+            <div class="card mt-5">
+                <div class="card-header">
+                    <h5 class="mb-0">Current Subscription</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h6 class="mb-1">Free Plan</h6>
+                            <p class="text-muted mb-0">Basic features included</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <span class="badge bg-success">Active</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Billing History -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Billing History</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center py-4">
+                        <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No billing history available</p>
+                        <small class="text-muted">Upgrade to a paid plan to see your billing history</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Complete Payment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="payment-form">
+                    <div class="mb-3">
+                        <label class="form-label">Card Number</label>
+                        <input type="text" class="form-control" placeholder="1234 5678 9012 3456" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <label class="form-label">Expiry Date</label>
+                            <input type="text" class="form-control" placeholder="MM/YY" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">CVV</label>
+                            <input type="text" class="form-control" placeholder="123" required>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary w-100">
+                            Pay Now
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function selectPlan(plan) {
+    const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+    modal.show();
+}
+
+document.getElementById('payment-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    // Handle payment processing here
+    alert('Payment processed successfully! Welcome to ' + plan + ' plan.');
+    bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+});
+</script>
+{% endblock %}

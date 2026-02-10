@@ -1,0 +1,95 @@
+<!-- templates/partials/_sidebar.html -->
+<div class="offcanvas offcanvas-start bg-dark" tabindex="-1" id="sidebar" data-bs-scroll="true" data-bs-backdrop="true">
+    <div class="offcanvas-header border-bottom border-secondary">
+        <h5 class="offcanvas-title gradient-text">Navigation</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    
+    <div class="offcanvas-body p-0">
+        {% if user.is_authenticated %}
+        <div class="sidebar-profile p-3 border-bottom border-secondary">
+            <div class="d-flex align-items-center">
+                <div class="avatar-lg me-3">
+                    <div class="avatar-initials bg-primary rounded-circle d-flex align-items-center justify-content-center"
+                         style="width: 48px; height: 48px; font-size: 1.2rem;">
+                        {{ user.username|first|upper }}
+                    </div>
+                </div>
+                <div class="flex-grow-1">
+                    <h6 class="mb-0">{{ user.username }}</h6>
+                    <small class="text-muted">{{ user.email }}</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <nav class="sidebar-nav">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="/">
+                        <i class="fas fa-home me-2"></i> Dashboard
+                    </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="collapse" href="#predictionsCollapse">
+                        <i class="fas fa-chart-line me-2"></i> Predictions
+                        <i class="fas fa-chevron-down float-end mt-1"></i>
+                    </a>
+                    <div class="collapse show" id="predictionsCollapse">
+                        <ul class="nav flex-column ms-3">
+                            <li class="nav-item">
+                                <a class="nav-link" href="/predictions/">Upcoming</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/predictions/?confidence=high">High Confidence</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+                
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="collapse" href="#analyticsCollapse">
+                        <i class="fas fa-chart-pie me-2"></i> Analytics
+                        <i class="fas fa-chevron-down float-end mt-1"></i>
+                    </a>
+                    <div class="collapse" id="analyticsCollapse">
+                        <ul class="nav flex-column ms-3">
+                            <li class="nav-item">
+                                <a class="nav-link" href="/analytics/teams/">Team Analysis</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/analytics/historical/">Historical Data</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/analytics/accuracy/">Accuracy Dashboard</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+                
+                {% if user.is_authenticated %}
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="collapse" href="#accountCollapse">
+                        <i class="fas fa-user-circle me-2"></i> Account
+                        <i class="fas fa-chevron-down float-end mt-1"></i>
+                    </a>
+                    <div class="collapse" id="accountCollapse">
+                        <ul class="nav flex-column ms-3">
+                            <li class="nav-item">
+                                <a class="nav-link" href="/account/profile/">My Profile</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/account/subscription/">Subscription</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/account/logout/">Logout</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+</div>

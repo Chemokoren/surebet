@@ -1,0 +1,45 @@
+# Core
+Django>=3.2,<5.0
+djangorestframework
+djangorestframework-simplejwt
+psycopg2-binary
+python-dotenv
+
+# Caching & Task Queue
+redis
+celery
+django-redis
+django-celery-beat
+django-celery-results
+
+# API docs, filtering, CORS
+drf-yasg
+django-filter
+django-cors-headers
+
+# Payments & HTTP
+stripe
+requests
+
+# Frontend helpers
+whitenoise
+django-select2
+
+# ML / Data
+numpy
+pandas
+scikit-learn
+xgboost
+tensorflow
+matplotlib
+seaborn
+
+# Utilities / Dev
+gunicorn
+Pillow
+django-debug-toolbar
+ipython
+
+# Optional (install as needed)
+# sentry-sdk
+# opencensus

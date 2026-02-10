@@ -1,0 +1,468 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Team Analysis - FuturaPredict{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="gradient-text">Team Analysis</h1>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary" id="compare-btn">
+                        <i class="fas fa-balance-scale"></i> Compare Teams
+                    </button>
+                    <button class="btn btn-outline-secondary" id="refresh-btn">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Team Search -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Search Teams</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" class="form-control" id="team-search"
+                                       placeholder="Enter team name (e.g., Manchester United, Barcelona)">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">&nbsp;</label>
+                            <button class="btn btn-primary w-100" id="search-btn">
+                                <i class="fas fa-search"></i> Analyze Team
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team Analysis Results -->
+            <div id="analysis-container" style="display: none;">
+                <!-- Team Header -->
+                <div class="card mb-4" id="team-header">
+                    <div class="card-body text-center py-4">
+                        <div class="team-logo mb-3">
+                            <i class="fas fa-shield-alt fa-4x text-primary"></i>
+                        </div>
+                        <h2 id="team-name" class="gradient-text mb-2">Team Name</h2>
+                        <p class="text-muted mb-0" id="team-league">League</p>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <!-- Performance Metrics -->
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-chart-line"></i> Performance Metrics
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-4">
+                                    <div class="col-md-6">
+                                        <div class="metric-card">
+                                            <div class="d-flex align-items-center">
+                                                <div class="metric-icon">
+                                                    <i class="fas fa-trophy text-warning"></i>
+                                                </div>
+                                                <div class="ms-3">
+                                                    <h4 class="mb-0" id="win-rate">0%</h4>
+                                                    <small class="text-muted">Win Rate</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="metric-card">
+                                            <div class="d-flex align-items-center">
+                                                <div class="metric-icon">
+                                                    <i class="fas fa-shield-alt text-success"></i>
+                                                </div>
+                                                <div class="ms-3">
+                                                    <h4 class="mb-0" id="clean-sheets">0</h4>
+                                                    <small class="text-muted">Clean Sheets</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="metric-card">
+                                            <div class="d-flex align-items-center">
+                                                <div class="metric-icon">
+                                                    <i class="fas fa-futbol text-primary"></i>
+                                                </div>
+                                                <div class="ms-3">
+                                                    <h4 class="mb-0" id="goals-scored">0</h4>
+                                                    <small class="text-muted">Goals Scored</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="metric-card">
+                                            <div class="d-flex align-items-center">
+                                                <div class="metric-icon">
+                                                    <i class="fas fa-crosshairs text-danger"></i>
+                                                </div>
+                                                <div class="ms-3">
+                                                    <h4 class="mb-0" id="goals-conceded">0</h4>
+                                                    <small class="text-muted">Goals Conceded</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Form -->
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-history"></i> Recent Form
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="recent-form" class="d-flex justify-content-center gap-2">
+                                    <!-- Form indicators will be populated here -->
+                                </div>
+                                <div class="text-center mt-3">
+                                    <small class="text-muted">Last 5 matches</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- League Position -->
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-list-ol"></i> League Position
+                                </h5>
+                            </div>
+                            <div class="card-body text-center">
+                                <h3 class="gradient-text mb-0" id="league-position">-</h3>
+                                <small class="text-muted">Current Standing</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="row g-4 mt-2">
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-chart-bar"></i> Goals Scored vs Conceded
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="goals-chart" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-chart-pie"></i> Match Results Distribution
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="results-chart" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upcoming Matches -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calendar"></i> Upcoming Matches
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="upcoming-matches">
+                            <!-- Upcoming matches will be populated here -->
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading matches...</span>
+                                </div>
+                                <p class="mt-3 text-muted">Loading upcoming matches...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- No Results Message -->
+            <div id="no-results" class="text-center py-5" style="display: none;">
+                <i class="fas fa-search fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">No Team Found</h4>
+                <p class="text-muted">Try searching for a different team name</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchBtn = document.getElementById('search-btn');
+    const teamSearch = document.getElementById('team-search');
+    const analysisContainer = document.getElementById('analysis-container');
+    const noResults = document.getElementById('no-results');
+    const refreshBtn = document.getElementById('refresh-btn');
+
+    // Mock team data
+    const mockTeams = {
+        'Manchester United': {
+            name: 'Manchester United',
+            league: 'Premier League',
+            winRate: 65,
+            cleanSheets: 12,
+            goalsScored: 45,
+            goalsConceded: 28,
+            leaguePosition: 3,
+            recentForm: ['W', 'W', 'L', 'W', 'D'],
+            upcomingMatches: [
+                { opponent: 'Liverpool', date: '2026-02-20', home: false },
+                { opponent: 'Chelsea', date: '2026-02-25', home: true },
+                { opponent: 'Arsenal', date: '2026-03-01', home: false }
+            ]
+        },
+        'Barcelona': {
+            name: 'Barcelona',
+            league: 'La Liga',
+            winRate: 72,
+            cleanSheets: 15,
+            goalsScored: 52,
+            goalsConceded: 22,
+            leaguePosition: 1,
+            recentForm: ['W', 'W', 'W', 'D', 'W'],
+            upcomingMatches: [
+                { opponent: 'Real Madrid', date: '2026-02-18', home: true },
+                { opponent: 'Atletico Madrid', date: '2026-02-23', home: false },
+                { opponent: 'Sevilla', date: '2026-02-28', home: true }
+            ]
+        },
+        'Bayern Munich': {
+            name: 'Bayern Munich',
+            league: 'Bundesliga',
+            winRate: 78,
+            cleanSheets: 18,
+            goalsScored: 58,
+            goalsConceded: 19,
+            leaguePosition: 2,
+            recentForm: ['W', 'D', 'W', 'W', 'W'],
+            upcomingMatches: [
+                { opponent: 'Borussia Dortmund', date: '2026-02-19', home: true },
+                { opponent: 'RB Leipzig', date: '2026-02-24', home: false },
+                { opponent: 'Bayer Leverkusen', date: '2026-03-02', home: true }
+            ]
+        }
+    };
+
+    let goalsChart = null;
+    let resultsChart = null;
+
+    function showAnalysis(teamData) {
+        // Update team header
+        document.getElementById('team-name').textContent = teamData.name;
+        document.getElementById('team-league').textContent = teamData.league;
+
+        // Update metrics
+        document.getElementById('win-rate').textContent = teamData.winRate + '%';
+        document.getElementById('clean-sheets').textContent = teamData.cleanSheets;
+        document.getElementById('goals-scored').textContent = teamData.goalsScored;
+        document.getElementById('goals-conceded').textContent = teamData.goalsConceded;
+        document.getElementById('league-position').textContent = teamData.leaguePosition;
+
+        // Update recent form
+        const formContainer = document.getElementById('recent-form');
+        formContainer.innerHTML = teamData.recentForm.map(result => {
+            let bgClass = '';
+            switch(result) {
+                case 'W': bgClass = 'bg-success'; break;
+                case 'D': bgClass = 'bg-warning'; break;
+                case 'L': bgClass = 'bg-danger'; break;
+            }
+            return `<span class="badge ${bgClass} fs-6 p-2">${result}</span>`;
+        }).join('');
+
+        // Update charts
+        updateCharts(teamData);
+
+        // Update upcoming matches
+        updateUpcomingMatches(teamData.upcomingMatches);
+
+        // Show analysis container
+        analysisContainer.style.display = 'block';
+        noResults.style.display = 'none';
+    }
+
+    function updateCharts(teamData) {
+        // Goals chart
+        const goalsCtx = document.getElementById('goals-chart').getContext('2d');
+        if (goalsChart) goalsChart.destroy();
+
+        goalsChart = new Chart(goalsCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Goals Scored', 'Goals Conceded'],
+                datasets: [{
+                    label: 'Goals',
+                    data: [teamData.goalsScored, teamData.goalsConceded],
+                    backgroundColor: ['#28a745', '#dc3545'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Results chart
+        const resultsCtx = document.getElementById('results-chart').getContext('2d');
+        if (resultsChart) resultsChart.destroy();
+
+        const wins = teamData.recentForm.filter(r => r === 'W').length;
+        const draws = teamData.recentForm.filter(r => r === 'D').length;
+        const losses = teamData.recentForm.filter(r => r === 'L').length;
+
+        resultsChart = new Chart(resultsCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Wins', 'Draws', 'Losses'],
+                datasets: [{
+                    data: [wins, draws, losses],
+                    backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    function updateUpcomingMatches(matches) {
+        const container = document.getElementById('upcoming-matches');
+        container.innerHTML = matches.map(match => `
+            <div class="d-flex align-items-center justify-content-between py-3 border-bottom">
+                <div>
+                    <h6 class="mb-1">${match.opponent}</h6>
+                    <small class="text-muted">${new Date(match.date).toLocaleDateString()}</small>
+                </div>
+                <div class="text-end">
+                    <span class="badge ${match.home ? 'bg-primary' : 'bg-secondary'}">
+                        ${match.home ? 'Home' : 'Away'}
+                    </span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function searchTeam(query) {
+        const teamName = query.trim();
+        const teamData = mockTeams[teamName];
+
+        if (teamData) {
+            showAnalysis(teamData);
+        } else {
+            analysisContainer.style.display = 'none';
+            noResults.style.display = 'block';
+        }
+    }
+
+    // Search button click
+    searchBtn.addEventListener('click', function() {
+        const query = teamSearch.value;
+        if (query) {
+            searchTeam(query);
+        }
+    });
+
+    // Enter key in search input
+    teamSearch.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const query = teamSearch.value;
+            if (query) {
+                searchTeam(query);
+            }
+        }
+    });
+
+    // Refresh button
+    refreshBtn.addEventListener('click', function() {
+        const query = teamSearch.value;
+        if (query) {
+            searchTeam(query);
+        }
+    });
+
+    // Auto-suggest functionality (basic)
+    teamSearch.addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+        // Could implement autocomplete here
+    });
+});
+</script>
+
+<style>
+.metric-card {
+    padding: 1rem;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid #dee2e6;
+}
+
+.metric-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.gradient-text {
+    background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+</style>
+{% endblock %}

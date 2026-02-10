@@ -1,0 +1,261 @@
+INFO 2026-02-10 09:16:17,831 autoreload 27353 126022227198208 Watching for file changes with StatReloader
+INFO 2026-02-10 09:16:51,685 autoreload 27353 126022227198208 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/users/apps.py changed, reloading.
+INFO 2026-02-10 09:16:52,217 autoreload 27424 132242602918144 Watching for file changes with StatReloader
+INFO 2026-02-10 09:17:25,055 autoreload 27424 132242602918144 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/core/apps.py changed, reloading.
+INFO 2026-02-10 09:17:25,781 autoreload 27519 125333516898560 Watching for file changes with StatReloader
+INFO 2026-02-10 09:17:30,322 autoreload 27519 125333516898560 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/predictions/apps.py changed, reloading.
+INFO 2026-02-10 09:17:31,043 autoreload 27546 132928983593216 Watching for file changes with StatReloader
+INFO 2026-02-10 09:17:38,544 autoreload 27546 132928983593216 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/payments/apps.py changed, reloading.
+INFO 2026-02-10 09:17:39,059 autoreload 27623 130109023355136 Watching for file changes with StatReloader
+INFO 2026-02-10 09:17:42,532 autoreload 27623 130109023355136 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/analytics/apps.py changed, reloading.
+INFO 2026-02-10 09:17:43,076 autoreload 27649 123367071748352 Watching for file changes with StatReloader
+INFO 2026-02-10 09:18:17,881 autoreload 27649 123367071748352 /home/kibsoft/Documents/dev/projects/sports/futurapredict/config/settings/base.py changed, reloading.
+INFO 2026-02-10 09:18:19,681 autoreload 27689 128878835126528 Watching for file changes with StatReloader
+INFO 2026-02-10 09:23:30,329 autoreload 27689 128878835126528 /home/kibsoft/Documents/dev/projects/sports/futurapredict/config/settings/base.py changed, reloading.
+INFO 2026-02-10 09:23:31,908 autoreload 28224 125709116821760 Watching for file changes with StatReloader
+INFO 2026-02-10 09:23:41,353 autoreload 28280 128072602423552 Watching for file changes with StatReloader
+INFO 2026-02-10 09:24:07,099 autoreload 28429 140453577593088 Watching for file changes with StatReloader
+INFO 2026-02-10 09:24:36,125 autoreload 28604 128811327377664 Watching for file changes with StatReloader
+ERROR 2026-02-10 09:24:41,220 log 28604 128811221903040 Internal Server Error: /account/login/
+Traceback (most recent call last):
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/backends/django.py", line 61, in render
+    return self.template.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 175, in render
+    return self._render(context)
+           ~~~~~~~~~~~~^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 167, in _render
+    return self.nodelist.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 1005, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 966, in render_annotated
+    return self.render(context)
+           ~~~~~~~~~~~^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/loader_tags.py", line 157, in render
+    return compiled_parent._render(context)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 167, in _render
+    return self.nodelist.render(context)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 1005, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 966, in render_annotated
+    return self.render(context)
+           ~~~~~~~~~~~^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/loader_tags.py", line 63, in render
+    result = block.nodelist.render(context)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 1005, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 966, in render_annotated
+    return self.render(context)
+           ~~~~~~~~~~~^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/defaulttags.py", line 471, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/urls/base.py", line 88, in reverse
+    return resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/urls/resolvers.py", line 828, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'password_reset' not found. 'password_reset' is not a valid view function or pattern name.
+INFO 2026-02-10 09:25:23,613 autoreload 28604 128811327377664 /home/kibsoft/Documents/dev/projects/sports/futurapredict/config/urls.py changed, reloading.
+INFO 2026-02-10 09:25:24,495 autoreload 28720 140347930059008 Watching for file changes with StatReloader
+INFO 2026-02-10 09:25:29,196 autoreload 28720 140347930059008 /home/kibsoft/Documents/dev/projects/sports/futurapredict/config/urls.py changed, reloading.
+INFO 2026-02-10 09:25:30,163 autoreload 28751 131765005222144 Watching for file changes with StatReloader
+WARNING 2026-02-10 09:25:39,801 log 28751 131764805682880 Not Found: /service-worker.js
+WARNING 2026-02-10 09:25:48,208 log 28751 131764805682880 Not Found: /service-worker.js
+ERROR 2026-02-10 09:26:01,528 log 28751 131764831909568 Internal Server Error: /analytics/historical/
+Traceback (most recent call last):
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 90, in rendered_content
+    template = self.resolve_template(self.template_name)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 72, in resolve_template
+    return select_template(template, using=self.using)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/loader.py", line 47, in select_template
+    raise TemplateDoesNotExist(", ".join(template_name_list), chain=chain)
+django.template.exceptions.TemplateDoesNotExist: pages/historical_data.html
+WARNING 2026-02-10 09:26:31,634 log 28751 131764797290176 Not Found: /service-worker.js
+WARNING 2026-02-10 09:26:34,117 log 28751 131764831909568 Not Found: /service-worker.js
+WARNING 2026-02-10 09:26:36,256 log 28751 131764797290176 Not Found: /service-worker.js
+WARNING 2026-02-10 09:26:38,008 log 28751 131764797290176 Not Found: /service-worker.js
+WARNING 2026-02-10 09:27:17,829 log 28751 131764831909568 Not Found: /service-worker.js
+WARNING 2026-02-10 09:27:51,149 log 28751 131764831909568 Not Found: /service-worker.js
+WARNING 2026-02-10 09:27:56,395 log 28751 131764831909568 Method Not Allowed: /account/register/
+WARNING 2026-02-10 09:28:09,866 log 28751 131764797290176 Method Not Allowed: /account/register/
+INFO 2026-02-10 09:30:09,235 autoreload 28751 131765005222144 /home/kibsoft/Documents/dev/projects/sports/futurapredict/config/urls.py changed, reloading.
+INFO 2026-02-10 09:30:10,056 autoreload 29381 138952374112512 Watching for file changes with StatReloader
+INFO 2026-02-10 09:30:32,207 autoreload 29381 138952374112512 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/v1/urls.py changed, reloading.
+INFO 2026-02-10 09:30:33,068 autoreload 29459 135681185120512 Watching for file changes with StatReloader
+INFO 2026-02-10 09:32:04,054 autoreload 29459 135681185120512 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/v1/urls.py changed, reloading.
+INFO 2026-02-10 09:32:05,002 autoreload 29584 128262186975488 Watching for file changes with StatReloader
+INFO 2026-02-10 09:32:47,675 autoreload 29775 139028492419328 Watching for file changes with StatReloader
+INFO 2026-02-10 09:35:45,113 autoreload 29775 139028492419328 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/v1/urls.py changed, reloading.
+INFO 2026-02-10 09:35:46,070 autoreload 29900 131531304964352 Watching for file changes with StatReloader
+INFO 2026-02-10 09:35:55,160 autoreload 29900 131531304964352 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/v1/urls.py changed, reloading.
+INFO 2026-02-10 09:35:56,077 autoreload 29957 136912804757760 Watching for file changes with StatReloader
+WARNING 2026-02-10 09:36:17,591 log 29957 136912700434112 Not Found: /service-worker.js
+WARNING 2026-02-10 09:36:23,117 log 29957 136912618649280 Not Found: /service-worker.js
+WARNING 2026-02-10 09:37:21,142 log 29957 136912585078464 Not Found: /service-worker.js
+INFO 2026-02-10 09:37:51,788 autoreload 29957 136912804757760 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-10 09:37:52,603 autoreload 30250 123261887197440 Watching for file changes with StatReloader
+INFO 2026-02-10 09:37:57,367 autoreload 30250 123261887197440 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-10 09:37:58,155 autoreload 30275 127619184206080 Watching for file changes with StatReloader
+INFO 2026-02-10 09:38:16,442 autoreload 30275 127619184206080 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-10 09:38:17,401 autoreload 30340 130673417564416 Watching for file changes with StatReloader
+INFO 2026-02-10 09:38:21,125 autoreload 30340 130673417564416 /home/kibsoft/Documents/dev/projects/sports/futurapredict/config/urls.py changed, reloading.
+INFO 2026-02-10 09:38:21,959 autoreload 30369 132595294023936 Watching for file changes with StatReloader
+INFO 2026-02-10 09:42:16,347 autoreload 30369 132595294023936 /home/kibsoft/Documents/dev/projects/sports/futurapredict/config/urls.py changed, reloading.
+INFO 2026-02-10 09:42:17,279 autoreload 30567 138937354346752 Watching for file changes with StatReloader
+WARNING 2026-02-10 09:42:27,223 log 30567 138937249031872 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2026-02-10 09:42:31,973 log 30567 138937249031872 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2026-02-10 09:42:32,789 log 30567 138936999462592 Not Found: /service-worker.js
+WARNING 2026-02-10 09:43:55,099 log 30567 138937007855296 Not Found: /service-worker.js
+WARNING 2026-02-10 09:44:11,310 log 30567 138937016248000 Not Found: /service-worker.js
+WARNING 2026-02-10 09:44:16,930 log 30567 138937024640704 Not Found: /service-worker.js
+WARNING 2026-02-10 09:49:28,891 log 30567 138937024640704 Not Found: /service-worker.js
+WARNING 2026-02-10 09:49:39,926 log 30567 138937024640704 Method Not Allowed (POST): /account/login/
+INFO 2026-02-10 09:49:54,831 autoreload 31276 130469548355840 Watching for file changes with StatReloader
+INFO 2026-02-10 09:50:04,729 autoreload 31414 133795325550848 Watching for file changes with StatReloader
+WARNING 2026-02-10 09:50:11,402 log 31414 133795221071552 Method Not Allowed (POST): /account/login/
+INFO 2026-02-10 09:51:08,598 autoreload 31414 133795325550848 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-10 09:51:10,340 autoreload 31671 136881905164544 Watching for file changes with StatReloader
+INFO 2026-02-10 09:51:15,524 autoreload 31671 136881905164544 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-10 09:51:16,713 autoreload 31765 126940053659904 Watching for file changes with StatReloader
+INFO 2026-02-10 09:51:20,674 autoreload 31765 126940053659904 /home/kibsoft/Documents/dev/projects/sports/futurapredict/config/urls.py changed, reloading.
+INFO 2026-02-10 09:51:22,281 autoreload 31797 138441725559040 Watching for file changes with StatReloader
+INFO 2026-02-10 09:51:29,263 autoreload 31797 138441725559040 /home/kibsoft/Documents/dev/projects/sports/futurapredict/config/urls.py changed, reloading.
+INFO 2026-02-10 09:51:30,270 autoreload 31840 137505933922560 Watching for file changes with StatReloader
+INFO 2026-02-10 09:51:49,572 autoreload 31840 137505933922560 /home/kibsoft/Documents/dev/projects/sports/futurapredict/config/urls.py changed, reloading.
+INFO 2026-02-10 09:51:50,950 autoreload 31932 132713755062528 Watching for file changes with StatReloader
+WARNING 2026-02-10 09:51:58,214 log 31932 132713650579136 Not Found: /service-worker.js
+WARNING 2026-02-10 09:52:09,339 log 31932 132713650579136 Not Found: /service-worker.js
+WARNING 2026-02-10 09:52:12,488 log 31932 132713642186432 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2026-02-10 09:56:33,711 log 31932 132713642186432 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2026-02-10 09:59:57,841 log 31932 132713382131392 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+INFO 2026-02-10 10:00:16,338 autoreload 33646 133588791333120 Watching for file changes with StatReloader
+WARNING 2026-02-10 10:02:24,201 log 33646 133588686202560 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2026-02-10 10:03:03,296 log 33646 133588686202560 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2026-02-10 10:03:24,552 log 33646 133588686202560 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+INFO 2026-02-10 10:20:53,431 autoreload 40632 139587521216768 Watching for file changes with StatReloader
+WARNING 2026-02-10 10:21:33,178 log 40632 139587408090816 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+INFO 2026-02-10 10:23:15,421 autoreload 40632 139587521216768 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-10 10:23:16,493 autoreload 42788 133129142124800 Watching for file changes with StatReloader
+INFO 2026-02-10 10:24:23,711 autoreload 43419 126138895728896 Watching for file changes with StatReloader
+WARNING 2026-02-10 10:24:34,602 log 42788 133129037670080 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2026-02-10 10:27:54,079 log 42788 133129037670080 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2026-02-10 10:29:02,589 log 42788 133128920217280 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2026-02-10 10:30:47,711 log 42788 133129037670080 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+INFO 2026-02-10 10:38:03,907 autoreload 42788 133129142124800 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-10 10:38:05,311 autoreload 44062 130972930035968 Watching for file changes with StatReloader
+INFO 2026-02-10 10:43:29,456 autoreload 44062 130972930035968 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-10 10:43:30,836 autoreload 44864 126789384868096 Watching for file changes with StatReloader
+INFO 2026-02-10 10:43:35,964 autoreload 44864 126789384868096 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-10 10:43:37,232 autoreload 44897 135457377440000 Watching for file changes with StatReloader
+INFO 2026-02-10 10:46:13,089 autoreload 46394 130357101846784 Watching for file changes with StatReloader
+INFO 2026-02-10 10:47:22,960 autoreload 46524 126809167339776 Watching for file changes with StatReloader
+INFO 2026-02-10 10:47:36,967 autoreload 46648 136397889388800 Watching for file changes with StatReloader
+ERROR 2026-02-10 10:48:08,334 log 46648 136397776213696 Internal Server Error: /predictions/
+Traceback (most recent call last):
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 90, in rendered_content
+    template = self.resolve_template(self.template_name)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 72, in resolve_template
+    return select_template(template, using=self.using)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/loader.py", line 47, in select_template
+    raise TemplateDoesNotExist(", ".join(template_name_list), chain=chain)
+django.template.exceptions.TemplateDoesNotExist: pages/predictions.html
+WARNING 2026-02-10 10:48:08,994 log 46648 136397776213696 Not Found: /favicon.ico
+ERROR 2026-02-10 10:48:30,345 log 46648 136397776213696 Internal Server Error: /analytics/teams/
+Traceback (most recent call last):
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 90, in rendered_content
+    template = self.resolve_template(self.template_name)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 72, in resolve_template
+    return select_template(template, using=self.using)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/loader.py", line 47, in select_template
+    raise TemplateDoesNotExist(", ".join(template_name_list), chain=chain)
+django.template.exceptions.TemplateDoesNotExist: pages/team_analysis.html
+ERROR 2026-02-10 10:48:57,668 log 46648 136397776213696 Internal Server Error: /predictions/
+Traceback (most recent call last):
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 90, in rendered_content
+    template = self.resolve_template(self.template_name)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 72, in resolve_template
+    return select_template(template, using=self.using)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/loader.py", line 47, in select_template
+    raise TemplateDoesNotExist(", ".join(template_name_list), chain=chain)
+django.template.exceptions.TemplateDoesNotExist: pages/predictions.html
+ERROR 2026-02-10 10:50:02,710 log 46648 136397776213696 Internal Server Error: /predictions/
+Traceback (most recent call last):
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 90, in rendered_content
+    template = self.resolve_template(self.template_name)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 72, in resolve_template
+    return select_template(template, using=self.using)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/loader.py", line 47, in select_template
+    raise TemplateDoesNotExist(", ".join(template_name_list), chain=chain)
+django.template.exceptions.TemplateDoesNotExist: pages/predictions.html
+ERROR 2026-02-10 10:50:07,009 log 46648 136397776213696 Internal Server Error: /predictions/
+Traceback (most recent call last):
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 90, in rendered_content
+    template = self.resolve_template(self.template_name)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 72, in resolve_template
+    return select_template(template, using=self.using)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/loader.py", line 47, in select_template
+    raise TemplateDoesNotExist(", ".join(template_name_list), chain=chain)
+django.template.exceptions.TemplateDoesNotExist: pages/predictions.html
+INFO 2026-02-10 11:15:22,279 autoreload 49426 138696085111040 Watching for file changes with StatReloader
+INFO 2026-02-10 11:15:36,656 autoreload 49566 131864662860032 Watching for file changes with StatReloader
+INFO 2026-02-10 11:21:42,998 autoreload 50272 139043519406336 Watching for file changes with StatReloader
+INFO 2026-02-10 11:21:58,540 autoreload 50337 129482468180224 Watching for file changes with StatReloader
+INFO 2026-02-10 11:23:05,830 autoreload 50770 131034086912256 Watching for file changes with StatReloader

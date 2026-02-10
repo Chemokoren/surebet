@@ -1,0 +1,86 @@
+<!-- templates/partials/_navbar.html -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-transparent py-3 border-bottom border-secondary">
+    <div class="container-fluid">
+        <!-- Mobile Toggle -->
+        <button class="navbar-toggler me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <!-- Brand -->
+        <a class="navbar-brand d-flex align-items-center" href="/">
+            <div class="logo-icon me-2">
+                <i class="fas fa-futbol text-primary"></i>
+            </div>
+            <span class="fw-bold gradient-text">FuturaPredict</span>
+            <span class="badge bg-primary ms-2">Pro+</span>
+        </a>
+        
+        <!-- Desktop Navigation -->
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/predictions/">
+                        <i class="fas fa-chart-line me-1"></i> Predictions
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/analytics/teams/">
+                        <i class="fas fa-users me-1"></i> Team Analysis
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/analytics/historical/">
+                        <i class="fas fa-history me-1"></i> Historical Data
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- User Actions -->
+            <div class="d-flex align-items-center gap-2">
+                <!-- Theme Toggle -->
+                <button class="btn btn-outline-secondary btn-sm" id="navThemeToggle">
+                    <i class="fas fa-adjust"></i>
+                </button>
+                
+                <!-- Notifications -->
+                {% if user.is_authenticated %}
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-bell"></i>
+                        {% if user_notification_count > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.5rem;">
+                            {{ user_notification_count }}
+                        </span>
+                        {% endif %}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#">No new notifications</a></li>
+                    </ul>
+                </div>
+                
+                <!-- User Menu -->
+                <div class="dropdown">
+                    <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" data-bs-toggle="dropdown">
+                        <div class="avatar-sm me-2">
+                            <div class="avatar-initials bg-primary rounded-circle d-flex align-items-center justify-content-center"
+                                 style="width: 32px; height: 32px; font-size: 0.875rem;">
+                                {{ user.username|first|upper }}
+                            </div>
+                        </div>
+                        <span class="fw-medium d-none d-md-inline">{{ user.username }}</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="/account/profile/">Profile</a></li>
+                        <li><a class="dropdown-item" href="/account/subscription/">Subscription</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="/account/logout/">Logout</a></li>
+                    </ul>
+                </div>
+                {% else %}
+                <a href="/account/login/" class="btn btn-outline-primary btn-sm">Login</a>
+                <a href="/account/register/" class="btn btn-premium btn-sm">Sign Up</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</nav>

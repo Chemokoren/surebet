@@ -1,0 +1,164 @@
+{% extends 'base_account.html' %}
+{% load static %}
+
+{% block title %}Login - FuturaPredict{% endblock %}
+
+{% block content %}
+<div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center">
+    <div class="row w-100 justify-content-center">
+        <div class="col-md-5">
+            <div class="card border-0 shadow-lg fade-in-up" style="backdrop-filter: blur(10px);">
+                <div class="card-body p-5">
+                    <!-- Header -->
+                    <div class="text-center mb-4">
+                        <h2 class="gradient-text mb-2">Welcome Back</h2>
+                        <p class="text-muted">Sign in to access your predictions</p>
+                    </div>
+
+                    <!-- Login Form -->
+                    <form method="POST" action="{% url 'login' %}">
+                        {% csrf_token %}
+                        
+                        <!-- Next field for redirect after login -->
+                        {% if next %}
+                        <input type="hidden" name="next" value="{{ next }}">
+                        {% endif %}
+
+                        <!-- Email Field -->
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent border-primary text-primary">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
+                                <input type="email" class="form-control border-primary" id="username" name="username" 
+                                       placeholder="you@example.com" required>
+                            </div>
+                            {% if form.username.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.username.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Password Field -->
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent border-primary text-primary">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                                <input type="password" class="form-control border-primary" id="password" name="password" 
+                                       placeholder="Enter your password" required>
+                            </div>
+                            {% if form.password.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.password.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Remember Me -->
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="remember" name="remember">
+                                <label class="form-check-label" for="remember">
+                                    Keep me signed in
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Error Messages -->
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                {% for error in form.non_field_errors %}
+                                    <i class="fas fa-exclamation-circle"></i> {{ error }}
+                                {% endfor %}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endif %}
+
+                        <!-- Submit Button -->
+                        <button type="submit" class="btn btn-primary w-100 mb-3 fw-bold">
+                            <i class="fas fa-sign-in-alt"></i> Sign In
+                        </button>
+                    </form>
+
+                    <!-- Divider -->
+                    <div class="position-relative my-4">
+                        <hr class="border-secondary">
+                        <span class="position-absolute top-50 start-50 translate-middle bg-body px-2 text-muted" style="font-size: 0.85rem;">or</span>
+                    </div>
+
+                    <!-- Social Login -->
+                    <div class="d-grid gap-2 mb-4">
+                        <button class="btn btn-outline-primary" type="button">
+                            <i class="fab fa-google"></i> Sign in with Google
+                        </button>
+                    </div>
+
+                    <!-- Links -->
+                    <div class="text-center">
+                        <p class="text-muted mb-2">
+                            <a href="{% url 'password_reset' %}" class="text-decoration-none text-primary">
+                                Forgot your password?
+                            </a>
+                        </p>
+                        <p class="text-muted">
+                            Don't have an account? 
+                            <a href="{% url 'register' %}" class="text-decoration-none text-primary fw-bold">
+                                Sign up here
+                            </a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Cards -->
+            <div class="row g-3 mt-4">
+                <div class="col-6">
+                    <div class="text-center">
+                        <div class="text-primary mb-2" style="font-size: 2rem;">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <small class="text-muted d-block">Accurate Predictions</small>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="text-center">
+                        <div class="text-primary mb-2" style="font-size: 2rem;">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <small class="text-muted d-block">Secure & Encrypted</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Form validation
+    (function() {
+        'use strict';
+        window.addEventListener('load', function() {
+            var forms = document.querySelectorAll('.needs-validation');
+            Array.prototype.slice.call(forms).forEach(function(form) {
+                form.addEventListener('submit', function(event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        }, false);
+    })();
+</script>
+{% endblock %}
