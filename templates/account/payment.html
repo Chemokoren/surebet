@@ -12,138 +12,139 @@
                     <div class="text-center mb-4">
                         <h2 class="gradient-text">Complete Your Payment</h2>
                         <p class="text-muted">Secure payment processing</p>
+                        {% if is_east_africa %}
+                        <small class="text-success">
+                            <i class="fas fa-map-marker-alt me-1"></i>
+                            Paying in KSh (Kenyan Shillings)
+                        </small>
+                        {% endif %}
                     </div>
 
                     <!-- Order Summary -->
+                    {% if tiers %}
                     <div class="card mb-4 bg-light">
                         <div class="card-body">
-                            <h5 class="card-title">Order Summary</h5>
-                            <div class="row">
-                                <div class="col-8">
-                                    <p class="mb-1">Pro Plan Subscription</p>
-                                    <small class="text-muted">Monthly subscription</small>
+                            <h5 class="card-title">Select a Package</h5>
+                            <div class="row g-2">
+                                {% for tier in tiers %}
+                                <div class="col-md-6 col-lg-4">
+                                    <label class="card tier-option w-100 text-center p-3 border cursor-pointer {% if forloop.first %}border-primary selected{% endif %}" data-tier-id="{{ tier.id }}" data-price="{{ tier.price|floatformat:0 }}" data-currency="{{ tier.currency }}">
+                                        <input type="radio" name="selected_tier" value="{{ tier.id }}" {% if forloop.first %}checked{% endif %} class="d-none">
+                                        <div class="fw-bold">{{ tier.name }}</div>
+                                        <div class="fs-4 text-primary fw-bold">
+                                            {{ currency_symbol }}{{ tier.price|floatformat:0 }}
+                                        </div>
+                                        <small class="text-muted">
+                                            {% if tier.tier_type == 'credit_pack' %}
+                                            {{ tier.credits }} predictions
+                                            {% elif tier.tier_type == 'daily_quota' %}
+                                            {{ tier.daily_limit }}/day for {{ tier.duration_days }} days
+                                            {% else %}
+                                            Single prediction
+                                            {% endif %}
+                                        </small>
+                                    </label>
                                 </div>
-                                <div class="col-4 text-end">
-                                    <h5 class="text-primary mb-0">$9.99</h5>
-                                </div>
+                                {% endfor %}
                             </div>
+
                             <hr>
                             <div class="row">
-                                <div class="col-8">
-                                    <strong>Total</strong>
-                                </div>
+                                <div class="col-8"><strong>Total</strong></div>
                                 <div class="col-4 text-end">
-                                    <h4 class="text-primary mb-0">$9.99</h4>
+                                    <h4 class="text-primary mb-0" id="total-amount">
+                                        {% if tiers %}{{ currency_symbol }}{{ tiers.0.price|floatformat:0 }}{% endif %}
+                                    </h4>
                                 </div>
                             </div>
                         </div>
                     </div>
+                    {% endif %}
 
                     <!-- Payment Form -->
                     <form id="payment-form" method="post">
                         {% csrf_token %}
+                        <input type="hidden" name="tier_id" id="tier-id"
+                            value="{% if tiers %}{{ tiers.0.id }}{% endif %}">
 
                         <!-- Payment Method Selection -->
                         <div class="mb-4">
                             <h5 class="mb-3">Payment Method</h5>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <div class="form-check payment-method-option active" data-method="card">
-                                        <input class="form-check-input" type="radio" name="payment_method" id="card" value="card" checked>
-                                        <label class="form-check-label d-flex align-items-center" for="card">
-                                            <i class="fas fa-credit-card me-2"></i>
-                                            Credit/Debit Card
-                                        </label>
+                            <div class="d-grid gap-2">
+                                {% for channel in payment_channels %}
+                                <label class="payment-method-option btn btn-outline-secondary text-start py-3 {% if channel.is_default %}active{% endif %}" data-provider="{{ channel.provider }}">
+                                    <input type="radio" name="provider" value="{{ channel.provider }}" {% if channel.is_default %}checked{% endif %} class="d-none">
+                                    <div class="d-flex align-items-center">
+                                        <i class="{{ channel.icon }} fa-lg me-3"></i>
+                                        <div>
+                                            <strong>{{ channel.display_name }}</strong>
+                                            {% if channel.provider == 'mpesa' %}
+                                            <br><small class="text-muted">Pay via M-Pesa STK Push</small>
+                                            {% elif channel.provider == 'paypal' %}
+                                            <br><small class="text-muted">Pay with your PayPal account</small>
+                                            {% elif channel.provider == 'stripe' %}
+                                            <br><small class="text-muted">Pay with Visa, MasterCard, etc.</small>
+                                            {% endif %}
+                                        </div>
+                                        {% if channel.is_default %}
+                                        <span class="badge bg-primary ms-auto">Default</span>
+                                        {% endif %}
                                     </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-check payment-method-option" data-method="paypal">
-                                        <input class="form-check-input" type="radio" name="payment_method" id="paypal" value="paypal">
-                                        <label class="form-check-label d-flex align-items-center" for="paypal">
-                                            <i class="fab fa-paypal me-2"></i>
-                                            PayPal
-                                        </label>
-                                    </div>
-                                </div>
+                                </label>
+                                {% endfor %}
                             </div>
                         </div>
 
-                        <!-- Card Payment Form -->
-                        <div id="card-form">
+                        <!-- M-Pesa Phone Input -->
+                        <div id="mpesa-section" {% if not is_east_africa %}style="display:none;" {% endif %}>
+                            <div class="mb-3">
+                                <label for="phone" class="form-label fw-bold">M-Pesa Phone Number</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">+254</span>
+                                    <input type="tel" class="form-control" id="phone" name="phone"
+                                        placeholder="7XXXXXXXX" pattern="[0-9]{9,10}">
+                                </div>
+                                <small class="text-muted mt-1 d-block">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    An STK Push prompt will be sent to this number
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Stripe Card Form (hidden by default for EA) -->
+                        <div id="stripe-section" style="display:{% if is_east_africa %}none{% else %}none{% endif %};">
                             <div class="row g-3">
                                 <div class="col-12">
                                     <label for="card_number" class="form-label">Card Number</label>
                                     <div class="input-group">
-                                        <span class="input-group-text">
-                                            <i class="fas fa-credit-card"></i>
-                                        </span>
+                                        <span class="input-group-text"><i class="fas fa-credit-card"></i></span>
                                         <input type="text" class="form-control" id="card_number" name="card_number"
-                                               placeholder="1234 5678 9012 3456" required>
-                                        <span class="input-group-text">
-                                            <i class="fab fa-cc-visa text-primary"></i>
-                                        </span>
+                                            placeholder="1234 5678 9012 3456">
+                                        <span class="input-group-text"><i
+                                                class="fab fa-cc-visa text-primary"></i></span>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="expiry_date" class="form-label">Expiry Date</label>
                                     <input type="text" class="form-control" id="expiry_date" name="expiry_date"
-                                           placeholder="MM/YY" required>
+                                        placeholder="MM/YY">
                                 </div>
                                 <div class="col-md-6">
                                     <label for="cvv" class="form-label">CVV</label>
-                                    <input type="text" class="form-control" id="cvv" name="cvv"
-                                           placeholder="123" required>
+                                    <input type="text" class="form-control" id="cvv" name="cvv" placeholder="123">
                                 </div>
                                 <div class="col-12">
                                     <label for="cardholder_name" class="form-label">Cardholder Name</label>
                                     <input type="text" class="form-control" id="cardholder_name" name="cardholder_name"
-                                           placeholder="John Doe" required>
+                                        placeholder="John Doe">
                                 </div>
                             </div>
                         </div>
 
-                        <!-- PayPal Form -->
-                        <div id="paypal-form" style="display: none;">
+                        <!-- PayPal Section -->
+                        <div id="paypal-section" style="display: none;">
                             <div class="text-center py-4">
                                 <p class="text-muted mb-3">You will be redirected to PayPal to complete your payment</p>
-                                <button type="button" class="btn btn-primary" onclick="processPayPal()">
-                                    <i class="fab fa-paypal"></i> Continue with PayPal
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Billing Address -->
-                        <div class="mt-4">
-                            <h5 class="mb-3">Billing Address</h5>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label for="first_name" class="form-label">First Name</label>
-                                    <input type="text" class="form-control" id="first_name" name="first_name" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="last_name" class="form-label">Last Name</label>
-                                    <input type="text" class="form-control" id="last_name" name="last_name" required>
-                                </div>
-                                <div class="col-12">
-                                    <label for="email" class="form-label">Email Address</label>
-                                    <input type="email" class="form-control" id="email" name="email" required>
-                                </div>
-                                <div class="col-12">
-                                    <label for="address" class="form-label">Address</label>
-                                    <input type="text" class="form-control" id="address" name="address" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="city" class="form-label">City</label>
-                                    <input type="text" class="form-control" id="city" name="city" required>
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="state" class="form-label">State</label>
-                                    <input type="text" class="form-control" id="state" name="state" required>
-                                </div>
-                                <div class="col-md-3">
-                                    <label for="zip_code" class="form-label">ZIP Code</label>
-                                    <input type="text" class="form-control" id="zip_code" name="zip_code" required>
-                                </div>
                             </div>
                         </div>
 
@@ -160,15 +161,16 @@
 
                         <!-- Submit Button -->
                         <div class="mt-4">
-                            <button type="submit" class="btn btn-primary w-100 py-3">
-                                <i class="fas fa-lock"></i> Complete Payment - $9.99
+                            <button type="submit" class="btn btn-primary w-100 py-3" id="pay-button">
+                                <i class="fas fa-lock me-1"></i>
+                                Pay Now
                             </button>
                         </div>
 
                         <!-- Security Notice -->
                         <div class="text-center mt-3">
                             <small class="text-muted">
-                                <i class="fas fa-shield-alt"></i>
+                                <i class="fas fa-shield-alt me-1"></i>
                                 Your payment information is secure and encrypted
                             </small>
                         </div>
@@ -181,66 +183,118 @@
 {% endblock %}
 
 {% block extra_js %}
+<style>
+    .tier-option {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-radius: 8px;
+    }
+
+    .tier-option:hover,
+    .tier-option.selected {
+        border-color: var(--bs-primary) !important;
+        background: rgba(var(--bs-primary-rgb), 0.05);
+    }
+
+    .payment-method-option {
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .payment-method-option.active,
+    .payment-method-option:hover {
+        border-color: var(--bs-primary) !important;
+        background: rgba(var(--bs-primary-rgb), 0.05);
+    }
+</style>
 <script>
-// Payment method switching
-document.querySelectorAll('.payment-method-option').forEach(option => {
-    option.addEventListener('click', function() {
-        // Remove active class from all options
-        document.querySelectorAll('.payment-method-option').forEach(opt => {
-            opt.classList.remove('active');
+    // Tier selection
+    document.querySelectorAll('.tier-option').forEach(option => {
+        option.addEventListener('click', function () {
+            document.querySelectorAll('.tier-option').forEach(opt => {
+                opt.classList.remove('selected', 'border-primary');
+            });
+            this.classList.add('selected', 'border-primary');
+            this.querySelector('input[type="radio"]').checked = true;
+
+            const tierId = this.dataset.tierId;
+            const price = this.dataset.price;
+            const currency = '{{ currency_symbol }}';
+
+            document.getElementById('tier-id').value = tierId;
+            document.getElementById('total-amount').textContent = currency + price;
         });
-
-        // Add active class to clicked option
-        this.classList.add('active');
-
-        // Show/hide forms
-        const method = this.dataset.method;
-        document.getElementById('card-form').style.display = method === 'card' ? 'block' : 'none';
-        document.getElementById('paypal-form').style.display = method === 'paypal' ? 'block' : 'none';
-
-        // Update radio button
-        this.querySelector('input[type="radio"]').checked = true;
     });
-});
 
-// Card number formatting
-document.getElementById('card_number').addEventListener('input', function(e) {
-    let value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
-    e.target.value = formattedValue;
-});
+    // Payment method switching
+    document.querySelectorAll('.payment-method-option').forEach(option => {
+        option.addEventListener('click', function () {
+            document.querySelectorAll('.payment-method-option').forEach(opt => {
+                opt.classList.remove('active');
+            });
+            this.classList.add('active');
+            this.querySelector('input[type="radio"]').checked = true;
 
-// Expiry date formatting
-document.getElementById('expiry_date').addEventListener('input', function(e) {
-    let value = e.target.value.replace(/\D/g, '');
-    if (value.length >= 2) {
-        value = value.substring(0, 2) + '/' + value.substring(2, 4);
-    }
-    e.target.value = value;
-});
+            const provider = this.dataset.provider;
 
-// CVV validation
-document.getElementById('cvv').addEventListener('input', function(e) {
-    e.target.value = e.target.value.replace(/\D/g, '').substring(0, 4);
-});
+            // Toggle sections
+            const mpesaSection = document.getElementById('mpesa-section');
+            const stripeSection = document.getElementById('stripe-section');
+            const paypalSection = document.getElementById('paypal-section');
 
-function processPayPal() {
-    alert('Redirecting to PayPal...');
-    // Implement PayPal integration here
-}
+            if (mpesaSection) mpesaSection.style.display = provider === 'mpesa' ? 'block' : 'none';
+            if (stripeSection) stripeSection.style.display = provider === 'stripe' ? 'block' : 'none';
+            if (paypalSection) paypalSection.style.display = provider === 'paypal' ? 'block' : 'none';
+        });
+    });
 
-// Form validation
-document.getElementById('payment-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-
-    if (this.checkValidity()) {
-        // Process payment
-        alert('Payment processed successfully! Thank you for your subscription.');
-        // Redirect to success page
-        // window.location.href = '/account/subscription/success/';
+    // Card number formatting
+    const cardInput = document.getElementById('card_number');
+    if (cardInput) {
+        cardInput.addEventListener('input', function (e) {
+            let value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+            let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
+            e.target.value = formattedValue;
+        });
     }
 
-    this.classList.add('was-validated');
-});
+    // Expiry date formatting
+    const expiryInput = document.getElementById('expiry_date');
+    if (expiryInput) {
+        expiryInput.addEventListener('input', function (e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length >= 2) {
+                value = value.substring(0, 2) + '/' + value.substring(2, 4);
+            }
+            e.target.value = value;
+        });
+    }
+
+    // CVV validation
+    const cvvInput = document.getElementById('cvv');
+    if (cvvInput) {
+        cvvInput.addEventListener('input', function (e) {
+            e.target.value = e.target.value.replace(/\D/g, '').substring(0, 4);
+        });
+    }
+
+    // Form validation
+    document.getElementById('payment-form').addEventListener('submit', function (e) {
+        const provider = this.querySelector('input[name="provider"]:checked');
+        if (!provider) {
+            e.preventDefault();
+            alert('Please select a payment method.');
+            return;
+        }
+
+        if (provider.value === 'mpesa') {
+            const phone = document.getElementById('phone').value;
+            if (!phone || phone.length < 9) {
+                e.preventDefault();
+                alert('Please enter a valid M-Pesa phone number.');
+                return;
+            }
+        }
+    });
 </script>
 {% endblock %}

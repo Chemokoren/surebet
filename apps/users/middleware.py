@@ -88,9 +88,33 @@ class SubscriptionMiddleware(MiddlewareMixin):
             request.subscription = None
 
     def _attach_anonymous_info(self, request):
-        """Set defaults for anonymous users."""
-        request.user_region = request.session.get('user_geo', {}).get('region', 'global')
-        request.user_currency = request.session.get('user_geo', {}).get('currency', 'USD')
+        """Detect geo and set defaults for anonymous users."""
+        session_geo = request.session.get('user_geo')
+
+        if session_geo:
+            request.user_region = session_geo.get('region', 'global')
+            request.user_currency = session_geo.get('currency', 'USD')
+        else:
+            # Perform geo detection for anonymous users too
+            try:
+                from apps.users.geolocation import GeoLocationService
+
+                ip = GeoLocationService.get_client_ip(request)
+                geo = GeoLocationService.detect_from_ip(ip)
+
+                request.session['user_geo'] = {
+                    'region': geo.get('region', 'global'),
+                    'currency': geo.get('currency', 'USD'),
+                    'country': geo.get('country_code', ''),
+                    'detected_at': timezone.now().isoformat(),
+                }
+                request.user_region = geo.get('region', 'global')
+                request.user_currency = geo.get('currency', 'USD')
+            except Exception as e:
+                logger.debug(f"Anonymous geo detection skipped: {e}")
+                request.user_region = 'global'
+                request.user_currency = 'USD'
+
         request.prediction_credits = 0
         request.has_subscription = False
         request.subscription = None

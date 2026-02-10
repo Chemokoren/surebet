@@ -9,32 +9,87 @@
         <div class="col-lg-10">
             <div class="text-center mb-5">
                 <h1 class="gradient-text">Choose Your Plan</h1>
-                <p class="text-muted">Unlock premium features and get the most out of FuturaPredict</p>
+                <p class="text-muted">
+                    Unlock premium features and get the most out of FuturaPredict
+                    {% if is_east_africa %}
+                    <br><small class="text-success"><i class="fas fa-map-marker-alt me-1"></i>Prices shown in KSh for
+                        your region</small>
+                    {% endif %}
+                </p>
             </div>
 
+            {% if plans %}
+            <!-- Dynamic Plans from DB -->
+            <div class="row g-4 justify-content-center">
+                {% for plan in plans %}
+                <div class="col-md-6 col-lg-4">
+                    <div
+                        class="card h-100 border{% if forloop.counter == 2 %}-primary shadow-lg{% endif %} position-relative">
+                        {% if forloop.counter == 2 %}
+                        <div class="position-absolute top-0 start-50 translate-middle">
+                            <span class="badge bg-primary px-3 py-2">Most Popular</span>
+                        </div>
+                        {% endif %}
+                        <div class="card-body text-center p-4">
+                            <div class="mb-3">
+                                {% if forloop.counter == 1 %}
+                                <i class="fas fa-star text-warning fa-3x"></i>
+                                {% elif forloop.counter == 2 %}
+                                <i class="fas fa-crown text-primary fa-3x"></i>
+                                {% else %}
+                                <i class="fas fa-gem text-info fa-3x"></i>
+                                {% endif %}
+                            </div>
+                            <h3 class="card-title">{{ plan.name }}</h3>
+                            <h2 class="text-primary mb-4">
+                                {{ currency_symbol }}{{ plan.price|floatformat:0 }}
+                                <span class="fs-6 text-muted">/{{ plan.interval }}</span>
+                            </h2>
+
+                            <ul class="list-unstyled mb-4">
+                                {% for feature in plan.features %}
+                                <li class="mb-2"><i class="fas fa-check text-success"></i> {{ feature }}</li>
+                                {% endfor %}
+                                <li class="mb-2"><i class="fas fa-check text-success"></i> {{
+                                    plan.daily_prediction_limit }} predictions/day</li>
+                            </ul>
+
+                            {% if active_sub and active_sub.plan.id == plan.id %}
+                            <button class="btn btn-outline-success w-100" disabled>
+                                <i class="fas fa-check-circle me-1"></i> Current Plan
+                            </button>
+                            {% else %}
+                            <button
+                                class="btn {% if forloop.counter == 2 %}btn-primary{% else %}btn-outline-primary{% endif %} w-100"
+                                onclick="selectPlan('{{ plan.id }}', '{{ plan.name }}', '{{ currency_symbol }}{{ plan.price|floatformat:0 }}')">
+                                Upgrade to {{ plan.name }}
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% else %}
+            <!-- Fallback Static Plans -->
             <div class="row g-4">
                 <!-- Free Plan -->
                 <div class="col-lg-4">
                     <div class="card h-100 border">
                         <div class="card-body text-center p-4">
-                            <div class="mb-3">
-                                <i class="fas fa-star text-warning fa-3x"></i>
-                            </div>
+                            <div class="mb-3"><i class="fas fa-star text-warning fa-3x"></i></div>
                             <h3 class="card-title">Free</h3>
-                            <h2 class="text-primary mb-4">$0<span class="fs-6 text-muted">/month</span></h2>
-
+                            <h2 class="text-primary mb-4">{{ currency_symbol }}0<span
+                                    class="fs-6 text-muted">/month</span></h2>
                             <ul class="list-unstyled mb-4">
                                 <li class="mb-2"><i class="fas fa-check text-success"></i> Basic predictions</li>
                                 <li class="mb-2"><i class="fas fa-check text-success"></i> 5 matches per day</li>
                                 <li class="mb-2"><i class="fas fa-check text-success"></i> Email notifications</li>
                                 <li class="mb-2"><i class="fas fa-times text-muted"></i> Advanced analytics</li>
                                 <li class="mb-2"><i class="fas fa-times text-muted"></i> Live match updates</li>
-                                <li class="mb-2"><i class="fas fa-times text-muted"></i> Priority support</li>
                             </ul>
-
-                            <button class="btn btn-outline-primary w-100" disabled>
-                                Current Plan
-                            </button>
+                            <button class="btn btn-outline-primary w-100" disabled>Current Plan</button>
                         </div>
                     </div>
                 </div>
@@ -46,12 +101,12 @@
                             <span class="badge bg-primary px-3 py-2">Most Popular</span>
                         </div>
                         <div class="card-body text-center p-4">
-                            <div class="mb-3">
-                                <i class="fas fa-crown text-primary fa-3x"></i>
-                            </div>
+                            <div class="mb-3"><i class="fas fa-crown text-primary fa-3x"></i></div>
                             <h3 class="card-title">Pro</h3>
-                            <h2 class="text-primary mb-4">$9.99<span class="fs-6 text-muted">/month</span></h2>
-
+                            <h2 class="text-primary mb-4">
+                                {% if is_east_africa %}KSh 999{% else %}$9.99{% endif %}
+                                <span class="fs-6 text-muted">/month</span>
+                            </h2>
                             <ul class="list-unstyled mb-4">
                                 <li class="mb-2"><i class="fas fa-check text-success"></i> Advanced predictions</li>
                                 <li class="mb-2"><i class="fas fa-check text-success"></i> Unlimited matches</li>
@@ -60,8 +115,8 @@
                                 <li class="mb-2"><i class="fas fa-check text-success"></i> Historical data</li>
                                 <li class="mb-2"><i class="fas fa-check text-success"></i> Email support</li>
                             </ul>
-
-                            <button class="btn btn-primary w-100" onclick="selectPlan('pro')">
+                            <button class="btn btn-primary w-100"
+                                onclick="selectPlan('pro', 'Pro', '{% if is_east_africa %}KSh 999{% else %}$9.99{% endif %}')">
                                 Upgrade to Pro
                             </button>
                         </div>
@@ -72,12 +127,12 @@
                 <div class="col-lg-4">
                     <div class="card h-100 border">
                         <div class="card-body text-center p-4">
-                            <div class="mb-3">
-                                <i class="fas fa-diamond text-info fa-3x"></i>
-                            </div>
+                            <div class="mb-3"><i class="fas fa-gem text-info fa-3x"></i></div>
                             <h3 class="card-title">Premium</h3>
-                            <h2 class="text-primary mb-4">$19.99<span class="fs-6 text-muted">/month</span></h2>
-
+                            <h2 class="text-primary mb-4">
+                                {% if is_east_africa %}KSh 1,999{% else %}$19.99{% endif %}
+                                <span class="fs-6 text-muted">/month</span>
+                            </h2>
                             <ul class="list-unstyled mb-4">
                                 <li class="mb-2"><i class="fas fa-check text-success"></i> All Pro features</li>
                                 <li class="mb-2"><i class="fas fa-check text-success"></i> AI-powered insights</li>
@@ -86,14 +141,15 @@
                                 <li class="mb-2"><i class="fas fa-check text-success"></i> Expert analysis</li>
                                 <li class="mb-2"><i class="fas fa-check text-success"></i> Priority phone support</li>
                             </ul>
-
-                            <button class="btn btn-outline-primary w-100" onclick="selectPlan('premium')">
+                            <button class="btn btn-outline-primary w-100"
+                                onclick="selectPlan('premium', 'Premium', '{% if is_east_africa %}KSh 1,999{% else %}$19.99{% endif %}')">
                                 Upgrade to Premium
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
+            {% endif %}
 
             <!-- Current Subscription Status -->
             <div class="card mt-5">
@@ -103,11 +159,25 @@
                 <div class="card-body">
                     <div class="row align-items-center">
                         <div class="col-md-8">
+                            {% if active_sub %}
+                            <h6 class="mb-1">{{ active_sub.plan.name }}</h6>
+                            <p class="text-muted mb-0">
+                                Expires: {{ active_sub.expires_at|date:"d M Y" }}
+                                · {{ active_sub.plan.daily_prediction_limit }} predictions/day
+                            </p>
+                            {% else %}
                             <h6 class="mb-1">Free Plan</h6>
                             <p class="text-muted mb-0">Basic features included</p>
+                            {% endif %}
                         </div>
                         <div class="col-md-4 text-end">
+                            {% if active_sub %}
+                            <span class="badge bg-{{ active_sub.status|lower }}">
+                                {{ active_sub.get_status_display }}
+                            </span>
+                            {% else %}
                             <span class="badge bg-success">Active</span>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -132,32 +202,77 @@
 
 <!-- Payment Modal -->
 <div class="modal fade" id="paymentModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Complete Payment</h5>
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Complete Payment</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="payment-form">
-                    <div class="mb-3">
-                        <label class="form-label">Card Number</label>
-                        <input type="text" class="form-control" placeholder="1234 5678 9012 3456" required>
-                    </div>
-                    <div class="row">
-                        <div class="col-6">
-                            <label class="form-label">Expiry Date</label>
-                            <input type="text" class="form-control" placeholder="MM/YY" required>
+                <!-- Plan Summary -->
+                <div class="alert alert-light border mb-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong id="modal-plan-name">Plan</strong>
+                            <br><small class="text-muted">Monthly subscription</small>
                         </div>
-                        <div class="col-6">
-                            <label class="form-label">CVV</label>
-                            <input type="text" class="form-control" placeholder="123" required>
-                        </div>
+                        <div class="fw-bold text-primary fs-5" id="modal-plan-price">$0</div>
                     </div>
-                    <div class="mt-3">
-                        <button type="submit" class="btn btn-primary w-100">
-                            Pay Now
-                        </button>
+                </div>
+
+                <!-- Payment Channel Selection -->
+                <h6 class="mb-3">Select Payment Method</h6>
+                <form id="payment-form" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="plan_id" id="modal-plan-id" value="">
+
+                    <div class="d-grid gap-2 mb-4">
+                        {% for channel in payment_channels %}
+                        <label class="payment-channel-option btn btn-outline-secondary text-start py-3 {% if channel.is_default %}active{% endif %}" data-provider="{{ channel.provider }}">
+                            <input type="radio" name="provider" value="{{ channel.provider }}" {% if channel.is_default %}checked{% endif %} class="d-none">
+                            <div class="d-flex align-items-center">
+                                <i class="{{ channel.icon }} fa-lg me-3"></i>
+                                <div>
+                                    <strong>{{ channel.display_name }}</strong>
+                                    {% if channel.provider == 'mpesa' %}
+                                    <br><small class="text-muted">Pay via M-Pesa STK Push</small>
+                                    {% elif channel.provider == 'paypal' %}
+                                    <br><small class="text-muted">Pay with your PayPal account</small>
+                                    {% elif channel.provider == 'stripe' %}
+                                    <br><small class="text-muted">Pay with Visa, MasterCard, etc.</small>
+                                    {% endif %}
+                                </div>
+                                {% if channel.is_default %}
+                                <span class="badge bg-primary ms-auto">Default</span>
+                                {% endif %}
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+
+                    <!-- M-Pesa Phone Number (shown only when M-Pesa selected) -->
+                    <div id="mpesa-phone-section" {% if not is_east_africa %}style="display:none;" {% endif %}>
+                        <label for="phone" class="form-label">M-Pesa Phone Number</label>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text">+254</span>
+                            <input type="tel" class="form-control" id="phone" name="phone" placeholder="7XXXXXXXX"
+                                pattern="[0-9]{9,10}">
+                        </div>
+                        <small class="text-muted d-block mb-3">
+                            <i class="fas fa-info-circle me-1"></i>
+                            You'll receive an STK Push prompt on your phone
+                        </small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-3">
+                        <i class="fas fa-lock me-2"></i> Pay Now
+                    </button>
+
+                    <div class="text-center mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-shield-alt me-1"></i>
+                            Secure & encrypted payment
+                        </small>
                     </div>
                 </form>
             </div>
@@ -167,17 +282,64 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-function selectPlan(plan) {
-    const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
-    modal.show();
-}
+<style>
+    .payment-channel-option {
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
 
-document.getElementById('payment-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    // Handle payment processing here
-    alert('Payment processed successfully! Welcome to ' + plan + ' plan.');
-    bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
-});
+    .payment-channel-option.active,
+    .payment-channel-option:hover {
+        border-color: var(--bs-primary) !important;
+        background: rgba(var(--bs-primary-rgb), 0.05);
+    }
+</style>
+<script>
+    function selectPlan(planId, planName, planPrice) {
+        document.getElementById('modal-plan-id').value = planId;
+        document.getElementById('modal-plan-name').textContent = planName;
+        document.getElementById('modal-plan-price').textContent = planPrice;
+
+        const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+        modal.show();
+    }
+
+    // Payment channel selection
+    document.querySelectorAll('.payment-channel-option').forEach(option => {
+        option.addEventListener('click', function () {
+            document.querySelectorAll('.payment-channel-option').forEach(opt => {
+                opt.classList.remove('active');
+            });
+            this.classList.add('active');
+            this.querySelector('input[type="radio"]').checked = true;
+
+            const provider = this.dataset.provider;
+            const mpesaSection = document.getElementById('mpesa-phone-section');
+            if (mpesaSection) {
+                mpesaSection.style.display = provider === 'mpesa' ? 'block' : 'none';
+            }
+        });
+    });
+
+    // Form submission
+    document.getElementById('payment-form').addEventListener('submit', function (e) {
+        const provider = this.querySelector('input[name="provider"]:checked').value;
+        const planId = document.getElementById('modal-plan-id').value;
+
+        if (!planId) {
+            e.preventDefault();
+            alert('Please select a plan first.');
+            return;
+        }
+
+        if (provider === 'mpesa') {
+            const phone = document.getElementById('phone').value;
+            if (!phone || phone.length < 9) {
+                e.preventDefault();
+                alert('Please enter a valid M-Pesa phone number.');
+                return;
+            }
+        }
+    });
 </script>
 {% endblock %}

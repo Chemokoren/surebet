@@ -11,9 +11,9 @@ from django.contrib.auth import views as auth_views
 
 # Import views
 from apps.api.views import (
-    HomeView, PredictionsView, TeamAnalysisView, 
+    HomeView, PredictionsView, PredictionDetailView, TeamAnalysisView, 
     SubscriptionView, ProfileView, PaymentView, LoginView, LogoutView,
-    DataExportView, AccountDeleteView
+    DataExportView, AccountDeleteView, UnlockPredictionView
 )
 
 # Webhook views
@@ -26,6 +26,8 @@ urlpatterns = [
     # Frontend pages
     path('', HomeView.as_view(), name='home'),
     path('predictions/', PredictionsView.as_view(), name='predictions'),
+    path('predictions/<uuid:pk>/', PredictionDetailView.as_view(), name='prediction_detail'),
+    path('predictions/<uuid:pk>/unlock/', UnlockPredictionView.as_view(), name='unlock_prediction'),
     path('analytics/teams/', TeamAnalysisView.as_view(), name='team_analysis'),
     path('analytics/historical/', TemplateView.as_view(template_name='pages/historical_data.html'), name='historical_data'),
     path('analytics/accuracy/', TemplateView.as_view(template_name='pages/accuracy_dashboard.html'), name='accuracy_dashboard'),

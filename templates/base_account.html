@@ -1,6 +1,7 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -27,23 +28,26 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
 
     <!-- Custom CSS -->
     <link href="{% static 'css/main.css' %}" rel="stylesheet">
     <link href="{% static 'css/animations.css' %}" rel="stylesheet">
-    
+
     <style>
-    body {
-        margin: 0 !important;
-        padding: 0 !important;
-        width: 100% !important;
-    }
-    main {
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+
+        main {
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
     </style>
 
     <!-- Page-specific CSS -->
@@ -52,10 +56,11 @@
     <!-- CSRF Token for AJAX -->
     <meta name="csrf-token" content="{{ csrf_token }}">
 </head>
+
 <body class="bg-gradient-dark">
     <!-- Theme Toggle Button -->
     <button class="btn btn-sm btn-outline-secondary theme-toggle position-fixed bottom-0 end-0 m-3 rounded-circle"
-            style="z-index: 1000; width: 40px; height: 40px;">
+        style="z-index: 1000; width: 40px; height: 40px;">
         <i class="fas fa-moon"></i>
     </button>
 
@@ -74,11 +79,16 @@
 
     <!-- Main Content - Full Width for Account Pages -->
     <main class="min-vh-100 d-flex flex-column">
+        <!-- Navbar -->
+        {% include 'partials/_navbar.html' %}
+
         <!-- Messages -->
         {% include 'partials/_messages.html' %}
 
         <!-- Page Content -->
-        {% block content %}{% endblock %}
+        <div class="flex-grow-1 d-flex flex-column">
+            {% block content %}{% endblock %}
+        </div>
 
         <!-- Footer -->
         {% include 'partials/_footer.html' %}
@@ -95,4 +105,5 @@
     <!-- Page-specific JS -->
     {% block extra_js %}{% endblock %}
 </body>
+
 </html>

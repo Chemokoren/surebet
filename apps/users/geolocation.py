@@ -172,12 +172,12 @@ class GeoLocationService:
             profile.detected_ip != ip
         ):
             profile.detected_ip = ip
-            profile.country = geo['country_code']
+            profile.country_code = geo['country_code']
             profile.region = geo['region']
             profile.currency = geo['currency']
             profile.geo_cached_at = __import__('django.utils.timezone', fromlist=['now']).now()
             profile.save(update_fields=[
-                'detected_ip', 'country', 'region', 'currency', 'geo_cached_at',
+                'detected_ip', 'country_code', 'region', 'currency', 'geo_cached_at',
             ])
             logger.info(
                 f"Updated geo for user {user.pk}: "

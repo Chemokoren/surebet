@@ -10,73 +10,112 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1 class="gradient-text">Match Predictions</h1>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-outline-primary" id="filter-btn">
+                    <button class="btn btn-outline-primary" id="filter-btn" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#filters-card">
                         <i class="fas fa-filter"></i> Filter
                     </button>
-                    <button class="btn btn-outline-secondary" id="refresh-btn">
+                    <a href="." class="btn btn-outline-secondary">
                         <i class="fas fa-sync"></i> Refresh
-                    </button>
+                    </a>
                 </div>
             </div>
 
             <!-- Filters -->
-            <div class="card mb-4" id="filters-card" style="display: none;">
-                <div class="card-body">
-                    <div class="row g-3">
+            <div class="collapse mb-4" id="filters-card">
+                <div class="card card-body">
+                    <form method="get" class="row g-3">
                         <div class="col-md-3">
                             <label class="form-label">League</label>
-                            <select class="form-select" id="league-filter">
+                            <select name="league" class="form-select">
                                 <option value="">All Leagues</option>
-                                <option value="premier-league">Premier League</option>
-                                <option value="la-liga">La Liga</option>
-                                <option value="bundesliga">Bundesliga</option>
-                                <option value="serie-a">Serie A</option>
+                                {% for league in leagues %}
+                                <option value="{{ league.code }}" {% if selected_league == league.code %}selected{% endif %}>{{ league.name }}</option>
+                                {% endfor %}
                             </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Date Range</label>
-                            <select class="form-select" id="date-filter">
-                                <option value="today">Today</option>
-                                <option value="week">This Week</option>
-                                <option value="month">This Month</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Min Confidence</label>
-                            <input type="range" class="form-range" id="confidence-filter" min="50" max="100" value="60">
-                            <div class="d-flex justify-content-between">
-                                <small class="text-muted">50%</small>
-                                <small class="text-muted" id="confidence-value">60%</small>
-                                <small class="text-muted">100%</small>
-                            </div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">&nbsp;</label>
-                            <button class="btn btn-primary w-100" id="apply-filters">Apply Filters</button>
+                            <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </div>
 
             <!-- Predictions Grid -->
             <div class="row g-4" id="predictions-container">
-                <!-- Predictions will be loaded here via JavaScript -->
-                <div class="col-12">
-                    <div class="text-center py-5">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading predictions...</span>
+                {% for pred in predictions %}
+                <div class="col-lg-4 col-md-6">
+                    <div class="card h-100 border-0 shadow-lg prediction-card">
+                        <div class="card-body p-4">
+                            <!-- League Badge -->
+                            <div class="text-center mb-3">
+                                <span class="badge bg-primary bg-gradient fs-6 px-3 py-2">
+                                    {{ pred.match.league.name }}
+                                </span>
+                            </div>
+
+                            <!-- Teams -->
+                            <div class="text-center mb-4">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <div class="text-end" style="flex: 1;">
+                                        <h5 class="mb-0">{{ pred.match.home_team.name }}</h5>
+                                    </div>
+                                    <div class="mx-3">
+                                        <span class="text-muted">vs</span>
+                                    </div>
+                                    <div class="text-start" style="flex: 1;">
+                                        <h5 class="mb-0">{{ pred.match.away_team.name }}</h5>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Prediction -->
+                            <div class="text-center mb-3">
+                                <div class="prediction-badge {{ pred.predicted_outcome }}">
+                                    {{ pred.get_predicted_outcome_display|upper }}
+                                </div>
+                            </div>
+
+                            <!-- Confidence Score -->
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <small class="text-muted">Confidence</small>
+                                    <small class="fw-bold">{{ pred.confidence_score|floatformat:0 }}%</small>
+                                </div>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar bg-success"
+                                        style="width: {{ pred.confidence_score|default:0|floatformat:0 }}%"></div>
+                                </div>
+                            </div>
+
+                            <!-- Match Date -->
+                            <div class="text-center mb-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    {{ pred.match.match_date|date:"D, M d, Y - H:i" }}
+                                </small>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="d-grid gap-2">
+                                <a href="{% url 'prediction_detail' pk=pred.id %}"
+                                    class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-info-circle me-1"></i> View Details
+                                </a>
+                            </div>
                         </div>
-                        <p class="mt-3 text-muted">Loading predictions...</p>
                     </div>
                 </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="text-center py-5">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No predictions found for upcoming scheduled matches.</p>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
 
-            <!-- Load More Button -->
-            <div class="text-center mt-4" id="load-more-container" style="display: none;">
-                <button class="btn btn-outline-primary" id="load-more-btn">
-                    <i class="fas fa-plus"></i> Load More Predictions
-                </button>
-            </div>
         </div>
     </div>
 </div>
@@ -84,240 +123,38 @@
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const filterBtn = document.getElementById('filter-btn');
-    const filtersCard = document.getElementById('filters-card');
-    const confidenceFilter = document.getElementById('confidence-filter');
-    const confidenceValue = document.getElementById('confidence-value');
-    const applyFiltersBtn = document.getElementById('apply-filters');
-    const refreshBtn = document.getElementById('refresh-btn');
-    const predictionsContainer = document.getElementById('predictions-container');
-
-    // Toggle filters
-    filterBtn.addEventListener('click', function() {
-        filtersCard.style.display = filtersCard.style.display === 'none' ? 'block' : 'none';
-    });
-
-    // Update confidence value display
-    confidenceFilter.addEventListener('input', function() {
-        confidenceValue.textContent = this.value + '%';
-    });
-
-    // Mock predictions data
-    const mockPredictions = [
-        {
-            id: 1,
-            home_team: 'Manchester United',
-            away_team: 'Liverpool',
-            league: 'Premier League',
-            league_class: 'premier-league',
-            predicted_outcome: 'home_win',
-            confidence_score: 78,
-            match_date: '2026-02-15 20:00',
-            odds: { home: 2.1, draw: 3.4, away: 3.2 }
-        },
-        {
-            id: 2,
-            home_team: 'Barcelona',
-            away_team: 'Real Madrid',
-            league: 'La Liga',
-            league_class: 'la-liga',
-            predicted_outcome: 'draw',
-            confidence_score: 65,
-            match_date: '2026-02-16 21:00',
-            odds: { home: 2.3, draw: 3.1, away: 2.8 }
-        },
-        {
-            id: 3,
-            home_team: 'Bayern Munich',
-            away_team: 'Borussia Dortmund',
-            league: 'Bundesliga',
-            league_class: 'bundesliga',
-            predicted_outcome: 'away_win',
-            confidence_score: 82,
-            match_date: '2026-02-17 19:30',
-            odds: { home: 1.8, draw: 3.8, away: 4.0 }
-        }
-    ];
-
-    function renderPredictions(predictions) {
-        predictionsContainer.innerHTML = predictions.map(prediction => `
-            <div class="col-lg-4 col-md-6">
-                <div class="card h-100 border-0 shadow-lg prediction-card">
-                    <div class="card-body p-4">
-                        <!-- League Badge -->
-                        <div class="text-center mb-3">
-                            <span class="badge bg-${prediction.league_class} fs-6 px-3 py-2">
-                                ${prediction.league}
-                            </span>
-                        </div>
-
-                        <!-- Teams -->
-                        <div class="text-center mb-4">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <div class="text-end" style="flex: 1;">
-                                    <h5 class="mb-0">${prediction.home_team}</h5>
-                                </div>
-                                <div class="mx-3">
-                                    <span class="text-muted">vs</span>
-                                </div>
-                                <div class="text-start" style="flex: 1;">
-                                    <h5 class="mb-0">${prediction.away_team}</h5>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Prediction -->
-                        <div class="text-center mb-3">
-                            <div class="prediction-badge ${prediction.predicted_outcome}">
-                                ${prediction.predicted_outcome.replace('_', ' ').toUpperCase()}
-                            </div>
-                        </div>
-
-                        <!-- Confidence Score -->
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <small class="text-muted">Confidence</small>
-                                <small class="fw-bold">${prediction.confidence_score}%</small>
-                            </div>
-                            <div class="progress" style="height: 6px;">
-                                <div class="progress-bar bg-success" style="width: ${prediction.confidence_score}%"></div>
-                            </div>
-                        </div>
-
-                        <!-- Match Date -->
-                        <div class="text-center mb-3">
-                            <small class="text-muted">
-                                <i class="fas fa-calendar"></i>
-                                ${new Date(prediction.match_date).toLocaleDateString()} ${new Date(prediction.match_date).toLocaleTimeString()}
-                            </small>
-                        </div>
-
-                        <!-- Odds -->
-                        <div class="row text-center mb-3">
-                            <div class="col-4">
-                                <small class="text-muted d-block">Home</small>
-                                <span class="fw-bold">${prediction.odds.home}</span>
-                            </div>
-                            <div class="col-4">
-                                <small class="text-muted d-block">Draw</small>
-                                <span class="fw-bold">${prediction.odds.draw}</span>
-                            </div>
-                            <div class="col-4">
-                                <small class="text-muted d-block">Away</small>
-                                <span class="fw-bold">${prediction.odds.away}</span>
-                            </div>
-                        </div>
-
-                        <!-- Actions -->
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-primary btn-sm" onclick="savePrediction(${prediction.id})">
-                                <i class="fas fa-heart"></i> Save Prediction
-                            </button>
-                            <button class="btn btn-outline-secondary btn-sm" onclick="viewDetails(${prediction.id})">
-                                <i class="fas fa-info-circle"></i> View Details
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    // Load initial predictions
-    renderPredictions(mockPredictions);
-
-    // Apply filters
-    applyFiltersBtn.addEventListener('click', function() {
-        const league = document.getElementById('league-filter').value;
-        const dateRange = document.getElementById('date-filter').value;
-        const minConfidence = parseInt(confidenceFilter.value);
-
-        let filtered = mockPredictions.filter(p => p.confidence_score >= minConfidence);
-
-        if (league) {
-            filtered = filtered.filter(p => p.league_class === league);
-        }
-
-        renderPredictions(filtered);
-    });
-
-    // Refresh predictions
-    refreshBtn.addEventListener('click', function() {
-        // Simulate loading
-        predictionsContainer.innerHTML = `
-            <div class="col-12">
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Refreshing...</span>
-                    </div>
-                    <p class="mt-3 text-muted">Refreshing predictions...</p>
-                </div>
-            </div>
-        `;
-
-        setTimeout(() => {
-            renderPredictions(mockPredictions);
-        }, 1000);
-    });
-});
-
-// Mock functions for actions
-function savePrediction(id) {
-    alert(`Prediction ${id} saved to favorites!`);
-}
-
-function viewDetails(id) {
-    alert(`Viewing details for prediction ${id}`);
-}
+    // Keep minimal JS if needed, e.g. for simple UI interactions
 </script>
 
 <style>
-.prediction-card {
-    transition: transform 0.2s ease-in-out;
-}
+    .prediction-card {
+        transition: transform 0.2s ease-in-out;
+    }
 
-.prediction-card:hover {
-    transform: translateY(-5px);
-}
+    .prediction-card:hover {
+        transform: translateY(-5px);
+    }
 
-.prediction-badge {
-    display: inline-block;
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    font-weight: bold;
-    font-size: 0.8rem;
-}
+    .prediction-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 0.8rem;
+        background: linear-gradient(45deg, #6c757d, #adb5bd);
+        color: white;
+    }
 
-.prediction-badge.home_win {
-    background: linear-gradient(45deg, #28a745, #20c997);
-    color: white;
-}
+    .prediction-badge.home_win {
+        background: linear-gradient(45deg, #28a745, #20c997);
+    }
 
-.prediction-badge.away_win {
-    background: linear-gradient(45deg, #dc3545, #fd7e14);
-    color: white;
-}
+    .prediction-badge.away_win {
+        background: linear-gradient(45deg, #dc3545, #fd7e14);
+    }
 
-.prediction-badge.draw {
-    background: linear-gradient(45deg, #6c757d, #adb5bd);
-    color: white;
-}
-
-.badge.premier-league {
-    background: linear-gradient(45deg, #3d195b, #8b5cf6);
-}
-
-.badge.la-liga {
-    background: linear-gradient(45deg, #dc2626, #f87171);
-}
-
-.badge.bundesliga {
-    background: linear-gradient(45deg, #059669, #10b981);
-}
-
-.badge.serie-a {
-    background: linear-gradient(45deg, #1e40af, #3b82f6);
-}
+    .prediction-badge.draw {
+        background: linear-gradient(45deg, #6c757d, #adb5bd);
+    }
 </style>
 {% endblock %}

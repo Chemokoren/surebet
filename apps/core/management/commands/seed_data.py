@@ -62,10 +62,7 @@ class Command(BaseCommand):
         ]
         
         # Global Pricing (USD)
-        global_tiers = [
-            {'name': '5 Credits', 'price': 2.99, 'currency': 'USD', 'credits': 5, 'region': 'global', 'type': 'credit_pack'},
-            {'name': '20 Credits', 'price': 9.99, 'currency': 'USD', 'credits': 20, 'region': 'global', 'type': 'credit_pack'},
-        ]
+        global_tiers = []
 
         count = 0
         for t in ea_tiers:

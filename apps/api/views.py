@@ -3,8 +3,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.utils import timezone
-from django.shortcuts import render, redirect
-from django.views.generic import TemplateView, ListView, CreateView, FormView, View
+from django.shortcuts import render, redirect, get_object_or_404
+from django.views.generic import TemplateView, ListView, CreateView, FormView, View, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 from django.contrib import messages
 from apps.payments.services.payment_service import PaymentService
 from apps.payments.models import PricingTier, SubscriptionPlan, PaymentChannel, PaymentTransaction, UserSubscription
-from apps.users.models import UserProfile
+from apps.users.models import UserProfile, PredictionUsage
 
 
 from django.db.models import Q
@@ -26,32 +26,133 @@ from apps.predictions.models import Prediction
 from apps.analytics.models import AccuracyRecord
 from apps.payments.services.subscription_service import SubscriptionService
 
-class HomeView(LoginRequiredMixin, TemplateView):
+class HomeView(TemplateView):
     """Home/Dashboard view"""
     template_name = 'pages/home.html'
-    login_url = '/account/login/'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         today = timezone.now().date()
         
-        # 1. Fetch Today's Highlights
-        context['todays_matches'] = Match.objects.filter(
-            match_date__date=today,
-            status='scheduled'
-        ).select_related('home_team', 'away_team', 'league').order_by('match_date')[:5]
+        # 1. Fetch Top Predictions (Real Data)
+        # 1. Prediction Release Logic (12:00 AM - Midnight)
+        now = timezone.now()
+        release_hour = 0
+        is_released = now.hour >= release_hour
         
-        # 2. Recent Accuracy (Last 7 Days)
-        context['accuracy'] = AccuracyRecord.objects.filter(
-            period='weekly'
-        ).order_by('-period_start').first()
+        qs = Prediction.objects.none()
+        if is_released:
+            qs = Prediction.objects.filter(
+                match__match_date__date=today,
+                match__status='scheduled'
+            ).select_related('match', 'match__home_team', 'match__away_team', 'match__league').order_by('-confidence_score')[:6]
+            
+        if not qs.exists():
+             context['status_message'] = "Finalizing daily predictions... Check back soon"
+             # Fallback: Show yesterday's winners
+             yesterday = today - timedelta(days=1)
+             context['past_predictions'] = Prediction.objects.filter(
+                match__match_date__date=yesterday,
+                is_correct=True
+             ).select_related('match', 'match__home_team', 'match__away_team').order_by('-confidence_score')[:3]
         
-        # 3. User Stats
+        # 2. Process Access Logic
+        processed_preds = []
+        anon_limit = 2
+        
+        # Get unlocked IDs for authenticated user
+        unlocked_ids = set()
         if self.request.user.is_authenticated:
-            context['usage'] = SubscriptionService.get_daily_usage(self.request.user)
+            unlocked_ids = set(PredictionUsage.objects.filter(
+                user=self.request.user,
+                prediction__in=qs
+            ).values_list('prediction_id', flat=True))
+
+        for idx, pred in enumerate(qs):
+            is_locked = True
+            
+            if self.request.user.is_authenticated:
+                access = SubscriptionService.can_access_prediction(self.request.user, pred)
+                
+                # Logic: Locked if not explicitly unlocked via usage AND not free/allowed by sub/credits implicit check
+                # Ideally, we want EXPLICIT unlock action for usage logging.
+                # So if not in usage AND not free -> Locked.
+                # Exception: Users with Unlimited Sub might see it optionally auto-unlocked, but "Unlock" button is better UX for tracking.
+                
+                if pred.id in unlocked_ids or pred.tier == 'free':
+                    is_locked = False
+                elif access['remaining_credits'] == -1: # Free/Unlimited Sub
+                     # Auto-unlock for unlimited subs? Or require click? 
+                     # Let's require click to track "read" status in Usage.
+                     is_locked = True 
+                else:
+                    is_locked = True
+            else:
+                # Anonymous: First 2 are free
+                if idx < anon_limit:
+                    is_locked = False
+                else:
+                    is_locked = True
+            
+            pred.is_access_locked = is_locked
+            processed_preds.append(pred)
+            
+        context['predictions'] = processed_preds
+        
+        # 3. Pricing Tiers (for Sales Funnel)
+        region = getattr(self.request, 'user_region', 'global')
+        
+        # Credit Packs (Tier 1-3)
+        context['packs'] = PricingTier.objects.filter(
+            region=region, 
+            is_active=True,
+            tier_type='credit_pack'
+        ).order_by('price')
+        
+        # Monthly Subscription (Tier 4)
+        context['monthly_tier'] = PricingTier.objects.filter(
+            region=region,
+            is_active=True,
+            tier_type='daily_quota'
+        ).first()
+        
+        # Single Tier (for "Unlock" buttons)
+        context['single_tier'] = PricingTier.objects.filter(
+            region=region,
+            tier_type='single',
+            is_active=True
+        ).first()
+        
+        # 4. User Stats
+        if self.request.user.is_authenticated:
+            usage = SubscriptionService.get_daily_usage(self.request.user)
+            # Add credit balance
+            profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
+            # Fix: prediction_credits already includes bonus if granted
+            usage['remaining_credits'] = profile.prediction_credits 
+            context['usage'] = usage
             context['active_sub'] = SubscriptionService.get_active_subscription(self.request.user)
             
         return context
+
+
+class UnlockPredictionView(LoginRequiredMixin, View):
+    """Handle consuming a credit to unlock a prediction"""
+    
+    def post(self, request, pk):
+        prediction = get_object_or_404(Prediction, pk=pk)
+        success = SubscriptionService.consume_prediction(request.user, prediction)
+        
+        if success:
+            messages.success(request, "Prediction unlocked successfully!")
+        else:
+            messages.error(request, "Insufficient credits to unlock this prediction.")
+            
+        # Redirect back to home or referring page
+        referer = request.META.get('HTTP_REFERER')
+        if referer:
+            return redirect(referer)
+        return redirect('home')
 
 
 class PredictionsView(LoginRequiredMixin, TemplateView):
@@ -90,6 +191,39 @@ class PredictionsView(LoginRequiredMixin, TemplateView):
         return context
 
 
+class PredictionDetailView(LoginRequiredMixin, DetailView):
+    """Detail view for a single prediction"""
+    model = Prediction
+    template_name = 'pages/prediction_detail.html'
+    context_object_name = 'prediction'
+    login_url = '/account/login/'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        prediction = self.object
+        
+        # Check access
+        access = SubscriptionService.can_access_prediction(self.request.user, prediction)
+        
+        context['is_locked'] = not access['allowed']
+        context['access_reason'] = access.get('reason')
+        context['requires_payment'] = access.get('requires_payment')
+        
+        # If user has access but hasn't consumed credit yet (and needs to), prompt them
+        # For now, we'll assume viewing detail implies consumption if not already done
+        if access['allowed'] and access.get('requires_payment') and access.get('remaining_credits', 0) > 0:
+             # Logic to consume/deduct credit could be here or in a separate action
+             # For a simple flow, we might just show the content if allowed.
+             pass
+             
+        # Related predictions (same league)
+        context['related_predictions'] = Prediction.objects.filter(
+            match__league=prediction.match.league,
+            match__match_date__gte=timezone.now()
+        ).exclude(id=prediction.id)[:3]
+        
+        return context
+
 class TeamAnalysisView(LoginRequiredMixin, TemplateView):
     """Team analysis page view"""
     template_name = 'pages/team_analysis.html'
@@ -109,16 +243,19 @@ class SubscriptionView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Fetch available plans (exclude credit packs)
-        context['plans'] = SubscriptionPlan.objects.filter(is_active=True).order_by('price')
+        
+        # Get region from middleware (or fallback to global)
+        region = getattr(self.request, 'user_region', 'global')
+        
+        # Fetch available plans for the region
+        context['plans'] = SubscriptionPlan.objects.filter(
+            is_active=True, 
+            region=region
+        ).order_by('price')
         
         # User's current sub
         context['active_sub'] = SubscriptionService.get_active_subscription(self.request.user)
         
-        # Payment channels (for checkout modal)
-        profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
-        region = getattr(profile, 'region', 'global')
-        context['channels'] = PaymentService.get_available_channels(region)
         return context
 
     def post(self, request, *args, **kwargs):
