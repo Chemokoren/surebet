@@ -74,12 +74,12 @@ class HomeView(TemplateView):
             if self.request.user.is_authenticated:
                 access = SubscriptionService.can_access_prediction(self.request.user, pred)
                 
-                # Logic: Locked if not explicitly unlocked via usage AND not free/allowed by sub/credits implicit check
-                # Ideally, we want EXPLICIT unlock action for usage logging.
-                # So if not in usage AND not free -> Locked.
-                # Exception: Users with Unlimited Sub might see it optionally auto-unlocked, but "Unlock" button is better UX for tracking.
+                # Logic: First 2 are free for everyone (to entice). 
+                # Others: Locked if not explicitly unlocked via usage AND not free/allowed by sub/credits implicit check
                 
-                if pred.id in unlocked_ids or pred.tier == 'free':
+                if idx < anon_limit:
+                     is_locked = False
+                elif pred.id in unlocked_ids or pred.tier == 'free':
                     is_locked = False
                 elif access['remaining_credits'] == -1: # Free/Unlimited Sub
                      # Auto-unlock for unlimited subs? Or require click? 
