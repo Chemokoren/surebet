@@ -259,3 +259,82 @@ INFO 2026-02-10 11:15:36,656 autoreload 49566 131864662860032 Watching for file 
 INFO 2026-02-10 11:21:42,998 autoreload 50272 139043519406336 Watching for file changes with StatReloader
 INFO 2026-02-10 11:21:58,540 autoreload 50337 129482468180224 Watching for file changes with StatReloader
 INFO 2026-02-10 11:23:05,830 autoreload 50770 131034086912256 Watching for file changes with StatReloader
+INFO 2026-02-10 12:22:53,331 autoreload 50770 131034086912256 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/users/models.py changed, reloading.
+INFO 2026-02-10 12:22:58,137 autoreload 55761 140455362478336 Watching for file changes with StatReloader
+INFO 2026-02-10 12:23:23,405 autoreload 55761 140455362478336 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/core/models.py changed, reloading.
+INFO 2026-02-10 12:23:25,283 autoreload 55862 132881079120128 Watching for file changes with StatReloader
+INFO 2026-02-10 12:23:54,656 autoreload 55862 132881079120128 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/predictions/models.py changed, reloading.
+INFO 2026-02-10 12:23:56,598 autoreload 55933 126275424645376 Watching for file changes with StatReloader
+INFO 2026-02-10 12:24:41,663 autoreload 55933 126275424645376 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/payments/models.py changed, reloading.
+INFO 2026-02-10 12:24:43,972 autoreload 56070 134478104051968 Watching for file changes with StatReloader
+INFO 2026-02-10 12:25:10,270 autoreload 56070 134478104051968 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/analytics/models.py changed, reloading.
+INFO 2026-02-10 12:25:12,350 autoreload 56139 123792223609088 Watching for file changes with StatReloader
+INFO 2026-02-10 12:36:26,740 autoreload 56139 123792223609088 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/core/admin.py changed, reloading.
+INFO 2026-02-10 12:36:28,796 autoreload 56879 123380586746112 Watching for file changes with StatReloader
+INFO 2026-02-10 12:37:37,308 autoreload 56879 123380586746112 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/v1/urls.py changed, reloading.
+INFO 2026-02-10 12:37:47,294 autoreload 57128 140550279926016 Watching for file changes with StatReloader
+INFO 2026-02-10 12:40:55,128 autoreload 57128 140550279926016 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/payments/services/subscription_service.py changed, reloading.
+INFO 2026-02-10 12:40:57,801 autoreload 58008 137421422477568 Watching for file changes with StatReloader
+INFO 2026-02-10 12:41:12,084 autoreload 58008 137421422477568 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/predictions/views.py changed, reloading.
+INFO 2026-02-10 12:41:14,745 autoreload 58066 135002456510720 Watching for file changes with StatReloader
+INFO 2026-02-10 12:46:34,233 autoreload 58066 135002456510720 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-10 12:46:36,339 autoreload 58392 132083717947648 Watching for file changes with StatReloader
+INFO 2026-02-10 12:47:15,479 autoreload 58392 132083717947648 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-10 12:47:17,551 autoreload 58461 137363634589952 Watching for file changes with StatReloader
+INFO 2026-02-10 12:49:30,498 autoreload 58461 137363634589952 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/users/forms.py changed, reloading.
+INFO 2026-02-10 12:49:33,651 autoreload 58560 130194547228928 Watching for file changes with StatReloader
+INFO 2026-02-10 12:49:54,677 autoreload 58560 130194547228928 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-10 12:49:57,384 autoreload 58651 133629856338176 Watching for file changes with StatReloader
+INFO 2026-02-10 12:50:20,329 autoreload 58651 133629856338176 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-10 12:50:22,570 autoreload 58702 123532643188992 Watching for file changes with StatReloader
+INFO 2026-02-10 12:52:45,754 autoreload 58702 123532643188992 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/users/admin.py changed, reloading.
+INFO 2026-02-10 12:52:48,438 autoreload 59005 123360079880448 Watching for file changes with StatReloader
+INFO 2026-02-10 12:53:12,700 autoreload 59005 123360079880448 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/payments/admin.py changed, reloading.
+INFO 2026-02-10 12:53:14,892 autoreload 59097 129648117186816 Watching for file changes with StatReloader
+INFO 2026-02-10 12:53:49,235 autoreload 59097 129648117186816 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/predictions/admin.py changed, reloading.
+INFO 2026-02-10 12:53:51,708 autoreload 59172 138781211754752 Watching for file changes with StatReloader
+INFO 2026-02-10 12:53:58,101 autoreload 59172 138781211754752 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/analytics/admin.py changed, reloading.
+INFO 2026-02-10 12:54:00,886 autoreload 59222 132046140731648 Watching for file changes with StatReloader
+INFO 2026-02-10 13:07:12,492 autoreload 61763 132089158328576 Watching for file changes with StatReloader
+ERROR 2026-02-10 13:08:20,571 log 61763 132089044260544 Internal Server Error: /account/subscription/
+Traceback (most recent call last):
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/views/generic/base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/contrib/auth/mixins.py", line 73, in dispatch
+    return super().dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/views/generic/base.py", line 144, in dispatch
+    return handler(request, *args, **kwargs)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/views/generic/base.py", line 228, in get
+    context = self.get_context_data(**kwargs)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py", line 118, in get_context_data
+    profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
+                 ^^^^^^^^^^^
+NameError: name 'UserProfile' is not defined
+INFO 2026-02-10 13:09:01,000 autoreload 61763 132089158328576 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-10 13:09:02,079 autoreload 62238 134205144547584 Watching for file changes with StatReloader
+INFO 2026-02-10 13:33:22,744 autoreload 62238 134205144547584 /home/kibsoft/Documents/dev/projects/sports/futurapredict/config/urls.py changed, reloading.
+INFO 2026-02-10 13:33:24,479 autoreload 65351 138480595738880 Watching for file changes with StatReloader
+INFO 2026-02-10 13:33:45,187 autoreload 65351 138480595738880 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/users/middleware.py changed, reloading.
+INFO 2026-02-10 13:33:47,105 autoreload 65406 136610095853824 Watching for file changes with StatReloader
+INFO 2026-02-10 13:34:01,510 autoreload 65406 136610095853824 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/payments/strategies/paypal.py changed, reloading.
+INFO 2026-02-10 13:34:03,250 autoreload 65473 124832124920064 Watching for file changes with StatReloader
+INFO 2026-02-10 13:35:32,585 autoreload 65473 124832124920064 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/predictions/views.py changed, reloading.
+INFO 2026-02-10 13:35:34,420 autoreload 65656 135023614570752 Watching for file changes with StatReloader
+INFO 2026-02-10 13:43:17,719 autoreload 65656 135023614570752 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/predictions/serializers.py changed, reloading.
+INFO 2026-02-10 13:43:18,657 autoreload 66237 131931779883264 Watching for file changes with StatReloader
+INFO 2026-02-10 13:43:57,709 autoreload 66237 131931779883264 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/predictions/serializers.py changed, reloading.
+INFO 2026-02-10 13:43:59,029 autoreload 66306 135707636658432 Watching for file changes with StatReloader
+INFO 2026-02-10 13:44:33,377 autoreload 66306 135707636658432 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/predictions/views.py changed, reloading.
+INFO 2026-02-10 13:44:35,724 autoreload 66396 137536606826752 Watching for file changes with StatReloader
+INFO 2026-02-10 13:46:50,344 autoreload 66396 137536606826752 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-10 13:46:52,744 autoreload 66675 130360855335168 Watching for file changes with StatReloader
+INFO 2026-02-10 13:47:16,867 autoreload 66675 130360855335168 /home/kibsoft/Documents/dev/projects/sports/futurapredict/config/urls.py changed, reloading.
+INFO 2026-02-10 13:47:18,824 autoreload 66800 130232565539072 Watching for file changes with StatReloader
+INFO 2026-02-10 13:47:45,066 autoreload 66800 130232565539072 /home/kibsoft/Documents/dev/projects/sports/futurapredict/config/urls.py changed, reloading.
+INFO 2026-02-10 13:47:46,770 autoreload 66878 124351489130752 Watching for file changes with StatReloader

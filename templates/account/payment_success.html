@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Payment Successful{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6 text-center">
+      <div class="card p-5 border-0 shadow-sm">
+        <div class="mb-3">
+          <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+        </div>
+        <h2 class="mb-3">Payment Successful!</h2>
+        <p class="text-muted mb-4">Thank you for your purchase. Your credits or subscription have been activated.</p>
+        <div class="d-grid gap-2">
+          <a href="{% url 'predictions' %}" class="btn btn-primary btn-lg">View Predictions</a>
+          <a href="{% url 'subscription' %}" class="btn btn-outline-secondary">Manage Subscription</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -12,8 +12,13 @@ from django.contrib.auth import views as auth_views
 # Import views
 from apps.api.views import (
     HomeView, PredictionsView, TeamAnalysisView, 
-    SubscriptionView, ProfileView, PaymentView, LoginView, LogoutView
+    SubscriptionView, ProfileView, PaymentView, LoginView, LogoutView,
+    DataExportView, AccountDeleteView
 )
+
+# Webhook views
+from apps.payments.webhooks.mpesa_webhook import MpesaCallbackView
+from apps.payments.webhooks.stripe_webhook import StripeWebhookView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -40,6 +45,15 @@ urlpatterns = [
         path('profile/', ProfileView.as_view(), name='profile'),
         path('subscription/', SubscriptionView.as_view(), name='subscription'),
         path('payment/', PaymentView.as_view(), name='payment'),
+        # GDPR
+        path('export/', DataExportView.as_view(), name='data_export'),
+        path('delete/', AccountDeleteView.as_view(), name='account_delete'),
+    ])),
+    
+    # Payment Webhooks (CSRF-exempt, no auth required)
+    path('webhooks/', include([
+        path('mpesa/callback/', MpesaCallbackView.as_view(), name='mpesa_callback'),
+        path('stripe/', StripeWebhookView.as_view(), name='stripe_webhook'),
     ])),
     
     # API v1 endpoints

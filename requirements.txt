@@ -1,5 +1,5 @@
 # Core
-Django>=3.2,<5.0
+Django>=5.0,<6.0
 djangorestframework
 djangorestframework-simplejwt
 psycopg2-binary
@@ -33,6 +33,11 @@ xgboost
 tensorflow
 matplotlib
 seaborn
+shap
+joblib
+
+# Geolocation
+geoip2
 
 # Utilities / Dev
 gunicorn

@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
 
 
@@ -35,3 +35,27 @@ class EmailAuthenticationForm(AuthenticationForm):
             except User.DoesNotExist:
                 raise forms.ValidationError("No account found with this email address.")
         return email
+
+
+class UserRegistrationForm(UserCreationForm):
+    """Custom registration form with email requirement"""
+    email = forms.EmailField(required=True, help_text='Required. Inform a valid email address.')
+
+    class Meta:
+        model = User
+        fields = ("username", "email")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].widget.attrs.update({
+                'class': 'form-control',
+                'placeholder': field.replace('_', ' ').capitalize()
+            })
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data['email']
+        if commit:
+            user.save()
+        return user
