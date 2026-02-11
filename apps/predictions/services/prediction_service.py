@@ -117,15 +117,39 @@ class PredictionService:
         home_form = features.get('home_points_last_5', 0)
         away_form = features.get('away_points_last_5', 0)
 
-        p_home = 0.35 + (elo_diff / 1000.0) + (home_form * 0.01)
-        p_away = 0.35 - (elo_diff / 1000.0) + (away_form * 0.01)
+        # Base probabilities
+        p_home = 0.35
+        p_away = 0.35
+        p_draw = 0.30
+
+        # Cold Start Randomness
+        # If no history (0 points), add valid variance so predictions aren't identical
+        if home_form == 0 and away_form == 0:
+             # Random bias towards home team (0.0 to 0.15)
+             home_bias = random.random() * 0.15
+             p_home += home_bias
+             # Randomize draw slightly
+             p_draw -= (home_bias / 2)
+             p_away -= (home_bias / 2)
+
+        # Apply features
+        p_home += (elo_diff / 1000.0) + (home_form * 0.01)
+        p_away += (0.35 - 0.35) - (elo_diff / 1000.0) + (away_form * 0.01)
+        
+        # Add general noise
+        p_home += random.uniform(-0.05, 0.05)
+        p_away += random.uniform(-0.05, 0.05)
+        
+        # Re-calculate p_draw to ensure sum is ~1 before normalization
         p_draw = 1.0 - p_home - p_away
 
         # Normalize
         total = max(p_home + p_away + p_draw, 0.01)
-        p_home = max(p_home / total, 0.05)
-        p_away = max(p_away / total, 0.05)
-        p_draw = max(p_draw / total, 0.05)
+        p_home = max(p_home / total, 0.10)
+        p_away = max(p_away / total, 0.10)
+        p_draw = max(p_draw / total, 0.10)
+        
+        # Re-normalize
         total = p_home + p_away + p_draw
         p_home /= total
         p_away /= total

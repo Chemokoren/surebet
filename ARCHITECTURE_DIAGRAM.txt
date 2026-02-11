@@ -1,0 +1,182 @@
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    PAYMENT SYSTEM ARCHITECTURE                       │
+│                    (Strategy Design Pattern)                         │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│  USER ACCESS                                                         │
+└─────────────────────────────────────────────────────────────────────┘
+                                   │
+                    http://127.0.0.1:8000/account/payment/
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  MIDDLEWARE (apps/users/middleware.py)                              │
+│  ┌────────────────────────────────────────────────────────────┐    │
+│  │  Region Detection (IP Geolocation)                          │    │
+│  │  ├─ East Africa (KE, UG, TZ) → request.user_region = 'EA'  │    │
+│  │  └─ Rest of World          → request.user_region = 'global'│    │
+│  └────────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  PAYMENT VIEW (apps/api/views.py - PaymentView)                    │
+│  ┌────────────────────────────────────────────────────────────┐    │
+│  │  Region-Based Filtering Logic                               │    │
+│  │                                                              │    │
+│  │  IF region == 'east_africa':                                │    │
+│  │     ├─ Currency = KES                                       │    │
+│  │     ├─ Channels = [M-Pesa]                                  │    │
+│  │     └─ Tiers = East Africa pricing                          │    │
+│  │                                                              │    │
+│  │  ELSE (global):                                             │    │
+│  │     ├─ Currency = USD                                       │    │
+│  │     ├─ Channels = [PayPal, WhatsApp]                        │    │
+│  │     └─ Tiers = Global pricing                               │    │
+│  └────────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  TEMPLATE (templates/account/payment.html)                          │
+│  ┌────────────────┬────────────────┬────────────────────────────┐  │
+│  │  East Africa   │   Global User  │   Payment Sections        │  │
+│  │  User Display  │   Display      │   (Toggleable)            │  │
+│  ├────────────────┼────────────────┼────────────────────────────┤  │
+│  │ Currency: KES  │ Currency: USD  │ • M-Pesa Section          │  │
+│  │                │                │ • PayPal Section          │  │
+│  │ Channels:      │ Channels:      │ • WhatsApp Section        │  │
+│  │ • M-Pesa ✓     │ • PayPal ✓     │ • Stripe Section          │  │
+│  │                │ • WhatsApp ✓   │                            │  │
+│  └────────────────┴────────────────┴────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+                                   │
+                    User selects payment method & submits
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  PAYMENT SERVICE (apps/payments/services/payment_service.py)       │
+│  ┌────────────────────────────────────────────────────────────┐    │
+│  │  initiate_credit_purchase()                                 │    │
+│  │  ├─ Get pricing tier                                        │    │
+│  │  ├─ Get payment channel for region                          │    │
+│  │  ├─ Select strategy from registry                           │    │
+│  │  └─ Create pending transaction                              │    │
+│  └────────────────────────────────────────────────────────────┘    │
+│                                                                      │
+│  ┌────────────────────────────────────────────────────────────┐    │
+│  │  STRATEGY REGISTRY                                          │    │
+│  │  {                                                           │    │
+│  │    'mpesa': MpesaStrategy,        ◄── East Africa          │    │
+│  │    'paypal': PayPalStrategy,      ◄── Global               │    │
+│  │    'whatsapp': WhatsAppStrategy,  ◄── Global (NEW!)        │    │
+│  │    'stripe': StripeStrategy        ◄── Optional             │    │
+│  │  }                                                           │    │
+│  └────────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────┘
+                                   │
+                     strategy = get_strategy(provider)
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  PAYMENT STRATEGIES (apps/payments/strategies/)                     │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │  PaymentStrategy (ABC)                                       │   │
+│  │  ├─ initiate_payment()                                       │   │
+│  │  ├─ verify_payment()                                         │   │
+│  │  ├─ handle_webhook()                                         │   │
+│  │  └─ refund()                                                 │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│         ▲              ▲              ▲              ▲              │
+│         │              │              │              │              │
+│  ┌──────┴───┐   ┌──────┴───┐   ┌──────┴───┐   ┌──────┴───┐        │
+│  │  M-Pesa  │   │  PayPal  │   │ WhatsApp │   │  Stripe  │        │
+│  │ Strategy │   │ Strategy │   │ Strategy │   │ Strategy │        │
+│  └──────────┘   └──────────┘   └──────────┘   └──────────┘        │
+│      EA              Global        Global         Optional          │
+└─────────────────────────────────────────────────────────────────────┘
+                                   │
+                         Execute strategy method
+                                   │
+                    ┌──────────────┼──────────────┐
+                    ▼              ▼              ▼
+         ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+         │   M-Pesa     │ │   PayPal     │ │  WhatsApp    │
+         │   Daraja     │ │   Orders     │ │  Business    │
+         │   API        │ │   API v2     │ │   API        │
+         └──────────────┘ └──────────────┘ └──────────────┘
+                    │              │              │
+                    └──────────────┼──────────────┘
+                                   │
+                            Payment Processing
+                                   │
+                    ┌──────────────┴──────────────┐
+                    ▼                             ▼
+         Provider callback/               User completes
+         webhook notification              payment action
+                    │                             │
+                    └──────────────┬──────────────┘
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  WEBHOOK HANDLER                                                     │
+│  PaymentService.process_webhook()                                   │
+│  ├─ Verify signature                                                │
+│  ├─ Call strategy.handle_webhook()                                  │
+│  ├─ Update transaction status                                       │
+│  └─ Trigger confirm_payment()                                       │
+└─────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  PAYMENT CONFIRMATION                                                │
+│  PaymentService.confirm_payment()                                   │
+│  ├─ Mark transaction as completed                                   │
+│  ├─ Grant credits to user                                           │
+│  └─ Activate subscription (if applicable)                           │
+└─────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   ▼
+                         ┌─────────────────┐
+                         │  User Dashboard  │
+                         │  Credits Updated │
+                         └─────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════
+                            KEY FEATURES
+═══════════════════════════════════════════════════════════════════════
+
+🌍 REGION-AWARE
+   ├─ Automatic IP detection
+   ├─ Currency localization (KES/USD)
+   └─ Payment method filtering
+
+🎨 STRATEGY PATTERN
+   ├─ Clean separation of concerns
+   ├─ Easy to extend (add new providers)
+   ├─ Runtime strategy selection
+   └─ Consistent interface
+
+💳 PAYMENT CHANNELS
+   ├─ M-Pesa (East Africa)
+   ├─ PayPal (Global)
+   └─ WhatsApp (Global) ← NEW!
+
+🔒 SECURE
+   ├─ Webhook signature verification
+   ├─ Transaction logging
+   └─ Normalized data model
+
+📊 EXTENSIBLE
+   └─ Add new providers in 5 steps:
+      1. Create strategy class
+      2. Add to registry
+      3. Add to model choices
+      4. Seed channel
+      5. Done! ✨
+
+═══════════════════════════════════════════════════════════════════════
+```

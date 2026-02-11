@@ -39,6 +39,14 @@ class ELOPredictor:
         # Apply home advantage
         adjusted_diff = (home_elo + self.HOME_ADVANTAGE) - away_elo
 
+        # Cold start noise for default/identical ELOs (likely new teams)
+        if home_elo == 1500 and away_elo == 1500:
+            import random
+            # Simulate skill difference (-120 to +120) for variety
+            noise = random.randint(-120, 120)
+            adjusted_diff += noise
+
+
         # Logistic curve
         home_expected = 1.0 / (1.0 + 10 ** (-adjusted_diff / 400))
         away_expected = 1.0 - home_expected

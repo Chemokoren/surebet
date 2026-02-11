@@ -26,6 +26,7 @@ from apps.payments.strategies.base import PaymentStrategy, PaymentRequest, Payme
 from apps.payments.strategies.mpesa import MpesaStrategy
 from apps.payments.strategies.stripe import StripeStrategy
 from apps.payments.strategies.paypal import PayPalStrategy
+from apps.payments.strategies.whatsapp import WhatsAppStrategy
 from apps.users.models import UserProfile
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,7 @@ STRATEGY_REGISTRY: dict[str, type[PaymentStrategy]] = {
     'mpesa': MpesaStrategy,
     'stripe': StripeStrategy,
     'paypal': PayPalStrategy,
+    'whatsapp': WhatsAppStrategy,
 }
 
 

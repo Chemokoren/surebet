@@ -221,6 +221,7 @@ class PaymentChannel(models.Model):
         ('mpesa', 'M-Pesa STK Push'),
         ('stripe', 'Stripe'),
         ('paypal', 'PayPal'),
+        ('whatsapp', 'WhatsApp Pay'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

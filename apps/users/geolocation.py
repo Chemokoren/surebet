@@ -73,7 +73,8 @@ class GeoLocationService:
         # Enrich with region and currency
         country_code = result.get('country_code', '')
         result['region'] = 'east_africa' if country_code in EAST_AFRICA_COUNTRIES else 'global'
-        result['currency'] = COUNTRY_CURRENCY.get(country_code, 'USD')
+        # Use KES for all East Africa countries for consistent pricing
+        result['currency'] = 'KES' if country_code in EAST_AFRICA_COUNTRIES else 'USD'
 
         # Cache
         cache.set(cache_key, result, cls.CACHE_TTL)

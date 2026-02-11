@@ -20,6 +20,30 @@
                 </div>
             </div>
 
+            <!-- Stats Summary -->
+            {% if predictions %}
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm text-center p-3">
+                        <div class="text-muted small">Total Predictions</div>
+                        <div class="fs-3 fw-bold text-primary">{{ predictions|length }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm text-center p-3">
+                        <div class="text-muted small">Free Tips</div>
+                        <div class="fs-3 fw-bold text-success">{{ free_count }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm text-center p-3">
+                        <div class="text-muted small">Premium Tips</div>
+                        <div class="fs-3 fw-bold" style="color: #ff9800;">{{ premium_count }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Filters -->
             <div class="collapse mb-4" id="filters-card">
                 <div class="card card-body">
@@ -46,7 +70,16 @@
                 {% for pred in predictions %}
                 <div class="col-lg-4 col-md-6">
                     <div class="card h-100 border-0 shadow-lg prediction-card">
-                        <div class="card-body p-4">
+                        <div class="card-body p-4 position-relative">
+                            <!-- Tier Badge -->
+                            <span class="tier-badge tier-{{ pred.tier }}">
+                                {% if pred.tier == 'free' %}
+                                <i class="fas fa-unlock me-1"></i>Free
+                                {% else %}
+                                <i class="fas fa-crown me-1"></i>Premium
+                                {% endif %}
+                            </span>
+
                             <!-- League Badge -->
                             <div class="text-center mb-3">
                                 <span class="badge bg-primary bg-gradient fs-6 px-3 py-2">
@@ -61,30 +94,11 @@
                                         <h5 class="mb-0">{{ pred.match.home_team.name }}</h5>
                                     </div>
                                     <div class="mx-3">
-                                        <span class="text-muted">vs</span>
+                                        <span class="text-muted fw-bold">vs</span>
                                     </div>
                                     <div class="text-start" style="flex: 1;">
                                         <h5 class="mb-0">{{ pred.match.away_team.name }}</h5>
                                     </div>
-                                </div>
-                            </div>
-
-                            <!-- Prediction -->
-                            <div class="text-center mb-3">
-                                <div class="prediction-badge {{ pred.predicted_outcome }}">
-                                    {{ pred.get_predicted_outcome_display|upper }}
-                                </div>
-                            </div>
-
-                            <!-- Confidence Score -->
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <small class="text-muted">Confidence</small>
-                                    <small class="fw-bold">{{ pred.confidence_score|floatformat:0 }}%</small>
-                                </div>
-                                <div class="progress" style="height: 6px;">
-                                    <div class="progress-bar bg-success"
-                                        style="width: {{ pred.confidence_score|default:0|floatformat:0 }}%"></div>
                                 </div>
                             </div>
 
@@ -96,6 +110,26 @@
                                 </small>
                             </div>
 
+                            <!-- Prediction Outcome & Confidence -->
+                            {% if pred.tier == 'free' or request.has_subscription or pred.id in unlocked_prediction_ids %}
+                            <div class="text-center mb-3">
+                                <div class="prediction-badge {{ pred.predicted_outcome }}">
+                                    {{ pred.get_predicted_outcome_display|upper }}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <small class="text-muted">Confidence</small>
+                                    <small class="fw-bold">{{ pred.confidence_score|floatformat:0 }}%</small>
+                                </div>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar
+                                        {% if pred.confidence_score >= 60 %}bg-success{% elif pred.confidence_score >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+                                        style="width: {{ pred.confidence_score|default:0|floatformat:0 }}%"></div>
+                                </div>
+                            </div>
+
                             <!-- Actions -->
                             <div class="d-grid gap-2">
                                 <a href="{% url 'prediction_detail' pk=pred.id %}"
@@ -103,14 +137,38 @@
                                     <i class="fas fa-info-circle me-1"></i> View Details
                                 </a>
                             </div>
+
+                            {% else %}
+                            <!-- Locked State -->
+                            <div class="text-center mb-4 py-3 bg-light bg-opacity-10 rounded border border-dashed">
+                                <i class="fas fa-lock fa-2x text-muted mb-2"></i>
+                                <h6 class="text-muted mb-0 small text-uppercase fw-bold">Premium Prediction</h6>
+                            </div>
+
+                            <!-- Unlock Action -->
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-warning btn-sm text-dark fw-bold"
+                                    data-bs-toggle="modal" data-bs-target="#unlockModal" data-pred-id="{{ pred.id }}"
+                                    data-match="{{ pred.match.home_team.name }} vs {{ pred.match.away_team.name }}">
+                                    <i class="fas fa-key me-1"></i> Unlock (1 Credit)
+                                </button>
+                                <a href="{% url 'subscription' %}" class="btn btn-outline-light btn-sm opacity-50">
+                                    Subscribe & Save
+                                </a>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
                 {% empty %}
                 <div class="col-12">
                     <div class="text-center py-5">
-                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">No predictions found for upcoming scheduled matches.</p>
+                        <i class="fas fa-futbol fa-4x text-muted mb-3 d-block"></i>
+                        <h4 class="text-muted mb-2">No upcoming predictions yet</h4>
+                        <p class="text-muted mb-0">
+                            Predictions are generated daily for upcoming matches.<br>
+                            Check back soon — fresh tips drop every morning!
+                        </p>
                     </div>
                 </div>
                 {% endfor %}
@@ -119,20 +177,73 @@
         </div>
     </div>
 </div>
+<!-- Unlock Modal -->
+<div class="modal fade" id="unlockModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-warning bg-gradient text-dark border-0">
+                <h5 class="modal-title fw-bold"><i class="fas fa-unlock-alt me-2"></i>Unlock Prediction</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <div class="mb-3">
+                    <span class="badge bg-light text-dark border p-2 fs-6 text-wrap" id="match-info">Match Info</span>
+                </div>
+                <h4 class="mb-3">Unlock for 1 Credit?</h4>
+                <p class="text-muted mb-4 small">
+                    Get full access to the predicted outcome, confidence score, and expert analysis.
+                </p>
+                <div class="alert alert-info border-0 bg-info bg-opacity-10 py-2 d-inline-block">
+                    <small class="fw-bold text-info-emphasis">
+                        Your Balance: {{ user_credits }} Credits
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer border-0 justify-content-center pb-4">
+                <form method="post" action="">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-outline-secondary px-4 me-2"
+                        data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning px-5 fw-bold text-dark">
+                        Confirm Unlock
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    // Keep minimal JS if needed, e.g. for simple UI interactions
+    document.addEventListener('DOMContentLoaded', function () {
+        var unlockModal = document.getElementById('unlockModal');
+        if (unlockModal) {
+            unlockModal.addEventListener('show.bs.modal', function (event) {
+                var button = event.relatedTarget;
+                var predId = button.getAttribute('data-pred-id');
+                var matchInfo = button.getAttribute('data-match');
+                var modalBodyMatch = unlockModal.querySelector('#match-info');
+                var form = unlockModal.querySelector('form');
+
+                if (modalBodyMatch) modalBodyMatch.textContent = matchInfo;
+                if (form) form.action = "/predictions/" + predId + "/unlock/";
+            });
+        }
+    });
 </script>
 
 <style>
     .prediction-card {
-        transition: transform 0.2s ease-in-out;
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        border-radius: 16px;
+        overflow: hidden;
     }
 
     .prediction-card:hover {
         transform: translateY(-5px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15) !important;
     }
 
     .prediction-badge {
@@ -155,6 +266,28 @@
 
     .prediction-badge.draw {
         background: linear-gradient(45deg, #6c757d, #adb5bd);
+    }
+
+    /* Tier badges */
+    .tier-badge {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 12px;
+        letter-spacing: 0.3px;
+    }
+
+    .tier-free {
+        background: rgba(40, 167, 69, 0.12);
+        color: #28a745;
+    }
+
+    .tier-premium {
+        background: rgba(255, 152, 0, 0.12);
+        color: #ff9800;
     }
 </style>
 {% endblock %}

@@ -4,28 +4,6 @@
 {% block title %}Payment - FuturaPredict{% endblock %}
 
 {% block content %}
-<!-- Error/Success Modal Dialog -->
-<div class="modal fade" id="paymentMessageModal" tabindex="-1" aria-labelledby="paymentMessageModalLabel"
-    aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header border-0 pb-0" id="modalHeader">
-                <h5 class="modal-title d-flex align-items-center" id="paymentMessageModalLabel">
-                    <i class="fas fa-exclamation-circle me-2" id="modalIcon"></i>
-                    <span id="modalTitle">Notice</span>
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body pt-2" id="modalBody">
-                <p id="modalMessage" class="mb-0"></p>
-            </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-lg-8">
@@ -54,7 +32,8 @@
                                         class="card tier-option w-100 text-center p-3 border cursor-pointer {% if forloop.first %}border-primary selected{% endif %}"
                                         data-tier-id="{{ tier.id }}" data-price="{{ tier.price|floatformat:0 }}"
                                         data-currency="{{ tier.currency }}">
-                                        <input type="radio" name="selected_tier" value="{{ tier.id }}" {% if forloop.first %}checked{% endif %} class="d-none">
+                                        <input type="radio" name="selected_tier" value="{{ tier.id }}" {% if
+                                            forloop.first %}checked{% endif %} class="d-none">
                                         <div class="fw-bold">{{ tier.name }}</div>
                                         <div class="fs-4 text-primary fw-bold">
                                             {{ tier.currency }} {{ tier.price|floatformat:0 }}
@@ -78,7 +57,8 @@
                                 <div class="col-8"><strong>Total</strong></div>
                                 <div class="col-4 text-end">
                                     <h4 class="text-primary mb-0" id="total-amount">
-                                        {% if tiers %}{{ tiers.0.currency }} {{ tiers.0.price|floatformat:0 }}{% endif%}
+                                        {% if tiers %}{{ tiers.0.currency }} {{ tiers.0.price|floatformat:0 }}{% endif
+                                        %}
                                     </h4>
                                 </div>
                             </div>
@@ -100,7 +80,8 @@
                                 <label
                                     class="payment-method-option btn btn-outline-secondary text-start py-3 {% if channel.is_default %}active{% endif %}"
                                     data-provider="{{ channel.provider }}">
-                                    <input type="radio" name="provider" value="{{ channel.provider }}" {% if channel.is_default %}checked{% endif %} class="d-none">
+                                    <input type="radio" name="provider" value="{{ channel.provider }}" {% if
+                                        channel.is_default %}checked{% endif %} class="d-none">
                                     <div class="d-flex align-items-center">
                                         <i class="{{ channel.icon }} fa-lg me-3"></i>
                                         <div>
@@ -250,63 +231,6 @@
     }
 </style>
 <script>
-    // Professional Error/Success Dialog Handler
-    function showMessage(message, type = 'error') {
-        const modal = new bootstrap.Modal(document.getElementById('paymentMessageModal'));
-        const modalHeader = document.getElementById('modalHeader');
-        const modalIcon = document.getElementById('modalIcon');
-        const modalTitle = document.getElementById('modalTitle');
-        const modalMessage = document.getElementById('modalMessage');
-        const modalBody = document.getElementById('modalBody');
-
-        // Reset classes
-        modalHeader.className = 'modal-header border-0 pb-0';
-        modalIcon.className = 'me-2';
-
-        // Set content based on type
-        if (type === 'error') {
-            modalHeader.classList.add('bg-danger', 'bg-opacity-10');
-            modalIcon.classList.add('fas', 'fa-exclamation-circle', 'text-danger');
-            modalTitle.textContent = 'Payment Error';
-            modalTitle.className = 'text-danger';
-        } else if (type === 'success') {
-            modalHeader.classList.add('bg-success', 'bg-opacity-10');
-            modalIcon.classList.add('fas', 'fa-check-circle', 'text-success');
-            modalTitle.textContent = 'Success';
-            modalTitle.className = 'text-success';
-        } else if (type === 'warning') {
-            modalHeader.classList.add('bg-warning', 'bg-opacity-10');
-            modalIcon.classList.add('fas', 'fa-exclamation-triangle', 'text-warning');
-            modalTitle.textContent = 'Warning';
-            modalTitle.className = 'text-warning';
-        } else {
-            modalHeader.classList.add('bg-info', 'bg-opacity-10');
-            modalIcon.classList.add('fas', 'fa-info-circle', 'text-info');
-            modalTitle.textContent = 'Information';
-            modalTitle.className = 'text-info';
-        }
-
-        modalMessage.textContent = message;
-        modal.show();
-    }
-
-    // Check for Django messages on page load
-    document.addEventListener('DOMContentLoaded', function () {
-        {% if messages %}
-        {% for message in messages %}
-        showMessage('{{ message|escapejs }}', '{{ message.tags|default:"info" }}');
-        {% endfor %}
-        {% endif %}
-
-        // Check for URL parameters (error/success)
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('error')) {
-            showMessage(decodeURIComponent(urlParams.get('error')), 'error');
-        } else if (urlParams.has('success')) {
-            showMessage(decodeURIComponent(urlParams.get('success')), 'success');
-        }
-    });
-
     // Tier selection
     document.querySelectorAll('.tier-option').forEach(option => {
         option.addEventListener('click', function () {
@@ -395,6 +319,8 @@
                 e.preventDefault();
                 alert('Please enter a valid M-Pesa phone number.');
                 return;
-            });
+            }
+        }
+    });
 </script>
 {% endblock %}

@@ -22,6 +22,9 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'dev-secret-key-change-in-production
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',') if os.getenv('ALLOWED_HOSTS') else ['*']
 
+# Site configuration
+SITE_URL = os.getenv('SITE_URL', 'http://127.0.0.1:8000')
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',

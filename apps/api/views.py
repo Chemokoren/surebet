@@ -43,9 +43,9 @@ class HomeView(TemplateView):
         qs = Prediction.objects.none()
         if is_released:
             qs = Prediction.objects.filter(
-                match__match_date__date=today,
+                match__match_date__date__gte=today,
                 match__status='scheduled'
-            ).select_related('match', 'match__home_team', 'match__away_team', 'match__league').order_by('-confidence_score')[:6]
+            ).select_related('match', 'match__home_team', 'match__away_team', 'match__league').order_by('match__match_date', '-confidence_score')[:6]
             
         if not qs.exists():
              context['status_message'] = "Finalizing daily predictions... Check back soon"
@@ -175,20 +175,35 @@ class PredictionsView(LoginRequiredMixin, TemplateView):
         
         if league_code:
             qs = qs.filter(match__league__code=league_code)
-            
-        context['predictions'] = qs.order_by('match__match_date')
+        
+        predictions = qs.order_by('match__match_date')
+        context['predictions'] = predictions
         context['leagues'] = League.objects.filter(is_active=True)
         context['selected_league'] = league_code
         
-        # Check access for each prediction (naive implementation for template)
-        # In production, this might be done via AJAX to avoid N+1 or bulk checked
+        # Stats for summary bar
+        context['free_count'] = predictions.filter(tier='free').count()
+        context['premium_count'] = predictions.filter(tier='premium').count()
+        
+        # Check access for each prediction
         context['user_credits'] = 0
+        context['unlocked_prediction_ids'] = []
+        
         if self.request.user.is_authenticated:
-             from apps.users.models import UserProfile
+             from apps.users.models import UserProfile, PredictionUsage
              profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
              context['user_credits'] = profile.prediction_credits
+             
+             # Get unlocked IDs
+             unlocked_ids = PredictionUsage.objects.filter(
+                 user=self.request.user,
+                 prediction__in=predictions
+             ).values_list('prediction_id', flat=True)
+             context['unlocked_prediction_ids'] = set(unlocked_ids) # Use set for O(1) lookup
+
 
         return context
+
 
 
 class PredictionDetailView(LoginRequiredMixin, DetailView):
@@ -359,12 +374,11 @@ class PaymentView(LoginRequiredMixin, TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Determine user region
-        from apps.users.models import UserProfile
-        profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
-        region = getattr(profile, 'region', 'global')
         
-        # Get Tiers
+        # Determine user region from middleware
+        region = getattr(self.request, 'user_region', 'global')
+        is_east_africa = region == 'east_africa'
+        
         # Get Tiers - Exclude 'single' type as requested
         tiers_qs = PaymentService.get_pricing_tiers(region).exclude(tier_type='single')
         
@@ -378,9 +392,35 @@ class PaymentView(LoginRequiredMixin, TemplateView):
             
         context['tiers'] = tiers
         
-        # Get Channels
-        context['available_channels'] = PaymentService.get_available_channels(region)
-        context['payment_channels'] = context['available_channels'] # Alias for template
+        # Get Channels based on region
+        available_channels = PaymentService.get_available_channels(region)
+        
+        # Filter channels based on region
+        if is_east_africa:
+            # East Africa: Only M-Pesa
+            payment_channels = [ch for ch in available_channels if ch.provider == 'mpesa']
+        else:
+            # Outside East Africa: PayPal and Stripe
+            payment_channels = [ch for ch in available_channels if ch.provider in ['paypal', 'stripe']]
+        
+        # Add display properties for template
+        for channel in payment_channels:
+            # Set default channel (first one)
+            channel.is_default = payment_channels.index(channel) == 0
+            
+            # Add icon classes
+            if channel.provider == 'mpesa':
+                channel.icon = 'fas fa-mobile-alt'
+            elif channel.provider == 'paypal':
+                channel.icon = 'fab fa-paypal'
+            elif channel.provider == 'whatsapp':
+                channel.icon = 'fab fa-whatsapp'
+            elif channel.provider == 'stripe':
+                channel.icon = 'fas fa-credit-card'
+        
+        context['payment_channels'] = payment_channels
+        context['is_east_africa'] = is_east_africa
+        context['region'] = region
         
         return context
 

@@ -148,6 +148,10 @@ class DataIngestionService:
         date_from: str, date_to: str = None,
     ) -> dict:
         """Fetch and store fixtures for a specific league."""
+        # Use OpenLigaDB for Bundesliga (BL1) - Free, no key needed
+        if our_code == 'BL1':
+            return self._fetch_openligadb_bl1(date_from, date_to)
+
         stats = {'created': 0, 'updated': 0}
 
         url = f"{FOOTBALL_DATA_BASE_URL}/competitions/{api_code}/matches"
@@ -185,6 +189,112 @@ class DataIngestionService:
             except Exception as e:
                 logger.error(f"Error processing match: {e}")
 
+        return stats
+
+    def _fetch_openligadb_bl1(self, date_from: str, date_to: str = None) -> dict:
+        """Fetch BL1 fixtures from OpenLigaDB (Free API)."""
+        stats = {'created': 0, 'updated': 0}
+        league = League.objects.filter(code='BL1').first()
+        
+        if not league:
+            # Create if missing
+            league = League.objects.create(
+                name='Bundesliga', code='BL1', country='Germany', 
+                is_active=True, api_id=2002
+            )
+            
+        # OpenLigaDB uses season years (e.g., 2025). Extract from date.
+        try:
+            target_date = datetime.strptime(date_from, '%Y-%m-%d')
+            year = target_date.year
+            # Basic heuristic: if after July, use year, else year-1
+            if target_date.month < 7:
+                year -= 1
+        except Exception:
+            year = datetime.now().year
+
+        url = f"https://api.openligadb.de/getmatchdata/bl1/{year}"
+        
+        try:
+            response = requests.get(url, timeout=30)
+            if response.status_code != 200:
+                logger.error(f"OpenLigaDB error: {response.status_code}")
+                return stats
+                
+            matches = response.json()
+            
+            # Filter by date range manually since API returns whole season
+            start_dt = datetime.strptime(date_from, '%Y-%m-%d')
+            end_dt = datetime.strptime(date_from, '%Y-%m-%d')
+            if date_to:
+                end_dt = datetime.strptime(date_to, '%Y-%m-%d')
+            # Add end of day buffer
+            end_dt = end_dt.replace(hour=23, minute=59, second=59)
+                
+            for m in matches:
+                match_dt_str = m.get('matchDateTimeUTC', '')
+                try:
+                    match_dt = datetime.fromisoformat(match_dt_str.replace('Z', '+00:00'))
+                except:
+                    continue
+                    
+                # Filter
+                if not (start_dt.date() <= match_dt.date() <= end_dt.date()):
+                    continue
+                    
+                # Process Match (Adapt to _process_match structure or handle directly)
+                # Since structure differs, I'll map it manually here
+                
+                # Teams
+                t1 = m.get('team1', {})
+                t2 = m.get('team2', {})
+                
+                home_team, _ = Team.objects.get_or_create(
+                    name=t1.get('teamName'),
+                    defaults={'league': league, 'logo_url': t1.get('teamIconUrl', '')}
+                )
+                away_team, _ = Team.objects.get_or_create(
+                    name=t2.get('teamName'),
+                    defaults={'league': league, 'logo_url': t2.get('teamIconUrl', '')}
+                )
+                
+                # Status check
+                is_finished = m.get('matchIsFinished', False)
+                status = 'finished' if is_finished else 'scheduled'
+                
+                # Scores
+                home_score = None
+                away_score = None
+                if is_finished:
+                    # OpenLigaDB results are a list. Usually type 2 is final result
+                    results = m.get('matchResults', [])
+                    final = next((r for r in results if r.get('resultTypeID') == 2), None)
+                    if final:
+                        home_score = final.get('pointsTeam1')
+                        away_score = final.get('pointsTeam2')
+                
+                # Create Match
+                match, created = Match.objects.update_or_create(
+                    api_id=m.get('matchID'),
+                    defaults={
+                        'league': league,
+                        'home_team': home_team,
+                        'away_team': away_team,
+                        'match_date': match_dt,
+                        'status': status,
+                        'home_score': home_score,
+                        'away_score': away_score,
+                    }
+                )
+                
+                if created:
+                    stats['created'] += 1
+                else:
+                    stats['updated'] += 1
+                    
+        except Exception as e:
+            logger.error(f"OpenLigaDB fetch error: {e}")
+            
         return stats
 
     @transaction.atomic
