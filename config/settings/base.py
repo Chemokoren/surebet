@@ -111,6 +111,18 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
+# Scheduled Tasks
+from celery.schedules import crontab
+CELERY_BEAT_SCHEDULE = {
+    'generate-predictions-daily': {
+        'task': 'apps.predictions.tasks.generate_daily_predictions_task',
+        'schedule': crontab(hour=23, minute=0),
+    },
+    'verify-predictions-midnight': {
+        'task': 'apps.predictions.tasks.verify_predictions_availability_task',
+        'schedule': crontab(hour=0, minute=0),
+    },
+}
 # REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [

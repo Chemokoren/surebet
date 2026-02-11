@@ -5242,3 +5242,7 @@ Traceback (most recent call last):
 django.template.exceptions.TemplateSyntaxError: Invalid filter: 'multiply'
 INFO 2026-02-11 02:11:44,796 autoreload 22911 129335294701824 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
 INFO 2026-02-11 02:11:45,709 autoreload 27594 123336207364352 Watching for file changes with StatReloader
+INFO 2026-02-11 02:17:46,677 autoreload 27594 123336207364352 /home/kibsoft/Documents/dev/projects/sports/futurapredict/config/__init__.py changed, reloading.
+INFO 2026-02-11 02:17:47,808 autoreload 28101 132129391210752 Watching for file changes with StatReloader
+INFO 2026-02-11 02:18:48,741 autoreload 28101 132129391210752 /home/kibsoft/Documents/dev/projects/sports/futurapredict/config/settings/base.py changed, reloading.
+INFO 2026-02-11 02:18:50,097 autoreload 28179 139477198024960 Watching for file changes with StatReloader

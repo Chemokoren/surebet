@@ -1,106 +1,77 @@
-"""
-Celery tasks for the predictions app.
-
-Scheduled via django-celery-beat:
-    - generate_daily_predictions: every day at 06:00 UTC
-    - retrain_models: every Sunday at 02:00 UTC
-    - check_model_drift: every day at 03:00 UTC
-"""
-
-import logging
-
 from celery import shared_task
+from django.utils import timezone
+from datetime import timedelta
+from apps.core.services.data_ingestion import DataIngestionService
+from .services.prediction_service import PredictionService
+from .models import Prediction
+from apps.core.models import Match
+import logging
 
 logger = logging.getLogger(__name__)
 
-
-@shared_task(name='predictions.generate_daily')
-def generate_daily_predictions():
+@shared_task
+def generate_daily_predictions_task():
     """
-    Generate predictions for all scheduled matches today.
-    Should run after data ingestion has fetched fixtures.
+    Generate predictions for the next day.
+    Runs daily at 11:00 PM (23:00).
     """
-    from apps.predictions.services.prediction_service import PredictionService
+    logger.info("Starting scheduled daily prediction pipeline...")
+    
+    # Target: Tomorrow matches
+    tomorrow = timezone.now().date() + timedelta(days=1)
+    
+    # 1. Update Ingestion (Fetch fixtures for tomorrow)
+    try:
+        service = DataIngestionService()
+        logger.info(f"Fetching fixtures for {tomorrow}...")
+        service.fetch_fixtures_for_date(tomorrow)
+    except Exception as e:
+        logger.error(f"Data ingestion failed for {tomorrow}: {e}")
+        # Proceed in case fixtures were ingested earlier
 
-    count = PredictionService.generate_daily_predictions()
-    logger.info(f"Daily predictions generated: {count}")
-    return {'predictions_created': count}
+    # 2. Generate Predictions
+    try:
+        logger.info(f"Generating predictions for {tomorrow}...")
+        count = PredictionService.generate_daily_predictions(target_date=tomorrow)
+        logger.info(f"Successfully generated {count} predictions for {tomorrow}")
+        return f"Generated {count} predictions for {tomorrow}"
+    except Exception as e:
+        logger.error(f"Prediction generation failed: {e}")
+        raise
 
-
-@shared_task(name='predictions.retrain_models')
-def retrain_models(full: bool = False):
+@shared_task
+def verify_predictions_availability_task():
     """
-    Retrain ML models.
-
-    Args:
-        full: If True, retrain on full historical data.
-              If False, incremental (last 30 days).
+    Verify predictions exist for the current day.
+    Runs daily at 12:00 AM (00:00).
+    Ensures that content is available for subscribers.
     """
-    from apps.predictions.ml.training_pipeline import TrainingPipeline
-    from apps.predictions.services.model_registry import ModelRegistry
+    target_date = timezone.now().date()
+    logger.info(f"Verifying prediction availability for {target_date}...")
+    
+    # Check if ANY matches exist for today first
+    matches_count = Match.objects.filter(match_date__date=target_date).count()
+    if matches_count == 0:
+        logger.info(f"No matches scheduled for {target_date}. No predictions required.")
+        return "No matches scheduled."
 
-    if full:
-        version = TrainingPipeline.run_full_training(seasons=3)
-    else:
-        version = TrainingPipeline.run_incremental_update(days=30)
-
-    if version:
-        ModelRegistry.invalidate_cache()
-        logger.info(f"New model version activated: {version.name}")
-    else:
-        logger.info("No model improvement, keeping current version")
-
-    return {'new_version': version.name if version else None}
-
-
-@shared_task(name='predictions.check_drift')
-def check_model_drift():
-    """
-    Check if prediction accuracy has degraded significantly.
-    Sends alert if drift detected (threshold: 5% degradation).
-    """
-    from apps.predictions.ml.training_pipeline import TrainingPipeline
-
-    result = TrainingPipeline.check_accuracy_drift(threshold=0.05)
-
-    if result.get('drift_detected'):
-        logger.warning(f"MODEL DRIFT DETECTED: {result}")
-        # Trigger automatic retraining
-        retrain_models.delay(full=False)
-    else:
-        logger.info(f"Drift check OK: {result}")
-
-    return result
-
-
-@shared_task(name='predictions.warm_feature_cache')
-def warm_feature_cache():
-    """
-    Pre-compute and cache features for today's scheduled matches.
-    Should run before daily prediction generation.
-    """
-    from django.utils import timezone
-    from apps.core.models import Match
-    from apps.predictions.ml.feature_store import FeatureStore
-
-    today = timezone.now().date()
-    matches = Match.objects.filter(
-        match_date__date=today,
-        status='scheduled',
-    ).select_related('home_team', 'away_team', 'league')
-
-    count = FeatureStore.warm_cache(matches)
-    return {'features_cached': count}
-
-
-@shared_task(name='predictions.resolve_predictions')
-def resolve_predictions():
-    """
-    Resolve pending predictions based on finished match results.
-    Should run after match results are ingested.
-    """
-    from apps.analytics.services.accuracy_tracker import AnalyticsService
-
-    AnalyticsService._resolve_predictions()
-    logger.info("Prediction resolution complete")
-    return {'status': 'ok'}
+    # Check predictions
+    pred_count = Prediction.objects.filter(match__match_date__date=target_date).count()
+    
+    if pred_count == 0:
+        logger.warning(f"No predictions found for {target_date} despite {matches_count} scheduled matches! Triggering emergency generation.")
+        try:
+            # Emergency generation
+            generated = PredictionService.generate_daily_predictions(target_date=target_date)
+            if generated > 0:
+                logger.info(f"Emergency generation successful: {generated} predictions created.")
+                return f"Emergency: Generated {generated} predictions"
+            else:
+                logger.error("Emergency generation resulted in 0 predictions. Review logs for DataIngestion/ML errors.")
+                return "Emergency: Failed (0 predictions)"
+        except Exception as e:
+            logger.critical(f"Critical failure during emergency generation: {e}")
+            raise
+    
+    logger.info(f"Verification passed: {pred_count} predictions available for {target_date}.")
+    return f"Verified {pred_count} predictions"
