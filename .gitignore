@@ -1,0 +1,94 @@
+# === Environment Variables & Secrets ===
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.local
+
+# === Django ===
+*.pyc
+__pycache__/
+db.sqlite3
+media/
+
+# === Python ===
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# === IDE & Editor ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# === Docker ===
+.docker/
+
+# === Virtual Environments ===
+venv/
+env/
+ENV/
+.venv/
+
+# === Testing ===
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# === Migrations ===
+# Keep migrations but ignore auto-generated if needed
+# migrations/
+
+# === Logs ===
+*.log
+logs/
+
+# === Cache ===
+.cache/
+.node_modules/
+.yarn-cache/
+
+# === Secrets & Keys (explicit) ===
+*.pem
+*.key
+*.crt
+credentials.json
+service-account.json
+
+# === OS Specific ===
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# === Misc ===
+*.bak
+*.tmp
+*.temp
+todo/
+notes/

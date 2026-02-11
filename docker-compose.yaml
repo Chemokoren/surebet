@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    command: gunicorn futurapredict.wsgi:application --bind 0.0.0.0:8008 --workers 3
+    ports:
+      - "8008:8008"
+    environment:
+      - DJANGO_SETTINGS_MODULE=futurapredict.settings
+    volumes:
+      - .:/app:ro
+    restart: unless-stopped
