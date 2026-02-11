@@ -5157,3 +5157,88 @@ Traceback (most recent call last):
     ...<8 lines>...
     )
 django.template.exceptions.TemplateSyntaxError: Invalid block tag on line 142: 'else', expected 'empty' or 'endfor'. Did you forget to register or load this tag?
+ERROR 2026-02-11 01:59:20,562 log 22911 129335178548928 Internal Server Error: /predictions/f11cbd71-16f9-4b90-ad20-c04c29bfe36b/
+Traceback (most recent call last):
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 90, in rendered_content
+    template = self.resolve_template(self.template_name)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 72, in resolve_template
+    return select_template(template, using=self.using)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/loader.py", line 42, in select_template
+    return engine.get_template(template_name)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/backends/django.py", line 33, in get_template
+    return Template(self.engine.get_template(template_name), self)
+                    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/engine.py", line 175, in get_template
+    template, origin = self.find_template(template_name)
+                       ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/engine.py", line 157, in find_template
+    template = loader.get_template(name, skip=skip)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/loaders/cached.py", line 57, in get_template
+    template = super().get_template(template_name, skip)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/loaders/base.py", line 28, in get_template
+    return Template(
+        contents,
+    ...<2 lines>...
+        self.engine,
+    )
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 154, in __init__
+    self.nodelist = self.compile_nodelist()
+                    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 200, in compile_nodelist
+    return parser.parse()
+           ~~~~~~~~~~~~^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 513, in parse
+    raise self.error(token, e)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 511, in parse
+    compiled_result = compile_func(self, token)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/loader_tags.py", line 293, in do_extends
+    nodelist = parser.parse()
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 513, in parse
+    raise self.error(token, e)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 511, in parse
+    compiled_result = compile_func(self, token)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/loader_tags.py", line 232, in do_block
+    nodelist = parser.parse(("endblock",))
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 513, in parse
+    raise self.error(token, e)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 511, in parse
+    compiled_result = compile_func(self, token)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/defaulttags.py", line 967, in do_if
+    nodelist = parser.parse(("endif",))
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 513, in parse
+    raise self.error(token, e)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 511, in parse
+    compiled_result = compile_func(self, token)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/defaulttags.py", line 953, in do_if
+    nodelist = parser.parse(("elif", "else", "endif"))
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 513, in parse
+    raise self.error(token, e)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 511, in parse
+    compiled_result = compile_func(self, token)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/defaulttags.py", line 853, in do_for
+    nodelist_loop = parser.parse(
+        (
+    ...<2 lines>...
+        )
+    )
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 484, in parse
+    raise self.error(token, e)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 482, in parse
+    filter_expression = self.compile_filter(token.contents)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 600, in compile_filter
+    return FilterExpression(token, self)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 698, in __init__
+    filter_func = parser.find_filter(filter_name)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 606, in find_filter
+    raise TemplateSyntaxError("Invalid filter: '%s'" % filter_name)
+django.template.exceptions.TemplateSyntaxError: Invalid filter: 'multiply'
+INFO 2026-02-11 02:11:44,796 autoreload 22911 129335294701824 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-11 02:11:45,709 autoreload 27594 123336207364352 Watching for file changes with StatReloader

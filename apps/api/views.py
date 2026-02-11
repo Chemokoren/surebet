@@ -379,11 +379,17 @@ class PaymentView(LoginRequiredMixin, TemplateView):
         region = getattr(self.request, 'user_region', 'global')
         is_east_africa = region == 'east_africa'
         
-        # Get Tiers - Exclude 'single' type as requested
-        tiers_qs = PaymentService.get_pricing_tiers(region).exclude(tier_type='single')
-        
-        # If a specific tier_id is requested, prioritize it in the list (or ensure it's selected in template)
+        # Get tier_id from query params
         selected_tier_id = self.request.GET.get('tier_id')
+        
+        # Get Tiers - exclude 'single' type unless a specific single tier is requested
+        if selected_tier_id:
+            # If a specific tier is requested, include it even if it's single type
+            tiers_qs = PaymentService.get_pricing_tiers(region)
+        else:
+            # Otherwise exclude 'single' type as they're for quick unlock buttons
+            tiers_qs = PaymentService.get_pricing_tiers(region).exclude(tier_type='single')
+        
         tiers = list(tiers_qs)
         
         if selected_tier_id:

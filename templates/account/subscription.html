@@ -47,11 +47,12 @@
                             </h2>
 
                             <ul class="list-unstyled mb-4">
-                                {% for feature in plan.features %}
-                                <li class="mb-2"><i class="fas fa-check text-success"></i> {{ feature }}</li>
-                                {% endfor %}
-                                <li class="mb-2"><i class="fas fa-check text-success"></i> {{
-                                    plan.daily_prediction_limit }} predictions/day</li>
+                                {% if plan.features %}
+                                    {% for feature in plan.features %}
+                                    <li class="mb-2"><i class="fas fa-check text-success"></i> {{ feature }}</li>
+                                    {% endfor %}
+                                {% endif %}
+                                <li class="mb-2"><i class="fas fa-check text-success"></i> {{ plan.daily_prediction_limit }} predictions/day</li>
                             </ul>
 
                             {% if active_sub and active_sub.plan.id == plan.id %}

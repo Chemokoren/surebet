@@ -173,3 +173,22 @@ button, a {
    color: #1a1e21 !important;
    text-shadow: none !important;
 }
+/* Light mode text visibility improvements */
+[data-bs-theme="light"] .dark-text {
+    color: #1a1e21 !important;
+    font-weight: 600;
+}
+
+[data-bs-theme="light"] .dark-text-muted {
+    color: #495057 !important;
+}
+
+[data-bs-theme="light"] .bg-body-tertiary {
+    background-color: #f8f9fa !important;
+    border: 1px solid #e9ecef !important;
+}
+
+/* Card visibility in light mode */
+[data-bs-theme="light"] .card {
+    border-color: #dee2e6 !important;
+}

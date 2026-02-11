@@ -153,8 +153,7 @@
                     {% if single_tier %}
                     <a href="{% url 'payment' %}?tier_id={{ single_tier.id }}"
                         class="btn btn-light btn-sm mb-2 w-100 fw-bold text-dark">
-                        <i class="fas fa-bolt me-2 text-warning"></i> Unlock now: {{ single_tier.currency }} {{
-                        single_tier.price|floatformat:0 }}
+                        <i class="fas fa-bolt me-2 text-warning"></i> Unlock now: {{ single_tier.currency }} {{ single_tier.price|floatformat:0 }}
                     </a>
                     {% endif %}
                     <a href="#pricing" class="btn btn-outline-light btn-sm w-100">
