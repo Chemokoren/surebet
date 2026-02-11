@@ -240,14 +240,76 @@ class PredictionDetailView(LoginRequiredMixin, DetailView):
         return context
 
 class TeamAnalysisView(LoginRequiredMixin, TemplateView):
-    """Team analysis page view"""
+    """Team analysis page view with premium/free access control"""
     template_name = 'pages/team_analysis.html'
     login_url = '/account/login/'
     
     def get_context_data(self, **kwargs):
+        from apps.analytics.services.team_analytics_service import TeamAnalyticsService
+        from apps.users.models import UserProfile, PredictionUsage
+        
         context = super().get_context_data(**kwargs)
-        # Simple list of teams for the dropdown/search
-        context['teams'] = Team.objects.all().order_by('name')[:50] 
+        
+        # Get user profile and subscription info
+        user = self.request.user
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        active_sub = SubscriptionService.get_active_subscription(user)
+        
+        # Determine access level
+        can_access_premium = False
+        access_reason = None
+        
+        if active_sub:
+            # Active subscription grants premium access
+            can_access_premium = True
+            access_reason = f"Premium access via {active_sub.plan.name}"
+        elif profile.prediction_credits > 0:
+            # Has credits - can pay to unlock premium features
+            can_access_premium = False
+            access_reason = f"Free tier ({profile.prediction_credits} credits available for unlock)"
+        else:
+            # No subscription, no credits
+            can_access_premium = False
+            access_reason = "Free tier only"
+        
+        # Get team info from query params or GET request
+        team_id = self.request.GET.get('team_id')
+        team_analysis = None
+        team = None
+        
+        if team_id:
+            try:
+                team = Team.objects.get(id=team_id)
+                # Get analysis data
+                team_analysis = TeamAnalyticsService.get_team_overview(
+                    team=team,
+                    include_premium=can_access_premium
+                )
+            except Team.DoesNotExist:
+                context['error'] = "Team not found"
+        
+        # Available teams for search/dropdown (serialize minimal fields for JS)
+        teams_qs = Team.objects.all().order_by('name')[:50]
+        context['teams'] = [
+            {
+                'id': str(t.id),
+                'name': t.name,
+                'league': t.league.name if t.league else '',
+            }
+            for t in teams_qs
+        ]
+        context['team_analysis'] = team_analysis
+        context['team'] = team
+        
+        # Access control info
+        context['can_access_premium'] = can_access_premium
+        context['access_reason'] = access_reason
+        context['user_credits'] = profile.prediction_credits
+        context['active_sub'] = active_sub
+        
+        # Premium features list
+        context['premium_features'] = list(TeamAnalyticsService.PREMIUM_METRICS)
+        
         return context
 
 

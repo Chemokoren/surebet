@@ -7,24 +7,115 @@
   <div class="row">
     <div class="col-12">
       <h1 class="mb-3">Historical Data</h1>
-      <p class="text-muted">Explore past matches, results and historical performance. This page is a placeholder — replace with data visualizations when ready.</p>
+      <p class="text-muted">Explore past matches, results and historical performance.</p>
+    </div>
+  </div>
+
+  <!-- Statistics Summary -->
+  <div class="row mt-4 mb-4">
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h6 class="card-title text-muted">Total Predictions</h6>
+          <h2 class="card-text">{{ total_predictions }}</h2>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h6 class="card-title text-muted">Correct</h6>
+          <h2 class="card-text text-success">{{ total_correct }}</h2>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h6 class="card-title text-muted">Incorrect</h6>
+          <h2 class="card-text text-danger">{{ total_incorrect }}</h2>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center">
+        <div class="card-body">
+          <h6 class="card-title text-muted">Pending</h6>
+          <h2 class="card-text text-warning">{{ total_pending }}</h2>
+        </div>
+      </div>
     </div>
   </div>
 
   <div class="row mt-4">
+    <!-- Recent Matches -->
     <div class="col-lg-8">
-      <div class="card p-4">
-        <h5 class="card-title">Match Explorer</h5>
-        <p class="card-text">Filters and interactive charts will appear here.</p>
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Recent Matches</h5>
+        </div>
+        <div class="card-body">
+          {% if recent_matches %}
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Home Team</th>
+                    <th>Away Team</th>
+                    <th>Result</th>
+                    <th>League</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for match in recent_matches %}
+                  <tr>
+                    <td><small>{{ match.match_date|date:"M d, Y" }}</small></td>
+                    <td>{{ match.home_team.name }}</td>
+                    <td>{{ match.away_team.name }}</td>
+                    <td>
+                      {% if match.result %}
+                        <span class="badge bg-secondary">{{ match.result }}</span>
+                      {% else %}
+                        <span class="badge bg-light text-dark">Pending</span>
+                      {% endif %}
+                    </td>
+                    <td><small>{{ match.league.name }}</small></td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-muted mb-0">No matches found.</p>
+          {% endif %}
+        </div>
       </div>
     </div>
+
+    <!-- Accuracy Records -->
     <div class="col-lg-4">
-      <div class="card p-4">
-        <h6>Quick Actions</h6>
-        <ul class="list-unstyled">
-          <li><a href="#" class="text-decoration-none">Download CSV</a></li>
-          <li><a href="#" class="text-decoration-none">Export to Excel</a></li>
-        </ul>
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Accuracy History</h5>
+        </div>
+        <div class="card-body">
+          {% if accuracy_records %}
+            <div class="list-group list-group-flush">
+              {% for record in accuracy_records %}
+              <div class="list-group-item px-0 py-3">
+                <div class="d-flex w-100 justify-content-between">
+                  <small class="text-muted">{{ record.period|title }}</small>
+                  <strong>{{ record.accuracy_rate|floatformat:1 }}%</strong>
+                </div>
+                <small class="text-muted">{{ record.period_start|date:"M d" }} - {{ record.period_end|date:"M d" }}</small>
+              </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-muted mb-0">No accuracy records yet.</p>
+          {% endif %}
+        </div>
       </div>
     </div>
   </div>

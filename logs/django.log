@@ -5246,3 +5246,324 @@ INFO 2026-02-11 02:17:46,677 autoreload 27594 123336207364352 /home/kibsoft/Docu
 INFO 2026-02-11 02:17:47,808 autoreload 28101 132129391210752 Watching for file changes with StatReloader
 INFO 2026-02-11 02:18:48,741 autoreload 28101 132129391210752 /home/kibsoft/Documents/dev/projects/sports/futurapredict/config/settings/base.py changed, reloading.
 INFO 2026-02-11 02:18:50,097 autoreload 28179 139477198024960 Watching for file changes with StatReloader
+WARNING 2026-02-11 02:28:20,235 log 28179 139477082166976 Not Found: /api/predictions/filter/
+WARNING 2026-02-11 06:28:03,163 log 28179 139477082166976 Not Found: /api/predictions/filter/
+INFO 2026-02-11 06:37:25,975 autoreload 28179 139477198024960 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-11 06:37:27,051 autoreload 30608 131764017103104 Watching for file changes with StatReloader
+INFO 2026-02-11 06:39:20,970 autoreload 30608 131764017103104 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-11 06:39:22,270 autoreload 30827 130211198959872 Watching for file changes with StatReloader
+INFO 2026-02-11 06:41:41,511 autoreload 30827 130211198959872 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/v1/urls.py changed, reloading.
+INFO 2026-02-11 06:41:42,483 autoreload 31106 136283640168704 Watching for file changes with StatReloader
+WARNING 2026-02-11 06:44:54,478 log 31106 136283464660672 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+INFO 2026-02-11 06:46:49,863 autoreload 31106 136283640168704 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/v1/views/analytics.py changed, reloading.
+INFO 2026-02-11 06:46:50,736 autoreload 31772 132907972899072 Watching for file changes with StatReloader
+INFO 2026-02-11 06:47:03,802 autoreload 31772 132907972899072 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/v1/views/analytics.py changed, reloading.
+INFO 2026-02-11 06:47:04,643 autoreload 31814 129521951125760 Watching for file changes with StatReloader
+INFO 2026-02-11 06:48:36,649 autoreload 32152 129943553155328 Watching for file changes with StatReloader
+INFO 2026-02-11 06:57:16,539 autoreload 32439 127036893946112 Watching for file changes with StatReloader
+INFO 2026-02-11 07:15:03,886 autoreload 33908 133064759795968 Watching for file changes with StatReloader
+INFO 2026-02-11 07:15:19,379 autoreload 33908 133064759795968 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/v1/views/analytics.py changed, reloading.
+INFO 2026-02-11 07:15:19,797 autoreload 32439 127036893946112 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/v1/views/analytics.py changed, reloading.
+INFO 2026-02-11 07:15:20,775 autoreload 33957 140619455168768 Watching for file changes with StatReloader
+INFO 2026-02-11 07:15:21,260 autoreload 33956 131627325468928 Watching for file changes with StatReloader
+INFO 2026-02-11 07:15:25,657 autoreload 33957 140619455168768 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/v1/views/analytics.py changed, reloading.
+INFO 2026-02-11 07:15:26,517 autoreload 34023 125025491538176 Watching for file changes with StatReloader
+INFO 2026-02-11 07:22:39,470 autoreload 34198 134333790347520 Watching for file changes with StatReloader
+INFO 2026-02-11 07:27:12,150 autoreload 34023 125025491538176 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/v1/views/analytics.py changed, reloading.
+INFO 2026-02-11 07:27:13,055 autoreload 34336 137609124983040 Watching for file changes with StatReloader
+INFO 2026-02-11 07:27:20,874 autoreload 34336 137609124983040 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/v1/views/analytics.py changed, reloading.
+INFO 2026-02-11 07:27:21,756 autoreload 34381 138771004023040 Watching for file changes with StatReloader
+INFO 2026-02-11 07:27:40,138 autoreload 34708 136169782735104 Watching for file changes with StatReloader
+INFO 2026-02-11 07:38:34,705 autoreload 35267 124178563408128 Watching for file changes with StatReloader
+INFO 2026-02-11 07:39:17,336 autoreload 35267 124178563408128 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/v1/urls.py changed, reloading.
+INFO 2026-02-11 07:39:18,945 autoreload 35333 135972931150080 Watching for file changes with StatReloader
+WARNING 2026-02-11 08:30:03,348 log 35333 135972691900096 Not Found: /api/v1/teams/d4bd3d3b-2b72-4709-b948-78734cde2afd/analysis/
+WARNING 2026-02-11 08:30:30,158 log 35333 135972691900096 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+INFO 2026-02-11 08:31:44,122 autoreload 35333 135972931150080 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-11 08:31:46,782 autoreload 37306 131302618317056 Watching for file changes with StatReloader
+WARNING 2026-02-11 09:08:19,510 log 37306 131302384727744 Unauthorized: /v1/teams/813ac524-4c36-4710-9b80-586eb66a9bc6/analysis/
+INFO 2026-02-11 09:10:55,868 autoreload 37306 131302618317056 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/v1/views/analytics.py changed, reloading.
+INFO 2026-02-11 09:10:57,672 autoreload 40106 138963501863168 Watching for file changes with StatReloader
+INFO 2026-02-11 09:11:02,749 autoreload 40106 138963501863168 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/v1/views/analytics.py changed, reloading.
+INFO 2026-02-11 09:11:04,442 autoreload 40119 131955656175872 Watching for file changes with StatReloader
+INFO 2026-02-11 09:11:27,456 autoreload 40171 127361962926336 Watching for file changes with StatReloader
+INFO 2026-02-11 09:16:23,969 autoreload 40171 127361962926336 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/v1/views/analytics.py changed, reloading.
+INFO 2026-02-11 09:16:25,969 autoreload 40648 138132817387776 Watching for file changes with StatReloader
+INFO 2026-02-11 09:18:06,413 autoreload 41042 127424032149760 Watching for file changes with StatReloader
+INFO 2026-02-11 09:18:28,347 autoreload 41152 128708878942464 Watching for file changes with StatReloader
+WARNING 2026-02-11 09:23:21,729 log 41152 128708694243008 Not Found: /api/v1/teams/
+WARNING 2026-02-11 09:38:58,871 log 41152 128708770784960 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2026-02-11 09:44:24,067 log 41152 128708770784960 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2026-02-11 09:44:40,161 log 41152 128708654728896 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2026-02-11 09:47:18,253 log 41152 128708654728896 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2026-02-11 09:52:20,671 log 41152 128708654728896 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2026-02-11 09:53:07,168 log 41152 128708671514304 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+WARNING 2026-02-11 09:58:18,938 log 41152 128708671514304 Not Found: /.well-known/appspecific/com.chrome.devtools.json
+INFO 2026-02-11 09:59:33,662 autoreload 41152 128708878942464 /home/kibsoft/Documents/dev/projects/sports/futurapredict/config/urls.py changed, reloading.
+INFO 2026-02-11 09:59:35,433 autoreload 47208 138259808653568 Watching for file changes with StatReloader
+INFO 2026-02-11 09:59:39,697 autoreload 47208 138259808653568 /home/kibsoft/Documents/dev/projects/sports/futurapredict/config/urls.py changed, reloading.
+INFO 2026-02-11 09:59:41,219 autoreload 47244 129753604493568 Watching for file changes with StatReloader
+INFO 2026-02-11 10:02:33,702 autoreload 47865 128794397663488 Watching for file changes with StatReloader
+INFO 2026-02-11 10:07:05,023 autoreload 47244 129753604493568 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/analytics/views.py changed, reloading.
+INFO 2026-02-11 10:07:07,545 autoreload 48130 134969375125760 Watching for file changes with StatReloader
+WARNING 2026-02-11 10:45:01,075 log 48130 134969263732416 Forbidden (CSRF cookie not set.): /account/login/
+ERROR 2026-02-11 10:45:45,618 log 48130 134969263732416 Internal Server Error: /analytics/historical/
+Traceback (most recent call last):
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/views/generic/base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/contrib/auth/mixins.py", line 73, in dispatch
+    return super().dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/views/generic/base.py", line 144, in dispatch
+    return handler(request, *args, **kwargs)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/views/generic/base.py", line 228, in get
+    context = self.get_context_data(**kwargs)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/analytics/views.py", line 23, in get_context_data
+    matches = Match.objects.all().order_by('-date')[:100]
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1664, in order_by
+    obj.query.add_ordering(*field_names)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/db/models/sql/query.py", line 2230, in add_ordering
+    self.names_to_path(item.split(LOOKUP_SEP), self.model._meta)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/db/models/sql/query.py", line 1733, in names_to_path
+    raise FieldError(
+    ...<2 lines>...
+    )
+django.core.exceptions.FieldError: Cannot resolve keyword 'date' into field. Choices are: api_id, away_half_score, away_score, away_team, away_team_id, created_at, home_half_score, home_score, home_team, home_team_id, id, is_locked, league, league_id, match_date, matchday, prediction, season, season_id, status, updated_at
+INFO 2026-02-11 10:48:14,527 autoreload 48130 134969375125760 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/analytics/views.py changed, reloading.
+INFO 2026-02-11 10:48:15,452 autoreload 51229 127523977675008 Watching for file changes with StatReloader
+ERROR 2026-02-11 10:48:53,845 log 51229 127523869419200 Internal Server Error: /analytics/historical/
+Traceback (most recent call last):
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/views/generic/base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/contrib/auth/mixins.py", line 73, in dispatch
+    return super().dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/views/generic/base.py", line 144, in dispatch
+    return handler(request, *args, **kwargs)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/views/generic/base.py", line 228, in get
+    context = self.get_context_data(**kwargs)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/analytics/views.py", line 35, in get_context_data
+    'total_correct': predictions.filter(status='won').count(),
+                     ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1438, in filter
+    return self._filter_or_exclude(False, args, kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1456, in _filter_or_exclude
+    clone._filter_or_exclude_inplace(negate, args, kwargs)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1466, in _filter_or_exclude_inplace
+    self._query.add_q(Q(*args, **kwargs))
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/db/models/sql/query.py", line 1548, in add_q
+    clause, _ = self._add_q(q_object, self.used_aliases)
+                ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/db/models/sql/query.py", line 1579, in _add_q
+    child_clause, needed_inner = self.build_filter(
+                                 ~~~~~~~~~~~~~~~~~^
+        child,
+        ^^^^^^
+    ...<6 lines>...
+        summarize=summarize,
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/db/models/sql/query.py", line 1429, in build_filter
+    lookups, parts, reffed_expression = self.solve_lookup_type(arg, summarize)
+                                        ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/db/models/sql/query.py", line 1239, in solve_lookup_type
+    _, field, _, lookup_parts = self.names_to_path(lookup_splitted, self.get_meta())
+                                ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/db/models/sql/query.py", line 1733, in names_to_path
+    raise FieldError(
+    ...<2 lines>...
+    )
+django.core.exceptions.FieldError: Cannot resolve keyword 'status' into field. Choices are: away_win_prob, confidence_score, draw_prob, explanations, feature_snapshot, generated_at, home_win_prob, id, is_correct, is_locked, match, match_id, model_version, model_version_id, predicted_outcome, predictionusage, resolved_at, tier, updated_at
+INFO 2026-02-11 10:49:16,747 autoreload 51489 133719038284032 Watching for file changes with StatReloader
+ERROR 2026-02-11 10:49:19,946 log 51489 133718929827520 Internal Server Error: /analytics/historical/
+Traceback (most recent call last):
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/views/generic/base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/contrib/auth/mixins.py", line 73, in dispatch
+    return super().dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/views/generic/base.py", line 144, in dispatch
+    return handler(request, *args, **kwargs)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/views/generic/base.py", line 228, in get
+    context = self.get_context_data(**kwargs)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/analytics/views.py", line 35, in get_context_data
+    'total_correct': predictions.filter(status='won').count(),
+                     ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1438, in filter
+    return self._filter_or_exclude(False, args, kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1456, in _filter_or_exclude
+    clone._filter_or_exclude_inplace(negate, args, kwargs)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/db/models/query.py", line 1466, in _filter_or_exclude_inplace
+    self._query.add_q(Q(*args, **kwargs))
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/db/models/sql/query.py", line 1548, in add_q
+    clause, _ = self._add_q(q_object, self.used_aliases)
+                ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/db/models/sql/query.py", line 1579, in _add_q
+    child_clause, needed_inner = self.build_filter(
+                                 ~~~~~~~~~~~~~~~~~^
+        child,
+        ^^^^^^
+    ...<6 lines>...
+        summarize=summarize,
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/db/models/sql/query.py", line 1429, in build_filter
+    lookups, parts, reffed_expression = self.solve_lookup_type(arg, summarize)
+                                        ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/db/models/sql/query.py", line 1239, in solve_lookup_type
+    _, field, _, lookup_parts = self.names_to_path(lookup_splitted, self.get_meta())
+                                ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/db/models/sql/query.py", line 1733, in names_to_path
+    raise FieldError(
+    ...<2 lines>...
+    )
+django.core.exceptions.FieldError: Cannot resolve keyword 'status' into field. Choices are: away_win_prob, confidence_score, draw_prob, explanations, feature_snapshot, generated_at, home_win_prob, id, is_correct, is_locked, match, match_id, model_version, model_version_id, predicted_outcome, predictionusage, resolved_at, tier, updated_at
+INFO 2026-02-11 10:49:59,096 autoreload 51489 133719038284032 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/analytics/views.py changed, reloading.
+INFO 2026-02-11 10:49:59,980 autoreload 51578 140029609541888 Watching for file changes with StatReloader
+ERROR 2026-02-11 11:10:19,983 log 51578 140029501368000 Internal Server Error: /analytics/historical/
+Traceback (most recent call last):
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 505, in parse
+    compile_func = self.tags[command]
+                   ~~~~~~~~~^^^^^^^^^
+KeyError: 'endblock'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 90, in rendered_content
+    template = self.resolve_template(self.template_name)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 72, in resolve_template
+    return select_template(template, using=self.using)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/loader.py", line 42, in select_template
+    return engine.get_template(template_name)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/backends/django.py", line 33, in get_template
+    return Template(self.engine.get_template(template_name), self)
+                    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/engine.py", line 175, in get_template
+    template, origin = self.find_template(template_name)
+                       ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/engine.py", line 157, in find_template
+    template = loader.get_template(name, skip=skip)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/loaders/cached.py", line 57, in get_template
+    template = super().get_template(template_name, skip)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/loaders/base.py", line 28, in get_template
+    return Template(
+        contents,
+    ...<2 lines>...
+        self.engine,
+    )
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 154, in __init__
+    self.nodelist = self.compile_nodelist()
+                    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 200, in compile_nodelist
+    return parser.parse()
+           ~~~~~~~~~~~~^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 513, in parse
+    raise self.error(token, e)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 511, in parse
+    compiled_result = compile_func(self, token)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/loader_tags.py", line 293, in do_extends
+    nodelist = parser.parse()
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 507, in parse
+    self.invalid_block_tag(token, command, parse_until)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 568, in invalid_block_tag
+    raise self.error(
+    ...<3 lines>...
+    )
+django.template.exceptions.TemplateSyntaxError: Invalid block tag on line 125: 'endblock'. Did you forget to register or load this tag?
+INFO 2026-02-11 11:10:37,934 autoreload 52590 130874542706944 Watching for file changes with StatReloader
+ERROR 2026-02-11 11:10:41,875 log 52590 130874364393152 Internal Server Error: /analytics/historical/
+Traceback (most recent call last):
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 505, in parse
+    compile_func = self.tags[command]
+                   ~~~~~~~~~^^^^^^^^^
+KeyError: 'endblock'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 90, in rendered_content
+    template = self.resolve_template(self.template_name)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/response.py", line 72, in resolve_template
+    return select_template(template, using=self.using)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/loader.py", line 42, in select_template
+    return engine.get_template(template_name)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/backends/django.py", line 33, in get_template
+    return Template(self.engine.get_template(template_name), self)
+                    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/engine.py", line 175, in get_template
+    template, origin = self.find_template(template_name)
+                       ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/engine.py", line 157, in find_template
+    template = loader.get_template(name, skip=skip)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/loaders/cached.py", line 57, in get_template
+    template = super().get_template(template_name, skip)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/loaders/base.py", line 28, in get_template
+    return Template(
+        contents,
+    ...<2 lines>...
+        self.engine,
+    )
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 154, in __init__
+    self.nodelist = self.compile_nodelist()
+                    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 200, in compile_nodelist
+    return parser.parse()
+           ~~~~~~~~~~~~^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 513, in parse
+    raise self.error(token, e)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 511, in parse
+    compiled_result = compile_func(self, token)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/loader_tags.py", line 293, in do_extends
+    nodelist = parser.parse()
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 507, in parse
+    self.invalid_block_tag(token, command, parse_until)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/template/base.py", line 568, in invalid_block_tag
+    raise self.error(
+    ...<3 lines>...
+    )
+django.template.exceptions.TemplateSyntaxError: Invalid block tag on line 125: 'endblock'. Did you forget to register or load this tag?

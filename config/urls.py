@@ -16,6 +16,7 @@ from apps.api.views import (
     DataExportView, AccountDeleteView, UnlockPredictionView,
     PaymentSuccessView, PaymentCancelView
 )
+from apps.analytics.views import HistoricalDataView
 
 # Webhook views
 from apps.payments.webhooks.mpesa_webhook import MpesaCallbackView
@@ -30,7 +31,7 @@ urlpatterns = [
     path('predictions/<uuid:pk>/', PredictionDetailView.as_view(), name='prediction_detail'),
     path('predictions/<uuid:pk>/unlock/', UnlockPredictionView.as_view(), name='unlock_prediction'),
     path('analytics/teams/', TeamAnalysisView.as_view(), name='team_analysis'),
-    path('analytics/historical/', TemplateView.as_view(template_name='pages/historical_data.html'), name='historical_data'),
+    path('analytics/historical/', HistoricalDataView.as_view(), name='historical_data'),
     path('analytics/accuracy/', TemplateView.as_view(template_name='pages/accuracy_dashboard.html'), name='accuracy_dashboard'),
     
     # Account pages
