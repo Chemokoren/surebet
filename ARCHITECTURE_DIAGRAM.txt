@@ -1,182 +1,308 @@
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    PAYMENT SYSTEM ARCHITECTURE                       │
-│                    (Strategy Design Pattern)                         │
-└─────────────────────────────────────────────────────────────────────┘
+═══════════════════════════════════════════════════════════════════════════
+                     FUTURAPREDICT – SYSTEM ARCHITECTURE
+═══════════════════════════════════════════════════════════════════════════
 
-┌─────────────────────────────────────────────────────────────────────┐
-│  USER ACCESS                                                         │
-└─────────────────────────────────────────────────────────────────────┘
-                                   │
-                    http://127.0.0.1:8000/account/payment/
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        DOCKER COMPOSE STACK                             │
+│                                                                         │
+│  ┌──────────┐  ┌──────────────┐  ┌──────────┐  ┌───────┐  ┌─────────┐ │
+│  │   web    │  │   worker     │  │   beat   │  │ redis │  │   db    │ │
+│  │ Gunicorn │  │ Celery ×4    │  │ Celery   │  │ 7-alp │  │ PG 15  │ │
+│  │  :8000   │  │ task runner  │  │ Beat     │  │ broker│  │ alpine  │ │
+│  │          │  │              │  │ schedule │  │+cache │  │         │ │
+│  └────┬─────┘  └──────┬───────┘  └────┬─────┘  └───┬───┘  └────┬────┘ │
+│       │               │               │            │           │      │
+│       └───────────────┴───────────────┴────────────┴───────────┘      │
+│                        Shared network + volumes                        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════
+              AUTOMATED PREDICTION + CONTINUOUS LEARNING PIPELINE
+═══════════════════════════════════════════════════════════════════════════
+
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │              EXTERNAL DATA SOURCES                               │
+    │                                                                  │
+    │  ┌────────────────┐  ┌──────────────────┐  ┌────────────────┐  │
+    │  │  ESPN API      │  │ football-data.org│  │  OpenLigaDB   │  │
+    │  │  (primary)     │  │ (secondary)      │  │  (BL1 backup) │  │
+    │  │  FREE, no key  │  │ needs API key    │  │  FREE, no key │  │
+    │  └───────┬────────┘  └────────┬─────────┘  └───────┬────────┘  │
+    └──────────┼─────────────────────┼────────────────────┼───────────┘
+               │                     │                    │
+               └─────────────┬───────┴────────────────────┘
+                             │
+                             ▼
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  1. DATA INGESTION  (DataIngestionService)                      │
+    │                                                                  │
+    │  ┌──────────────────────────────────────────────────────────┐   │
+    │  │  fetch_fixtures_for_date(target_date)                     │   │
+    │  │                                                            │   │
+    │  │  For each league (PL → LL → SA → BL1 → FL1):             │   │
+    │  │    1. Try ESPN scoreboard API                              │   │
+    │  │    2. If no data + API key → football-data.org             │   │
+    │  │    3. BL1 special: OpenLigaDB fallback                     │   │
+    │  │    4. Dedup by (home_team, away_team, date)                │   │
+    │  │    5. Create/Update Match records                          │   │
+    │  └──────────────────────────────────────────────────────────┘   │
+    │                                                                  │
+    │  Triggered by:                                                   │
+    │    • Celery Beat at 00:05 (6 days)                              │
+    │    • On-demand from PredictionsView (subscriber lookahead)       │
+    │    • Management command: fetch_and_predict                       │
+    └────────────────────────────┬────────────────────────────────────┘
+                                 │
+                                 ▼
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  2. FEATURE ENGINEERING  (FeatureEngineeringService)            │
+    │                                                                  │
+    │  For each scheduled match, generate 32+ features:                │
+    │                                                                  │
+    │  ┌──────────────┐  ┌────────────┐  ┌──────────────────────┐    │
+    │  │ Recent Form  │  │ ELO Diff   │  │ Schedule Congestion  │    │
+    │  │ (last 10)    │  │ + Expected │  │ (7d / 14d / 30d)     │    │
+    │  └──────────────┘  └────────────┘  └──────────────────────┘    │
+    │  ┌──────────────┐  ┌────────────┐  ┌──────────────────────┐    │
+    │  │ Home/Away    │  │ Head-to-   │  │ Goal Patterns        │    │
+    │  │ Split        │  │ Head (H2H) │  │ (avg, over 2.5 rate) │    │
+    │  └──────────────┘  └────────────┘  └──────────────────────┘    │
+    │  ┌──────────────────────────────────────────────────────────┐   │
+    │  │ League Context (home win rate, draw rate, avg goals)      │   │
+    │  └──────────────────────────────────────────────────────────┘   │
+    └────────────────────────────┬────────────────────────────────────┘
+                                 │
+                                 ▼
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  3. ENSEMBLE PREDICTION  (EnsembleService → EnsemblePredictor)  │
+    │                                                                  │
+    │  ┌──────────────────────────────────────────────────────────┐   │
+    │  │                WEIGHTED AVERAGE                            │   │
+    │  │                                                            │   │
+    │  │   ┌──────────┐   ┌──────────┐   ┌──────────────────┐    │   │
+    │  │   │ XGBoost  │   │ Neural   │   │ ELO (always-on)  │    │   │
+    │  │   │ w = 0.4  │   │ w = 0.3  │   │ w = 0.3          │    │   │
+    │  │   │          │   │ TF/Keras │   │ + home advantage  │    │   │
+    │  │   └──────────┘   └──────────┘   └──────────────────┘    │   │
+    │  │                                                            │   │
+    │  │   If XGB or Neural unavailable → weight → ELO             │   │
+    │  │   Cold start: ELO + random noise for variety              │   │
+    │  └──────────────────────────────────────────────────────────┘   │
+    │                                                                  │
+    │  Output per match:                                               │
+    │    • home_win_prob, draw_prob, away_win_prob                     │
+    │    • predicted_outcome (argmax)                                   │
+    │    • confidence_score (0–95%)                                     │
+    │    • SHAP-based explanations (top 5 factors)                     │
+    │    • feature_snapshot (for reproducibility)                       │
+    └────────────────────────────┬────────────────────────────────────┘
+                                 │
+                                 ▼
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  4. PREDICTION STORAGE & ACCESS CONTROL                         │
+    │                                                                  │
+    │  Prediction record → DB (predictions table)                      │
+    │                                                                  │
+    │  Access rules (PredictionsView):                                 │
+    │    • Free tier  → 3 free predictions (signup bonus)              │
+    │    • Subscriber → daily quota split across leagues               │
+    │    •              (EPL 50%, others equal share of rest)           │
+    │    •              + 5-day lookahead                               │
+    │    • Pay-per-game → 1 credit each beyond quota                   │
+    │    • Locked at kickoff (is_locked = True)                        │
+    └────────────────────────────┬────────────────────────────────────┘
+                                 │
+              ┌──────────────────┴──────────────────┐
+              │                                     │
+              ▼                                     ▼
+    ┌───────────────────────┐             ┌─────────────────────────┐
+    │  USER SEES PREDICTION │             │  MATCH HAPPENS          │
+    │  on /predictions/     │             │  (real world)           │
+    └───────────────────────┘             └────────────┬────────────┘
+                                                       │
+                                                       ▼
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  5. LIVE SCORE UPDATES  (every 20 min, 07:00–23:59)            │
+    │                                                                  │
+    │  update_live_scores_task:                                        │
+    │    • Poll ESPN scoreboard for today's matches                    │
+    │    • Update match.status (in_play / paused / finished)           │
+    │    • Update match.home_score, match.away_score                   │
+    │    • Lock predictions at kickoff (prediction.is_locked = True)   │
+    └────────────────────────────┬────────────────────────────────────┘
+                                 │
+                                 ▼
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  6. END-OF-DAY RESOLUTION  (ResultsResolutionService, 23:30)   │
+    │                                                                  │
+    │  resolve_finished_matches_task:                                   │
+    │                                                                  │
+    │  ┌─── Step A: Fetch final scores ──────────────────────────┐    │
+    │  │  ESPN scoreboard → match.status = 'finished'             │    │
+    │  │                    match.home_score / away_score set      │    │
+    │  └──────────────────────────────────────────────────────────┘    │
+    │                          │                                       │
+    │  ┌─── Step B: Resolve predictions ─────────────────────────┐    │
+    │  │  For each finished match with unresolved prediction:      │    │
+    │  │    actual_outcome = match.actual_outcome                  │    │
+    │  │    prediction.resolve(actual_outcome)                     │    │
+    │  │    → is_correct = (predicted == actual)                   │    │
+    │  │    → resolved_at = now()                                  │    │
+    │  └──────────────────────────────────────────────────────────┘    │
+    │                          │                                       │
+    │  ┌─── Step C: Update ELO ratings (Online Learning) ────────┐    │
+    │  │  FeatureEngineeringService.update_elo(match)              │    │
+    │  │    K = 32                                                 │    │
+    │  │    home.elo += K × (actual − expected)                    │    │
+    │  │    away.elo += K × (actual − expected)                    │    │
+    │  │  → ELO immediately reflected in next prediction           │    │
+    │  └──────────────────────────────────────────────────────────┘    │
+    │                          │                                       │
+    │  ┌─── Step D: Accuracy snapshot ───────────────────────────┐    │
+    │  │  AccuracyRecord per league + overall:                     │    │
+    │  │    total, correct, incorrect, pending                     │    │
+    │  │    accuracy_rate, home_win_acc, draw_acc, away_win_acc    │    │
+    │  │    model_version, avg_confidence                          │    │
+    │  └──────────────────────────────────────────────────────────┘    │
+    │                          │                                       │
+    │  ┌─── Step E: Retrain decision ────────────────────────────┐    │
+    │  │  Trigger IF:                                              │    │
+    │  │    ≥ 100 new resolved since last training   OR            │    │
+    │  │    accuracy drift > 5% (last 7d vs all-time)              │    │
+    │  │                                                            │    │
+    │  │  → TrainingPipeline.run_incremental_update(days=90)       │    │
+    │  │    → Build (X, y) from resolved matches                   │    │
+    │  │    → Retrain XGBoost + Neural                             │    │
+    │  │    → Promote only if ensemble accuracy improved           │    │
+    │  └──────────────────────────────────────────────────────────┘    │
+    └─────────────────────────────────────────────────────────────────┘
+
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  7. WEEKLY FULL RETRAIN  (Monday 03:00 UTC)                     │
+    │                                                                  │
+    │  TrainingPipeline.run_full_training(seasons=3):                  │
+    │                                                                  │
+    │    1. Collect all finished matches (up to 3 seasons)             │
+    │    2. Generate feature matrix (32+ columns)                      │
+    │    3. Train XGBoost (gradient boosted trees)                     │
+    │    4. Train Neural Network (TensorFlow dense layers)             │
+    │    5. Evaluate: accuracy, per-outcome precision                  │
+    │    6. Compare with current active ModelVersion                   │
+    │    7. Promote if avg accuracy improved                           │
+    │    8. Save model files to /app/models/                           │
+    │                                                                  │
+    │  Model Registry:                                                 │
+    │    ModelVersion table: name, version, metrics, is_active         │
+    │    Only ONE version active at a time                             │
+    │    Previous versions retained for audit                          │
+    └─────────────────────────────────────────────────────────────────┘
+
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  8. DRIFT MONITOR  (Daily 06:00 UTC)                            │
+    │                                                                  │
+    │  check_accuracy_drift(threshold=0.05):                           │
+    │                                                                  │
+    │    recent_accuracy  = last 7 days correct / total                │
+    │    baseline_accuracy = all-time correct / total                  │
+    │    degradation = baseline − recent                               │
+    │                                                                  │
+    │    IF degradation > 5%:                                          │
+    │      → ALERT: "Accuracy dropped by X%"                          │
+    │      → TRIGGER: incremental retrain (last 90 days)              │
+    │      → LOG: retrain result + new model metrics                   │
+    └─────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════
+                  CELERY BEAT SCHEDULE (all times UTC)
+═══════════════════════════════════════════════════════════════════════════
+
+  00:00  verify_predictions_availability   (safety net)
+  00:05  fetch_and_predict_scheduled       (6-day fetch + predict)
+  00:30  compute_accuracy_stats_task       (accuracy snapshots)
+  06:00  check_accuracy_drift_task         (drift + auto-retrain)
+  Every 20 min (07–23)  update_live_scores_task  (live scores + lock)
+  23:30  resolve_finished_matches_task     (resolve + ELO + retrain)
+  Mon 03:00  weekly_full_retrain_task      (full deep retrain)
+
+
+═══════════════════════════════════════════════════════════════════════════
+                    PAYMENT SYSTEM ARCHITECTURE
+                    (Strategy Design Pattern)
+═══════════════════════════════════════════════════════════════════════════
+
+                     http://127.0.0.1:8000/account/payment/
                                    │
                                    ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │  MIDDLEWARE (apps/users/middleware.py)                              │
 │  ┌────────────────────────────────────────────────────────────┐    │
 │  │  Region Detection (IP Geolocation)                          │    │
-│  │  ├─ East Africa (KE, UG, TZ) → request.user_region = 'EA'  │    │
-│  │  └─ Rest of World          → request.user_region = 'global'│    │
+│  │  ├─ East Africa (KE, UG, TZ) → region = 'east_africa'      │    │
+│  │  └─ Rest of World            → region = 'global'            │    │
 │  └────────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────┘
                                    │
                                    ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│  PAYMENT VIEW (apps/api/views.py - PaymentView)                    │
+│  PAYMENT VIEW (apps/api/views.py)                                  │
 │  ┌────────────────────────────────────────────────────────────┐    │
-│  │  Region-Based Filtering Logic                               │    │
-│  │                                                              │    │
 │  │  IF region == 'east_africa':                                │    │
-│  │     ├─ Currency = KES                                       │    │
-│  │     ├─ Channels = [M-Pesa]                                  │    │
-│  │     └─ Tiers = East Africa pricing                          │    │
-│  │                                                              │    │
+│  │     Currency = KES │ Channels = [M-Pesa]                    │    │
 │  │  ELSE (global):                                             │    │
-│  │     ├─ Currency = USD                                       │    │
-│  │     ├─ Channels = [PayPal, WhatsApp]                        │    │
-│  │     └─ Tiers = Global pricing                               │    │
+│  │     Currency = USD │ Channels = [PayPal, Stripe]            │    │
 │  └────────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────┘
                                    │
                                    ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│  TEMPLATE (templates/account/payment.html)                          │
-│  ┌────────────────┬────────────────┬────────────────────────────┐  │
-│  │  East Africa   │   Global User  │   Payment Sections        │  │
-│  │  User Display  │   Display      │   (Toggleable)            │  │
-│  ├────────────────┼────────────────┼────────────────────────────┤  │
-│  │ Currency: KES  │ Currency: USD  │ • M-Pesa Section          │  │
-│  │                │                │ • PayPal Section          │  │
-│  │ Channels:      │ Channels:      │ • WhatsApp Section        │  │
-│  │ • M-Pesa ✓     │ • PayPal ✓     │ • Stripe Section          │  │
-│  │                │ • WhatsApp ✓   │                            │  │
-│  └────────────────┴────────────────┴────────────────────────────┘  │
+│  STRATEGY REGISTRY                                                  │
+│  {                                                                   │
+│    'mpesa':    MpesaStrategy,     ← East Africa                     │
+│    'paypal':   PayPalStrategy,    ← Global                          │
+│    'stripe':   StripeStrategy,    ← Global                          │
+│    'whatsapp': WhatsAppStrategy,  ← Future                          │
+│  }                                                                   │
 └─────────────────────────────────────────────────────────────────────┘
-                                   │
-                    User selects payment method & submits
                                    │
                                    ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  PAYMENT SERVICE (apps/payments/services/payment_service.py)       │
-│  ┌────────────────────────────────────────────────────────────┐    │
-│  │  initiate_credit_purchase()                                 │    │
-│  │  ├─ Get pricing tier                                        │    │
-│  │  ├─ Get payment channel for region                          │    │
-│  │  ├─ Select strategy from registry                           │    │
-│  │  └─ Create pending transaction                              │    │
-│  └────────────────────────────────────────────────────────────┘    │
-│                                                                      │
-│  ┌────────────────────────────────────────────────────────────┐    │
-│  │  STRATEGY REGISTRY                                          │    │
-│  │  {                                                           │    │
-│  │    'mpesa': MpesaStrategy,        ◄── East Africa          │    │
-│  │    'paypal': PayPalStrategy,      ◄── Global               │    │
-│  │    'whatsapp': WhatsAppStrategy,  ◄── Global (NEW!)        │    │
-│  │    'stripe': StripeStrategy        ◄── Optional             │    │
-│  │  }                                                           │    │
-│  └────────────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────────────┘
-                                   │
-                     strategy = get_strategy(provider)
-                                   │
-                                   ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  PAYMENT STRATEGIES (apps/payments/strategies/)                     │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │  PaymentStrategy (ABC)                                       │   │
-│  │  ├─ initiate_payment()                                       │   │
-│  │  ├─ verify_payment()                                         │   │
-│  │  ├─ handle_webhook()                                         │   │
-│  │  └─ refund()                                                 │   │
-│  └─────────────────────────────────────────────────────────────┘   │
-│         ▲              ▲              ▲              ▲              │
-│         │              │              │              │              │
-│  ┌──────┴───┐   ┌──────┴───┐   ┌──────┴───┐   ┌──────┴───┐        │
-│  │  M-Pesa  │   │  PayPal  │   │ WhatsApp │   │  Stripe  │        │
-│  │ Strategy │   │ Strategy │   │ Strategy │   │ Strategy │        │
-│  └──────────┘   └──────────┘   └──────────┘   └──────────┘        │
-│      EA              Global        Global         Optional          │
-└─────────────────────────────────────────────────────────────────────┘
-                                   │
-                         Execute strategy method
-                                   │
-                    ┌──────────────┼──────────────┐
-                    ▼              ▼              ▼
-         ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-         │   M-Pesa     │ │   PayPal     │ │  WhatsApp    │
-         │   Daraja     │ │   Orders     │ │  Business    │
-         │   API        │ │   API v2     │ │   API        │
-         └──────────────┘ └──────────────┘ └──────────────┘
-                    │              │              │
-                    └──────────────┼──────────────┘
-                                   │
-                            Payment Processing
+                         Payment Processing
                                    │
                     ┌──────────────┴──────────────┐
                     ▼                             ▼
-         Provider callback/               User completes
-         webhook notification              payment action
+         Provider webhook              User completes payment
                     │                             │
                     └──────────────┬──────────────┘
                                    │
                                    ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  WEBHOOK HANDLER                                                     │
-│  PaymentService.process_webhook()                                   │
-│  ├─ Verify signature                                                │
-│  ├─ Call strategy.handle_webhook()                                  │
-│  ├─ Update transaction status                                       │
-│  └─ Trigger confirm_payment()                                       │
-└─────────────────────────────────────────────────────────────────────┘
-                                   │
-                                   ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  PAYMENT CONFIRMATION                                                │
-│  PaymentService.confirm_payment()                                   │
-│  ├─ Mark transaction as completed                                   │
-│  ├─ Grant credits to user                                           │
-│  └─ Activate subscription (if applicable)                           │
-└─────────────────────────────────────────────────────────────────────┘
-                                   │
-                                   ▼
-                         ┌─────────────────┐
-                         │  User Dashboard  │
-                         │  Credits Updated │
-                         └─────────────────┘
+              PaymentService.confirm_payment()
+              ├─ Mark transaction completed
+              ├─ Grant credits to user
+              └─ Activate subscription
 
 
-═══════════════════════════════════════════════════════════════════════
-                            KEY FEATURES
-═══════════════════════════════════════════════════════════════════════
+═══════════════════════════════════════════════════════════════════════════
+                         LEARNING FEEDBACK LOOP
+═══════════════════════════════════════════════════════════════════════════
 
-🌍 REGION-AWARE
-   ├─ Automatic IP detection
-   ├─ Currency localization (KES/USD)
-   └─ Payment method filtering
+  ┌─────────┐     ┌──────────┐     ┌──────────┐     ┌──────────────┐
+  │ Predict │────▶│  Match   │────▶│ Resolve  │────▶│ Train Better │
+  │ (pre-KO)│     │ Happens  │     │ Result   │     │   Model      │
+  └─────────┘     └──────────┘     └──────────┘     └──────┬───────┘
+       ▲                                                    │
+       │                                                    │
+       └────────────────────────────────────────────────────┘
+                    Improved predictions next time
 
-🎨 STRATEGY PATTERN
-   ├─ Clean separation of concerns
-   ├─ Easy to extend (add new providers)
-   ├─ Runtime strategy selection
-   └─ Consistent interface
-
-💳 PAYMENT CHANNELS
-   ├─ M-Pesa (East Africa)
-   ├─ PayPal (Global)
-   └─ WhatsApp (Global) ← NEW!
-
-🔒 SECURE
-   ├─ Webhook signature verification
-   ├─ Transaction logging
-   └─ Normalized data model
-
-📊 EXTENSIBLE
-   └─ Add new providers in 5 steps:
-      1. Create strategy class
-      2. Add to registry
-      3. Add to model choices
-      4. Seed channel
-      5. Done! ✨
-
-═══════════════════════════════════════════════════════════════════════
+  Signals that feed back into the model:
+    1. is_correct labels       → supervised training data
+    2. ELO rating updates      → online learning (immediate)
+    3. Accuracy drift detection → triggers emergency retrain
+    4. AccuracyRecord history  → long-term performance tracking
 ```
