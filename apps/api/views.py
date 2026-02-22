@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import viewsets, status, views
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -25,6 +27,9 @@ from apps.core.models import Match, League, Team
 from apps.predictions.models import Prediction
 from apps.analytics.models import AccuracyRecord
 from apps.payments.services.subscription_service import SubscriptionService
+
+logger = logging.getLogger(__name__)
+
 
 class HomeView(TemplateView):
     """Home/Dashboard view"""
@@ -57,10 +62,11 @@ class HomeView(TemplateView):
              ).select_related('match', 'match__home_team', 'match__away_team').order_by('-confidence_score')[:3]
         
         # 2. Process Access Logic
+        # Registered users get the first 3 predictions free; anonymous only 2.
         processed_preds = []
-        anon_limit = 2
-        
-        # Get unlocked IDs for authenticated user
+        free_limit = 3 if self.request.user.is_authenticated else 2
+
+        # Get IDs the user has explicitly unlocked via credits
         unlocked_ids = set()
         if self.request.user.is_authenticated:
             unlocked_ids = set(PredictionUsage.objects.filter(
@@ -69,34 +75,22 @@ class HomeView(TemplateView):
             ).values_list('prediction_id', flat=True))
 
         for idx, pred in enumerate(qs):
-            is_locked = True
-            
             if self.request.user.is_authenticated:
-                access = SubscriptionService.can_access_prediction(self.request.user, pred)
-                
-                # Logic: First 2 are free for everyone (to entice). 
-                # Others: Locked if not explicitly unlocked via usage AND not free/allowed by sub/credits implicit check
-                
-                if idx < anon_limit:
-                     is_locked = False
-                elif pred.id in unlocked_ids or pred.tier == 'free':
+                # First `free_limit` predictions are always visible for registered users
+                if idx < free_limit:
                     is_locked = False
-                elif access['remaining_credits'] == -1: # Free/Unlimited Sub
-                     # Auto-unlock for unlimited subs? Or require click? 
-                     # Let's require click to track "read" status in Usage.
-                     is_locked = True 
+                # Predictions tagged free, explicitly unlocked, or user has active subscription
+                elif pred.tier == 'free' or pred.id in unlocked_ids or getattr(self.request, 'has_subscription', False):
+                    is_locked = False
                 else:
                     is_locked = True
             else:
-                # Anonymous: First 2 are free
-                if idx < anon_limit:
-                    is_locked = False
-                else:
-                    is_locked = True
-            
+                # Anonymous: first 2 visible to entice sign-up
+                is_locked = idx >= free_limit
+
             pred.is_access_locked = is_locked
             processed_preds.append(pred)
-            
+
         context['predictions'] = processed_preds
         
         # 3. Pricing Tiers (for Sales Funnel)
@@ -159,48 +153,64 @@ class PredictionsView(LoginRequiredMixin, TemplateView):
     """Predictions page view"""
     template_name = 'pages/predictions.html'
     login_url = '/account/login/'
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         today = timezone.now().date()
-        
+
         # Filter params
         league_code = self.request.GET.get('league')
-        
+
         # Base Query
         qs = Prediction.objects.filter(
             match__match_date__date__gte=today,
             match__status='scheduled'
         ).select_related('match', 'match__home_team', 'match__away_team', 'match__league')
-        
+
         if league_code:
             qs = qs.filter(match__league__code=league_code)
-        
-        predictions = qs.order_by('match__match_date')
-        context['predictions'] = predictions
-        context['leagues'] = League.objects.filter(is_active=True)
-        context['selected_league'] = league_code
-        
-        # Stats for summary bar
-        context['free_count'] = predictions.filter(tier='free').count()
-        context['premium_count'] = predictions.filter(tier='premium').count()
-        
-        # Check access for each prediction
-        context['user_credits'] = 0
-        context['unlocked_prediction_ids'] = []
-        
-        if self.request.user.is_authenticated:
-             from apps.users.models import UserProfile, PredictionUsage
-             profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
-             context['user_credits'] = profile.prediction_credits
-             
-             # Get unlocked IDs
-             unlocked_ids = PredictionUsage.objects.filter(
-                 user=self.request.user,
-                 prediction__in=predictions
-             ).values_list('prediction_id', flat=True)
-             context['unlocked_prediction_ids'] = set(unlocked_ids) # Use set for O(1) lookup
 
+        qs = qs.order_by('match__match_date')
+
+        # Stats for summary bar (before slicing)
+        context['free_count']    = qs.filter(tier='free').count()
+        context['premium_count'] = qs.filter(tier='premium').count()
+        context['leagues']       = League.objects.filter(is_active=True)
+        context['selected_league'] = league_code
+
+        # ── Access logic ────────────────────────────────────────────────
+        # Registered users: first 3 always visible + free-tier + unlocked + subscription
+        # Anonymous: shouldn't reach here (LoginRequiredMixin), but guard anyway
+        free_limit = 3  # signed-in users always get first 3 free
+
+        user_credits = 0
+        unlocked_ids = set()
+        has_subscription = getattr(self.request, 'has_subscription', False)
+
+        if self.request.user.is_authenticated:
+            profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
+            user_credits = profile.prediction_credits
+
+            unlocked_ids = set(
+                PredictionUsage.objects.filter(
+                    user=self.request.user,
+                    prediction__in=qs
+                ).values_list('prediction_id', flat=True)
+            )
+
+        processed = []
+        for idx, pred in enumerate(qs):
+            if idx < free_limit:
+                pred.is_access_locked = False
+            elif pred.tier == 'free' or pred.id in unlocked_ids or has_subscription:
+                pred.is_access_locked = False
+            else:
+                pred.is_access_locked = True
+            processed.append(pred)
+
+        context['predictions']           = processed
+        context['user_credits']          = user_credits
+        context['unlocked_prediction_ids'] = unlocked_ids
 
         return context
 
@@ -216,28 +226,88 @@ class PredictionDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         prediction = self.object
-        
+
         # Check access
         access = SubscriptionService.can_access_prediction(self.request.user, prediction)
-        
+
         context['is_locked'] = not access['allowed']
         context['access_reason'] = access.get('reason')
         context['requires_payment'] = access.get('requires_payment')
-        
-        # If user has access but hasn't consumed credit yet (and needs to), prompt them
-        # For now, we'll assume viewing detail implies consumption if not already done
-        if access['allowed'] and access.get('requires_payment') and access.get('remaining_credits', 0) > 0:
-             # Logic to consume/deduct credit could be here or in a separate action
-             # For a simple flow, we might just show the content if allowed.
-             pass
-             
+
+        # ── On-demand explanation generation ────────────────────────────
+        # If this prediction has no stored explanations, generate and
+        # persist them now so the detail page always shows rich insights.
+        if access['allowed'] and not prediction.explanations.exists():
+            self._generate_explanations(prediction)
+
         # Related predictions (same league)
         context['related_predictions'] = Prediction.objects.filter(
             match__league=prediction.match.league,
             match__match_date__gte=timezone.now()
-        ).exclude(id=prediction.id)[:3]
-        
+        ).exclude(id=prediction.id).select_related(
+            'match', 'match__home_team', 'match__away_team'
+        )[:3]
+
+        # Win/draw/away probabilities as percentages for the template
+        context['home_prob_pct']  = round(prediction.home_win_prob * 100, 1)
+        context['draw_prob_pct']  = round(prediction.draw_prob * 100, 1)
+        context['away_prob_pct']  = round(prediction.away_win_prob * 100, 1)
+
         return context
+
+    @staticmethod
+    def _generate_explanations(prediction: Prediction):
+        """
+        Generate and persist PredictionExplanation rows for a prediction
+        that currently has none.  Uses the stored feature_snapshot when
+        available, otherwise regenerates features fresh from the DB.
+        """
+        from apps.predictions.services.explainer import ExplainerService
+        from apps.predictions.models import PredictionExplanation
+        from apps.core.services.feature_engineering import FeatureEngineeringService
+
+        try:
+            # Always regenerate fresh features from DB for best accuracy.
+            # The stored snapshot may be partial or stale.
+            features = FeatureEngineeringService.generate_features(prediction.match)
+            if not features:
+                features = prediction.feature_snapshot or {}
+
+            prediction_result = {
+                'predicted_outcome': prediction.predicted_outcome,
+                'confidence': prediction.confidence_score,
+                'probabilities': {
+                    'home': prediction.home_win_prob,
+                    'draw': prediction.draw_prob,
+                    'away': prediction.away_win_prob,
+                },
+            }
+
+            explanations_data = ExplainerService.explain(
+                features=features,
+                prediction_result=prediction_result,
+                xgboost_model=None,
+                top_n=8,
+                home_team_name=prediction.match.home_team.name,
+                away_team_name=prediction.match.away_team.name,
+            )
+
+            rows = [
+                PredictionExplanation(
+                    prediction=prediction,
+                    factor_name=e['factor_name'],
+                    factor_value=e['factor_value'],
+                    impact_score=e['impact_score'],
+                    impact_direction=e['impact_direction'],
+                    display_order=e['display_order'],
+                )
+                for e in explanations_data
+            ]
+            if rows:
+                PredictionExplanation.objects.bulk_create(rows, ignore_conflicts=True)
+
+        except Exception as exc:
+            logger.error(f"On-demand explanation generation failed for {prediction.pk}: {exc}")
 
 class TeamAnalysisView(LoginRequiredMixin, TemplateView):
     """Team analysis page view with premium/free access control"""
@@ -414,13 +484,14 @@ class RegisterView(CreateView):
     """User registration view"""
     template_name = 'account/register.html'
     form_class = UserRegistrationForm
-    success_url = reverse_lazy('login')
+    success_url = reverse_lazy('signup_success')
     
     def form_valid(self, form):
         """Handle successful registration"""
         user = form.save()
         login(self.request, user)  # Auto-login after registration
-        return redirect('home')
+        messages.success(self.request, 'Your account has been created successfully!')
+        return redirect('signup_success')
 
     def dispatch(self, request, *args, **kwargs):
         """Redirect if already logged in"""

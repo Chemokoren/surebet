@@ -2,28 +2,194 @@
 
 {% block title %}Sign Up — FuturaPredict{% endblock %}
 
+{% block extra_css %}
+<style>
+  .password-requirements {
+    background: rgba(var(--bs-info-rgb), 0.08);
+    border: 1px solid rgba(var(--bs-info-rgb), 0.2);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin-top: 0.5rem;
+  }
+  .password-requirements .req-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--bs-info);
+    margin-bottom: 0.35rem;
+  }
+  .password-requirements ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .password-requirements li {
+    font-size: 0.78rem;
+    padding: 0.15rem 0;
+    color: var(--bs-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .password-requirements li .req-icon {
+    font-size: 0.65rem;
+    width: 14px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .password-requirements li.met .req-icon { color: var(--bs-success); }
+  .password-requirements li.met { color: var(--bs-success); }
+  .password-requirements li.unmet .req-icon { color: var(--bs-secondary); }
+
+  .field-errors {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    margin-top: 0.35rem;
+  }
+  .field-errors .error-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    color: var(--bs-danger);
+  }
+  .field-errors .error-item i {
+    margin-top: 0.15rem;
+    flex-shrink: 0;
+    font-size: 0.75rem;
+  }
+
+  .form-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  .form-alert i {
+    margin-top: 0.2rem;
+    flex-shrink: 0;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-5">
   <div class="row justify-content-center">
     <div class="col-md-6">
       <div class="card p-4">
         <h3 class="mb-3">Create your account</h3>
-        <form id="signup-form" method="post">
+
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          {% for error in form.non_field_errors %}
+          <div class="form-alert">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>{{ error }}</span>
+          </div>
+          {% endfor %}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %}
+
+        <form method="post" id="signup-form" novalidate>
           {% csrf_token %}
+
+          <!-- Username -->
           <div class="mb-3">
             <label for="id_username" class="form-label">Username</label>
-            <input type="text" class="form-control" id="id_username" name="username" required>
+            <input type="text" class="form-control {% if form.username.errors %}is-invalid{% endif %}"
+                   id="id_username" name="username" value="{{ form.username.value|default:'' }}"
+                   placeholder="Choose a username" required>
+            {% if form.username.errors %}
+            <div class="field-errors">
+              {% for error in form.username.errors %}
+              <div class="error-item">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>{{ error }}</span>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
           </div>
+
+          <!-- Email -->
           <div class="mb-3">
             <label for="id_email" class="form-label">Email</label>
-            <input type="email" class="form-control" id="id_email" name="email" required>
+            <input type="email" class="form-control {% if form.email.errors %}is-invalid{% endif %}"
+                   id="id_email" name="email" value="{{ form.email.value|default:'' }}"
+                   placeholder="you@example.com" required>
+            {% if form.email.errors %}
+            <div class="field-errors">
+              {% for error in form.email.errors %}
+              <div class="error-item">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>{{ error }}</span>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
           </div>
+
+          <!-- Password -->
           <div class="mb-3">
-            <label for="id_password" class="form-label">Password</label>
-            <input type="password" class="form-control" id="id_password" name="password" required>
+            <label for="id_password1" class="form-label">Password</label>
+            <input type="password" class="form-control {% if form.password1.errors %}is-invalid{% endif %}"
+                   id="id_password1" name="password1" placeholder="Create a password" required>
+            {% if form.password1.errors %}
+            <div class="field-errors">
+              {% for error in form.password1.errors %}
+              <div class="error-item">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>{{ error }}</span>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Password requirements -->
+            <div class="password-requirements" id="password-requirements">
+              <div class="req-title"><i class="fas fa-shield-alt me-1"></i>Password requirements</div>
+              <ul>
+                <li id="req-length" class="unmet">
+                  <span class="req-icon"><i class="fas fa-circle"></i></span>
+                  At least 8 characters
+                </li>
+                <li id="req-not-numeric" class="unmet">
+                  <span class="req-icon"><i class="fas fa-circle"></i></span>
+                  Not entirely numeric
+                </li>
+                <li id="req-not-common" class="unmet">
+                  <span class="req-icon"><i class="fas fa-circle"></i></span>
+                  Not a commonly used password
+                </li>
+                <li id="req-not-similar" class="unmet">
+                  <span class="req-icon"><i class="fas fa-circle"></i></span>
+                  Not too similar to your personal info
+                </li>
+              </ul>
+            </div>
           </div>
+
+          <!-- Confirm Password -->
+          <div class="mb-3">
+            <label for="id_password2" class="form-label">Confirm Password</label>
+            <input type="password" class="form-control {% if form.password2.errors %}is-invalid{% endif %}"
+                   id="id_password2" name="password2" placeholder="Re-enter your password" required>
+            {% if form.password2.errors %}
+            <div class="field-errors">
+              {% for error in form.password2.errors %}
+              <div class="error-item">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>{{ error }}</span>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+
           <div class="d-grid">
-            <button class="btn btn-primary" type="submit">Sign up</button>
+            <button class="btn btn-primary" type="submit">
+              <i class="fas fa-user-plus me-1"></i> Sign up
+            </button>
           </div>
         </form>
         <hr>
@@ -33,40 +199,41 @@
     </div>
   </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-document.getElementById('signup-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const form = e.target;
-  const formData = new FormData(form);
-  
-  try {
-    const response = await fetch('/v1/account/register/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': formData.get('csrfmiddlewaretoken')
-      },
-      body: JSON.stringify({
-        username: formData.get('username'),
-        email: formData.get('email'),
-        password: formData.get('password')
-      })
-    });
-    
-    const data = await response.json();
-    
-    if (response.ok) {
-      // Redirect to signup success page
-      window.location.href = '{% url "signup_success" %}';
-    } else {
-      // Show error toast
-      showToast(data.error || 'Signup failed', 'error');
-    }
-  } catch (error) {
-    console.error('Error:', error);
-    showToast('An error occurred during signup', 'error');
+(function() {
+  const pwd = document.getElementById('id_password1');
+  const pwd2 = document.getElementById('id_password2');
+  const reqLength = document.getElementById('req-length');
+  const reqNumeric = document.getElementById('req-not-numeric');
+
+  function updateIcon(el, met) {
+    el.classList.toggle('met', met);
+    el.classList.toggle('unmet', !met);
+    const icon = el.querySelector('.req-icon i');
+    icon.className = met ? 'fas fa-check-circle' : 'fas fa-circle';
   }
-});
+
+  if (pwd) {
+    pwd.addEventListener('input', function() {
+      const val = this.value;
+      updateIcon(reqLength, val.length >= 8);
+      updateIcon(reqNumeric, val.length > 0 && !/^\d+$/.test(val));
+    });
+  }
+
+  // Highlight confirm-password mismatch in real time
+  if (pwd2) {
+    pwd2.addEventListener('input', function() {
+      if (this.value && pwd.value && this.value !== pwd.value) {
+        this.classList.add('is-invalid');
+      } else {
+        this.classList.remove('is-invalid');
+      }
+    });
+  }
+})();
 </script>
 {% endblock %}

@@ -39,7 +39,7 @@ class EmailAuthenticationForm(AuthenticationForm):
 
 class UserRegistrationForm(UserCreationForm):
     """Custom registration form with email requirement"""
-    email = forms.EmailField(required=True, help_text='Required. Inform a valid email address.')
+    email = forms.EmailField(required=True, help_text='Required. Enter a valid email address.')
 
     class Meta:
         model = User
@@ -47,11 +47,25 @@ class UserRegistrationForm(UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field in self.fields:
-            self.fields[field].widget.attrs.update({
+
+        # Clean up placeholders and widget classes
+        field_placeholders = {
+            'username': 'Choose a username',
+            'email': 'you@example.com',
+            'password1': 'Create a password',
+            'password2': 'Re-enter your password',
+        }
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({
                 'class': 'form-control',
-                'placeholder': field.replace('_', ' ').capitalize()
+                'placeholder': field_placeholders.get(field_name, ''),
             })
+
+        # Remove Django's raw HTML help_text from password fields
+        # (we render custom styled requirements in the template instead)
+        self.fields['password1'].help_text = ''
+        self.fields['password2'].help_text = ''
+        self.fields['username'].help_text = ''
 
     def save(self, commit=True):
         user = super().save(commit=False)

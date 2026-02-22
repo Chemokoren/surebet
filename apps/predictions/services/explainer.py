@@ -51,7 +51,8 @@ class ExplainerService:
 
     @classmethod
     def explain(cls, features: dict, prediction_result: dict,
-                xgboost_model=None, top_n: int = 5) -> list[dict]:
+                xgboost_model=None, top_n: int = 8,
+                home_team_name: str = 'Home', away_team_name: str = 'Away') -> list[dict]:
         """
         Generate explanation factors for a prediction.
 
@@ -60,9 +61,11 @@ class ExplainerService:
             prediction_result: Output from ensemble predict()
             xgboost_model: Optional XGBoostPredictor (for SHAP)
             top_n: Number of top factors to return
+            home_team_name: Display name for the home team
+            away_team_name: Display name for the away team
 
         Returns:
-            List of explanation dicts:
+            List of explanation dicts (always 6-8 entries):
             [
                 {
                     'factor_name': str,
@@ -81,8 +84,12 @@ class ExplainerService:
             except Exception as e:
                 logger.warning(f"SHAP explanation failed, falling back to heuristics: {e}")
 
-        # Fallback to heuristic explanation
-        return cls._heuristic_explanation(features, prediction_result, top_n)
+        # Always-comprehensive heuristic fallback
+        return cls._heuristic_explanation(
+            features, prediction_result, top_n,
+            home_team_name=home_team_name,
+            away_team_name=away_team_name,
+        )
 
     @classmethod
     def _shap_explanation(cls, features: dict, prediction_result: dict,
@@ -133,55 +140,295 @@ class ExplainerService:
 
     @classmethod
     def _heuristic_explanation(cls, features: dict, prediction_result: dict,
-                               top_n: int) -> list[dict]:
+                               top_n: int = 8,
+                               home_team_name: str = 'Home',
+                               away_team_name: str = 'Away') -> list[dict]:
         """
-        Generate explanations using feature value heuristics.
-        Ranks features by their magnitude and deviation from neutral.
+        Generate comprehensive, narrative explanations from feature values.
+        Always produces 8 factors — never shows a blank section.
+        Factors are always populated regardless of data sparsity.
         """
         outcome = prediction_result.get('predicted_outcome', 'home_win')
         explanations = []
 
-        # Key factors to evaluate
-        factors = [
-            ('elo_diff', 'Team Strength (ELO)', lambda v: abs(v) > 50),
-            ('home_form_index', 'Home Team Recent Form', lambda v: v > 0.6 or v < 0.3),
-            ('away_form_index', 'Away Team Recent Form', lambda v: v > 0.6 or v < 0.3),
-            ('h2h_home_dominance', 'Head-to-Head History', lambda v: v > 0.6 or v < 0.3),
-            ('home_home_win_rate', 'Home Ground Record', lambda v: v > 0.6 or v < 0.3),
-            ('away_away_win_rate', 'Away Road Record', lambda v: v > 0.5),
-            ('home_advantage', 'Home Advantage Factor', lambda v: abs(v) > 0.2),
-            ('home_matches_7d', 'Home Schedule Congestion', lambda v: v >= 3),
-            ('away_matches_7d', 'Away Schedule Congestion', lambda v: v >= 3),
-            ('home_avg_goals_scored', 'Home Goal-Scoring Form', lambda v: v > 1.8 or v < 0.8),
-            ('away_avg_goals_scored', 'Away Goal-Scoring Form', lambda v: v > 1.8 or v < 0.8),
-            ('league_home_win_rate', 'League Home Win Trend', lambda v: v > 0.5),
-        ]
+        # ── 1. ELO / Team Strength ─────────────────────────────────────
+        elo_diff  = features.get('elo_diff', 0)
+        home_elo  = features.get('home_elo', 1500)
+        away_elo  = features.get('away_elo', 1500)
 
-        for feature_key, label, is_significant in factors:
-            value = features.get(feature_key, 0)
-            if not is_significant(value):
-                continue
+        if abs(elo_diff) > 150:
+            stronger = home_team_name if elo_diff > 0 else away_team_name
+            value = (f"{stronger} holds a significant {abs(elo_diff):.0f}-point ELO advantage "
+                     f"({home_elo:.0f} vs {away_elo:.0f})")
+            direction = cls._home_or_away_direction(elo_diff > 0, outcome)
+            impact = min(abs(elo_diff) / 400, 0.90)
+        elif abs(elo_diff) > 40:
+            stronger = home_team_name if elo_diff > 0 else away_team_name
+            value = (f"{stronger} holds a slight {abs(elo_diff):.0f}-point ELO edge "
+                     f"({home_elo:.0f} vs {away_elo:.0f})")
+            direction = cls._home_or_away_direction(elo_diff > 0, outcome)
+            impact = min(abs(elo_diff) / 600, 0.45)
+        else:
+            value = f"Evenly matched teams — ratings near-identical ({home_elo:.0f} vs {away_elo:.0f})"
+            direction = 'neutral'
+            impact = 0.15
 
-            # Determine impact direction relative to predicted outcome
-            direction = cls._determine_direction(feature_key, value, outcome)
-            impact = cls._estimate_impact(feature_key, value)
+        explanations.append({
+            'factor_name': 'Team Strength (ELO)',
+            'factor_value': value,
+            'impact_score': round(impact, 4),
+            'impact_direction': direction,
+            'display_order': 1,
+        })
 
-            explanations.append({
-                'factor_name': label,
-                'factor_value': cls._format_value(feature_key, value),
-                'impact_score': round(impact, 4),
-                'impact_direction': direction,
-                'display_order': 0,
-            })
+        # ── 2. Home Team Recent Form ───────────────────────────────────
+        home_form   = features.get('home_form_index', 0)
+        home_wins   = int(features.get('home_wins_last_10', 0))
+        home_draws  = int(features.get('home_draws_last_10', 0))
+        home_losses = int(features.get('home_losses_last_10', 0))
+        total_home  = home_wins + home_draws + home_losses
 
-        # Sort by absolute impact and take top_n
-        explanations.sort(key=lambda x: abs(x['impact_score']), reverse=True)
-        for i, exp in enumerate(explanations[:top_n]):
-            exp['display_order'] = i + 1
+        if total_home == 0:
+            value = f"{home_team_name} — no recent match data available"
+            direction, impact = 'neutral', 0.10
+        elif home_form >= 0.67:
+            value = (f"In red-hot form — {home_wins}W {home_draws}D {home_losses}L "
+                     f"in last {total_home} ({home_form:.0%} points ratio)")
+            direction = 'positive' if outcome == 'home_win' else 'negative'
+            impact = round(home_form * 0.85, 4)
+        elif home_form >= 0.45:
+            value = (f"Consistent but not spectacular — {home_wins}W {home_draws}D {home_losses}L "
+                     f"in last {total_home}")
+            direction = 'neutral'
+            impact = 0.38
+        else:
+            value = (f"Struggling for form — {home_wins}W {home_draws}D {home_losses}L "
+                     f"in last {total_home} ({home_form:.0%} points ratio)")
+            direction = 'negative' if outcome == 'home_win' else 'positive'
+            impact = round((1 - home_form) * 0.70, 4)
+
+        explanations.append({
+            'factor_name': f'{home_team_name} Recent Form',
+            'factor_value': value,
+            'impact_score': impact,
+            'impact_direction': direction,
+            'display_order': 2,
+        })
+
+        # ── 3. Away Team Recent Form ───────────────────────────────────
+        away_form   = features.get('away_form_index', 0)
+        away_wins   = int(features.get('away_wins_last_10', 0))
+        away_draws  = int(features.get('away_draws_last_10', 0))
+        away_losses = int(features.get('away_losses_last_10', 0))
+        total_away  = away_wins + away_draws + away_losses
+
+        if total_away == 0:
+            value = f"{away_team_name} — no recent match data available"
+            direction, impact = 'neutral', 0.10
+        elif away_form >= 0.67:
+            value = (f"Arriving in excellent form — {away_wins}W {away_draws}D {away_losses}L "
+                     f"in last {total_away} ({away_form:.0%} points ratio)")
+            direction = 'positive' if outcome == 'away_win' else 'negative'
+            impact = round(away_form * 0.80, 4)
+        elif away_form >= 0.45:
+            value = (f"Steady performances — {away_wins}W {away_draws}D {away_losses}L "
+                     f"in last {total_away}")
+            direction = 'neutral'
+            impact = 0.33
+        else:
+            value = (f"Out of form — {away_wins}W {away_draws}D {away_losses}L "
+                     f"in last {total_away} ({away_form:.0%} points ratio)")
+            direction = 'negative' if outcome == 'away_win' else 'positive'
+            impact = round((1 - away_form) * 0.65, 4)
+
+        explanations.append({
+            'factor_name': f'{away_team_name} Recent Form',
+            'factor_value': value,
+            'impact_score': impact,
+            'impact_direction': direction,
+            'display_order': 3,
+        })
+
+        # ── 4. Head-to-Head Record ─────────────────────────────────────
+        h2h_total      = int(features.get('h2h_total', 0))
+        h2h_home_wins  = int(features.get('h2h_home_wins', 0))
+        h2h_away_wins  = int(features.get('h2h_away_wins', 0))
+        h2h_draws_val  = int(features.get('h2h_draws', 0))
+        h2h_dominance  = features.get('h2h_home_dominance', 0.5)
+
+        if h2h_total == 0:
+            value = "No previous meetings — this is a first-time fixture"
+            direction, impact = 'neutral', 0.10
+        elif h2h_dominance > 0.60:
+            value = (f"{home_team_name} dominate this fixture — "
+                     f"{h2h_home_wins}W {h2h_draws_val}D {h2h_away_wins}L across {h2h_total} meetings")
+            direction = 'positive' if outcome == 'home_win' else 'negative'
+            impact = round(h2h_dominance * 0.65, 4)
+        elif h2h_dominance < 0.40:
+            value = (f"{away_team_name} have the psychological edge — "
+                     f"{h2h_home_wins}W {h2h_draws_val}D {h2h_away_wins}L across {h2h_total} meetings")
+            direction = 'positive' if outcome == 'away_win' else 'negative'
+            impact = round((1 - h2h_dominance) * 0.60, 4)
+        elif h2h_draws_val / h2h_total > 0.40:
+            value = (f"A draw-heavy rivalry — {h2h_home_wins}W {h2h_draws_val}D {h2h_away_wins}L "
+                     f"across {h2h_total} meetings ({h2h_draws_val / h2h_total:.0%} draws)")
+            direction = 'positive' if outcome == 'draw' else 'neutral'
+            impact = 0.35
+        else:
+            value = (f"Closely contested fixture — {h2h_home_wins}W {h2h_draws_val}D {h2h_away_wins}L "
+                     f"across {h2h_total} meetings")
+            direction = 'neutral'
+            impact = 0.25
+
+        explanations.append({
+            'factor_name': 'Head-to-Head Record',
+            'factor_value': value,
+            'impact_score': impact,
+            'impact_direction': direction,
+            'display_order': 4,
+        })
+
+        # ── 5. Home Ground Advantage ───────────────────────────────────
+        home_home_wr = features.get('home_home_win_rate', 0)
+
+        if home_home_wr >= 0.65:
+            value = (f"{home_team_name} are a fortress at home — "
+                     f"wins {home_home_wr:.0%} of home fixtures")
+            direction = 'positive' if outcome == 'home_win' else 'negative'
+            impact = round(home_home_wr * 0.75, 4)
+        elif home_home_wr >= 0.45:
+            value = (f"Solid home performers — {home_home_wr:.0%} home win rate")
+            direction = 'positive' if outcome == 'home_win' else 'neutral'
+            impact = 0.35
+        elif home_home_wr > 0:
+            value = (f"Home form is a concern — only {home_home_wr:.0%} home win rate")
+            direction = 'negative' if outcome == 'home_win' else 'positive'
+            impact = round((1 - home_home_wr) * 0.55, 4)
+        else:
+            value = f"{home_team_name} playing at home — crowd support could be decisive"
+            direction = 'positive' if outcome == 'home_win' else 'neutral'
+            impact = 0.20
+
+        explanations.append({
+            'factor_name': 'Home Ground Advantage',
+            'factor_value': value,
+            'impact_score': impact,
+            'impact_direction': direction,
+            'display_order': 5,
+        })
+
+        # ── 6. Away Road Record ────────────────────────────────────────
+        away_away_wr = features.get('away_away_win_rate', 0)
+
+        if away_away_wr >= 0.55:
+            value = (f"{away_team_name} are strong travellers — "
+                     f"wins {away_away_wr:.0%} of away games")
+            direction = 'positive' if outcome == 'away_win' else 'negative'
+            impact = round(away_away_wr * 0.70, 4)
+        elif away_away_wr >= 0.35:
+            value = f"Decent on the road — {away_away_wr:.0%} away win rate"
+            direction = 'neutral'
+            impact = 0.28
+        elif away_away_wr > 0:
+            value = (f"{away_team_name} struggle away from home — "
+                     f"only {away_away_wr:.0%} away win rate")
+            direction = 'negative' if outcome == 'away_win' else 'positive'
+            impact = round((1 - away_away_wr) * 0.50, 4)
+        else:
+            value = f"{away_team_name} on the road — away fixtures are always a test"
+            direction = 'neutral'
+            impact = 0.15
+
+        explanations.append({
+            'factor_name': 'Away Road Record',
+            'factor_value': value,
+            'impact_score': impact,
+            'impact_direction': direction,
+            'display_order': 6,
+        })
+
+        # ── 7. Goal-Scoring Form ───────────────────────────────────────
+        home_goals   = features.get('home_avg_goals_scored', 0)
+        away_goals   = features.get('away_avg_goals_scored', 0)
+        home_concede = features.get('home_avg_goals_conceded', 0)
+        away_concede = features.get('away_avg_goals_conceded', 0)
+
+        if home_goals > 2.2 and away_concede > 1.5:
+            value = (f"High-scoring clash expected — {home_team_name} score {home_goals:.1f}/game, "
+                     f"{away_team_name} concede {away_concede:.1f}/game")
+            direction = 'positive' if outcome == 'home_win' else 'neutral'
+            impact = min((home_goals + away_concede) / 6.0, 0.80)
+        elif away_goals > 2.0 and home_concede > 1.5:
+            value = (f"{away_team_name} dangerous in attack — {away_goals:.1f} goals/game, "
+                     f"host concedes {home_concede:.1f}/game")
+            direction = 'positive' if outcome == 'away_win' else 'negative'
+            impact = min((away_goals + home_concede) / 6.0, 0.75)
+        elif home_concede < 0.8 and away_concede < 0.8:
+            value = (f"Defensive battle expected — both sides stingy ({home_team_name} "
+                     f"concede {home_concede:.1f}, {away_team_name} {away_concede:.1f}/game)")
+            direction = 'positive' if outcome == 'draw' else 'neutral'
+            impact = 0.40
+        elif home_goals > 0 or away_goals > 0:
+            value = (f"{home_team_name} average {home_goals:.1f} goals/game vs "
+                     f"{away_team_name} {away_goals:.1f} goals/game")
+            direction = 'neutral'
+            impact = 0.28
+        else:
+            value = "Goal-scoring data being compiled for these sides"
+            direction, impact = 'neutral', 0.12
+
+        explanations.append({
+            'factor_name': 'Goal-Scoring Form',
+            'factor_value': value,
+            'impact_score': round(impact, 4),
+            'impact_direction': direction,
+            'display_order': 7,
+        })
+
+        # ── 8. Squad Fatigue & Schedule ───────────────────────────────
+        home_cong = int(features.get('home_matches_7d', 0))
+        away_cong = int(features.get('away_matches_7d', 0))
+
+        if home_cong >= 2 and away_cong < 2:
+            value = (f"{home_team_name} may carry fatigue — "
+                     f"{home_cong} games in last 7 days vs {away_team_name}'s {away_cong}")
+            direction = 'negative' if outcome == 'home_win' else 'positive'
+            impact = min(home_cong * 0.18, 0.55)
+        elif away_cong >= 2 and home_cong < 2:
+            value = (f"{away_team_name} on a heavy run — "
+                     f"{away_cong} games in last 7 days vs {home_team_name}'s {home_cong}")
+            direction = 'negative' if outcome == 'away_win' else 'positive'
+            impact = min(away_cong * 0.18, 0.50)
+        elif home_cong >= 2 and away_cong >= 2:
+            value = (f"Both sides fatigued — {home_team_name}: {home_cong} games, "
+                     f"{away_team_name}: {away_cong} games in last 7 days")
+            direction = 'neutral'
+            impact = 0.25
+        else:
+            value = f"Both squads well-rested and fresh for this fixture"
+            direction = 'positive' if outcome == 'home_win' else 'neutral'
+            impact = 0.15
+
+        explanations.append({
+            'factor_name': 'Squad Fatigue & Schedule',
+            'factor_value': value,
+            'impact_score': round(impact, 4),
+            'impact_direction': direction,
+            'display_order': 8,
+        })
 
         return explanations[:top_n]
 
     # ── Helpers ──────────────────────────────────
+
+    @staticmethod
+    def _home_or_away_direction(favors_home: bool, outcome: str) -> str:
+        """Return impact direction given which team is favoured and what was predicted."""
+        if outcome == 'home_win':
+            return 'positive' if favors_home else 'negative'
+        elif outcome == 'away_win':
+            return 'positive' if not favors_home else 'negative'
+        return 'neutral'
 
     @staticmethod
     def _determine_direction(feature: str, value: float, outcome: str) -> str:

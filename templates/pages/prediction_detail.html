@@ -3,150 +3,353 @@
 
 {% block title %}
 {% if prediction %}
-{{ prediction.match.home_team.name }} vs {{ prediction.match.away_team.name }} - Prediction
+{{ prediction.match.home_team.name }} vs {{ prediction.match.away_team.name }} — Prediction Detail
 {% else %}
 Prediction Not Found
 {% endif %}
 {% endblock %}
 
+{% block extra_css %}
+<style>
+  /* ── Probability bar ── */
+  .prob-bar-track {
+    height: 10px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.08);
+    overflow: hidden;
+  }
+  .prob-bar-fill { height: 100%; border-radius: 6px; transition: width 0.8s ease; }
+
+  /* ── Outcome outcome badge ── */
+  .outcome-badge {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: .5px;
+  }
+
+  /* ── Factor card ── */
+  .factor-card {
+    background: var(--bs-body-bg);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: .75rem;
+    padding: 1rem 1.1rem;
+    height: 100%;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .factor-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.25); }
+
+  .factor-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .85rem;
+    flex-shrink: 0;
+  }
+  .factor-icon.positive { background: rgba(25,135,84,.18); color: #20c997; }
+  .factor-icon.negative { background: rgba(220,53,69,.15); color: #f07070; }
+  .factor-icon.neutral  { background: rgba(108,117,125,.15); color: #adb5bd; }
+
+  .impact-bar-track {
+    height: 5px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.07);
+    overflow: hidden;
+    margin-top: .55rem;
+  }
+  .impact-bar-fill { height: 100%; border-radius: 4px; }
+  .impact-bar-fill.positive { background: linear-gradient(90deg,#20c997,#0dcaf0); }
+  .impact-bar-fill.negative { background: linear-gradient(90deg,#f07070,#dc3545); }
+  .impact-bar-fill.neutral  { background: rgba(108,117,125,0.5); }
+
+  /* ── Section divider ── */
+  .section-label {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--bs-secondary);
+  }
+
+  /* ── VS block ── */
+  .team-vs-block { position: relative; }
+  .vs-circle {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    border: 2px solid rgba(255,255,255,0.12);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .8rem; font-weight: 700; color: var(--bs-secondary);
+  }
+
+  /* ── Probability row ── */
+  .prob-section { gap: .6rem; }
+  .prob-label { font-size: .72rem; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="text-center mb-4">
-                <a href="{% url 'predictions' %}" class="btn btn-link text-decoration-none text-muted mb-3">
-                    <i class="fas fa-arrow-left"></i> Back to Predictions
-                </a>
-                <h2 class="gradient-text">{{ prediction.match.league.name }}</h2>
-                <p class="text-muted">{{ prediction.match.match_date|date:"l, d F Y at H:i" }}</p>
+<div class="container mt-4 pb-5">
+  <div class="row justify-content-center">
+    <div class="col-xl-9 col-lg-10">
+
+      <!-- Back link -->
+      <a href="{% url 'predictions' %}" class="btn btn-sm btn-outline-secondary mb-4">
+        <i class="fas fa-arrow-left me-1"></i> All Predictions
+      </a>
+
+      <!-- League + date header -->
+      <div class="text-center mb-3">
+        <span class="badge bg-primary-subtle text-primary px-3 py-2 fs-6 rounded-pill">
+          <i class="fas fa-trophy me-1"></i>{{ prediction.match.league.name }}
+        </span>
+        <p class="text-muted mt-2 mb-0 small">
+          <i class="fas fa-calendar-alt me-1"></i>
+          {{ prediction.match.match_date|date:"l, d F Y" }}
+          &nbsp;·&nbsp;
+          <i class="fas fa-clock me-1"></i>
+          {{ prediction.match.match_date|date:"H:i" }} kick-off
+        </p>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════
+           MATCH CARD
+           ═══════════════════════════════════════════════════════════ -->
+      <div class="card border-0 shadow-lg mb-4">
+        <div class="card-body p-4 p-md-5">
+
+          <!-- Teams row -->
+          <div class="row align-items-center text-center team-vs-block mb-4">
+            <div class="col-5">
+              <h3 class="fw-bold mb-1">{{ prediction.match.home_team.name }}</h3>
+              <span class="badge bg-secondary-subtle text-secondary">Home</span>
+            </div>
+            <div class="col-2 d-flex justify-content-center">
+              <div class="vs-circle">VS</div>
+            </div>
+            <div class="col-5">
+              <h3 class="fw-bold mb-1">{{ prediction.match.away_team.name }}</h3>
+              <span class="badge bg-secondary-subtle text-secondary">Away</span>
+            </div>
+          </div>
+
+          <hr class="my-4 opacity-10">
+
+          {% if is_locked %}
+          <!-- ── Locked State ───────────────────────────────────── -->
+          <div class="text-center py-5">
+            <i class="fas fa-lock fa-3x text-warning mb-3"></i>
+            <h4 class="mb-2">Premium Prediction</h4>
+            <p class="text-muted mb-4">{{ access_reason }}</p>
+            <div class="d-grid gap-3 col-md-7 mx-auto">
+              {% if requires_payment %}
+              <a href="{% url 'subscription' %}" class="btn btn-warning btn-lg fw-semibold">
+                <i class="fas fa-crown me-2"></i>Upgrade to Unlock
+              </a>
+              <button class="btn btn-outline-secondary" disabled>
+                Use 1 Credit (Coming Soon)
+              </button>
+              {% else %}
+              <a href="{% url 'subscription' %}" class="btn btn-primary">
+                Check Subscription Options
+              </a>
+              {% endif %}
+            </div>
+          </div>
+
+          {% else %}
+          <!-- ── Unlocked State ─────────────────────────────────── -->
+
+          <!-- Prediction outcome -->
+          <div class="text-center mb-4">
+            <p class="section-label mb-1">Our Prediction</p>
+            <div class="outcome-badge
+              {% if prediction.predicted_outcome == 'home_win' %}text-success
+              {% elif prediction.predicted_outcome == 'away_win' %}text-danger
+              {% else %}text-warning{% endif %}">
+              {{ prediction.get_predicted_outcome_display }}
+            </div>
+          </div>
+
+          <!-- Confidence score -->
+          <div class="row justify-content-center mb-4">
+            <div class="col-md-6">
+              <div class="d-flex justify-content-between mb-1">
+                <span class="small text-muted">Confidence Score</span>
+                <span class="small fw-bold">{{ prediction.confidence_score|floatformat:1 }}%</span>
+              </div>
+              <div class="prob-bar-track">
+                <div class="prob-bar-fill
+                  {% if prediction.confidence_score >= 70 %}bg-success
+                  {% elif prediction.confidence_score >= 50 %}bg-primary
+                  {% else %}bg-warning{% endif %}"
+                  style="width:{{ prediction.confidence_score|default:0 }}%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Win / Draw / Away probabilities -->
+          <div class="row justify-content-center mb-5">
+            <div class="col-md-8">
+              <p class="section-label text-center mb-3">Outcome Probabilities</p>
+              <div class="row g-2 prob-section text-center">
+                <div class="col-4">
+                  <div class="p-2 rounded-3 bg-success-subtle">
+                    <div class="fw-bold text-success fs-5">{{ home_prob_pct }}%</div>
+                    <div class="prob-label text-muted">{{ prediction.match.home_team.name }}</div>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="p-2 rounded-3 bg-warning-subtle">
+                    <div class="fw-bold text-warning fs-5">{{ draw_prob_pct }}%</div>
+                    <div class="prob-label text-muted">Draw</div>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="p-2 rounded-3 bg-danger-subtle">
+                    <div class="fw-bold text-danger fs-5">{{ away_prob_pct }}%</div>
+                    <div class="prob-label text-muted">{{ prediction.match.away_team.name }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Key Prediction Factors ─────────────────────────── -->
+          <div class="mt-2">
+            <p class="section-label mb-1">Key Prediction Factors</p>
+            <h5 class="fw-bold mb-4">Why we picked this outcome</h5>
+
+            {% if prediction.explanations.all %}
+            <div class="row g-3">
+              {% for explanation in prediction.explanations.all %}
+              <div class="col-md-6">
+                <div class="factor-card">
+                  <div class="d-flex align-items-start gap-3">
+
+                    <!-- Icon -->
+                    <div class="factor-icon {{ explanation.impact_direction }}">
+                      {% with fn=explanation.factor_name|lower %}
+                        {% if "elo" in fn or "strength" in fn %}
+                          <i class="fas fa-chart-line"></i>
+                        {% elif "home team" in fn or "home recent" in fn %}
+                          <i class="fas fa-fire"></i>
+                        {% elif "away team" in fn or "away recent" in fn %}
+                          <i class="fas fa-road"></i>
+                        {% elif "head" in fn %}
+                          <i class="fas fa-history"></i>
+                        {% elif "home ground" in fn or "home advantage" in fn %}
+                          <i class="fas fa-home"></i>
+                        {% elif "away road" in fn %}
+                          <i class="fas fa-plane"></i>
+                        {% elif "goal" in fn %}
+                          <i class="fas fa-futbol"></i>
+                        {% elif "fatigue" in fn or "schedule" in fn or "congestion" in fn %}
+                          <i class="fas fa-heartbeat"></i>
+                        {% elif "league" in fn %}
+                          <i class="fas fa-trophy"></i>
+                        {% else %}
+                          <i class="fas fa-chart-bar"></i>
+                        {% endif %}
+                      {% endwith %}
+                    </div>
+
+                    <!-- Text -->
+                    <div class="flex-grow-1 min-w-0">
+                      <div class="d-flex justify-content-between align-items-start">
+                        <strong class="d-block" style="font-size:.88rem;">
+                          {{ explanation.factor_name }}
+                        </strong>
+                        <!-- Direction badge -->
+                        <span class="badge ms-2 flex-shrink-0
+                          {% if explanation.impact_direction == 'positive' %}bg-success
+                          {% elif explanation.impact_direction == 'negative' %}bg-danger
+                          {% else %}bg-secondary{% endif %}">
+                          {% if explanation.impact_direction == 'positive' %}
+                            <i class="fas fa-arrow-up"></i>
+                          {% elif explanation.impact_direction == 'negative' %}
+                            <i class="fas fa-arrow-down"></i>
+                          {% else %}
+                            <i class="fas fa-minus"></i>
+                          {% endif %}
+                        </span>
+                      </div>
+                      <p class="text-muted mb-1" style="font-size:.80rem;line-height:1.4;">
+                        {{ explanation.factor_value }}
+                      </p>
+                      <!-- Impact bar -->
+                      <div class="impact-bar-track">
+                        <div class="impact-bar-fill {{ explanation.impact_direction }}"
+                             style="width:{% widthratio explanation.impact_score|add:0 1 100 %}%"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
             </div>
 
-            <!-- Match Card -->
-            <div class="card border-0 shadow-lg mb-5">
-                <div class="card-body p-5">
-                    <div class="d-flex justify-content-between align-items-center mb-5">
-                        <div class="text-center" style="width: 40%;">
-                            <h3 class="fw-bold mb-2">{{ prediction.match.home_team.name }}</h3>
-                            <span class="badge bg-light text-dark">Home</span>
-                        </div>
-                        <div class="text-center text-muted" style="width: 20%;">
-                            <h2 class="fw-light">VS</h2>
-                        </div>
-                        <div class="text-center" style="width: 40%;">
-                            <h3 class="fw-bold mb-2">{{ prediction.match.away_team.name }}</h3>
-                            <span class="badge bg-light text-dark">Away</span>
-                        </div>
-                    </div>
+            <!-- AI disclaimer -->
+            <p class="text-muted small mt-4 mb-0 text-center">
+              <i class="fas fa-robot me-1"></i>
+              Powered by our ML ensemble model — factors weighted by statistical significance.
+              Past performance does not guarantee future results.
+            </p>
 
-                    <hr class="my-4">
-
-                    {% if is_locked %}
-                    <!-- Locked State -->
-                    <div class="text-center py-4">
-                        <div class="mb-4">
-                            <i class="fas fa-lock fa-4x text-warning mb-3"></i>
-                            <h4>Premium Prediction</h4>
-                            <p class="text-muted">{{ access_reason }}</p>
-                        </div>
-
-                        <div class="d-grid gap-3 col-md-8 mx-auto">
-                            {% if requires_payment %}
-                            <a href="{% url 'subscription' %}" class="btn btn-premium btn-lg">
-                                <i class="fas fa-crown me-2"></i> Upgrade to Unlock
-                            </a>
-                            <button class="btn btn-outline-primary" disabled>
-                                Use 1 Credit (Coming Soon)
-                            </button>
-                            {% else %}
-                            <a href="{% url 'subscription' %}" class="btn btn-primary">
-                                Check Subscription Options
-                            </a>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% else %}
-                    <!-- Unlocked State -->
-                    <div class="prediction-details text-center">
-                        <h5 class="text-uppercase text-muted letter-spacing-2 mb-3">Our Prediction</h5>
-
-                        <div class="display-4 fw-bold mb-2 
-                            {% if prediction.predicted_outcome == 'home_win' %}text-success
-                            {% elif prediction.predicted_outcome == 'away_win' %}text-danger
-                            {% else %}text-warning{% endif %}">
-                            {{ prediction.get_predicted_outcome_display }}
-                        </div>
-
-                        <div class="row justify-content-center mt-4">
-                            <div class="col-md-6">
-                                <div class="mb-2 d-flex justify-content-between">
-                                    <span>Confidence Score</span>
-                                    <span class="fw-bold">{{ prediction.confidence_score|floatformat:0 }}%</span>
-                                </div>
-                                <div class="progress" style="height: 10px;">
-                                    <div class="progress-bar bg-gradient-primary"
-                                        style="width: {{ prediction.confidence_score|default:0 }}%"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mt-5 text-start">
-                            <h5 class="mb-4">Key Prediction Factors</h5>
-                            {% if prediction.explanations.all %}
-                            <div class="row g-3">
-                                {% for explanation in prediction.explanations.all %}
-                                <div class="col-md-6">
-                                    <div class="card border-0 bg-body-tertiary p-3">
-                                        <div class="d-flex justify-content-between align-items-start mb-2">
-                                            <div class="flex-grow-1">
-                                                <strong class="d-block text-dark dark-text">{{ explanation.factor_name }}</strong>
-                                                <small class="text-secondary dark-text-muted">{{ explanation.factor_value }}</small>
-                                            </div>
-                                            <span class="badge ms-2 {% if explanation.impact_direction == 'positive' %}bg-success{% elif explanation.impact_direction == 'negative' %}bg-danger{% else %}bg-secondary{% endif %}">
-                                                {% if explanation.impact_direction == 'positive' %}<i class="fas fa-arrow-up"></i>{% elif explanation.impact_direction == 'negative' %}<i class="fas fa-arrow-down"></i>{% else %}<i class="fas fa-minus"></i>{% endif %}
-                                            </span>
-                                        </div>
-                                        <div class="progress" style="height: 6px;">
-                                            <div class="progress-bar {% if explanation.impact_direction == 'positive' %}bg-success{% elif explanation.impact_direction == 'negative' %}bg-danger{% else %}bg-secondary{% endif %}" 
-                                                style="width: {% widthratio explanation.impact_score|add:1 2 100 %}%"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            {% else %}
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i>
-                                Prediction based on recent team form, head-to-head statistics, and player availability.
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Related -->
-            {% if related_predictions %}
-            <h4 class="mb-4">More from {{ prediction.match.league.name }}</h4>
-            <div class="row g-4">
-                {% for related in related_predictions %}
-                <div class="col-md-4">
-                    <a href="{% url 'prediction_detail' pk=related.id %}" class="text-decoration-none text-dark">
-                        <div class="card h-100 border-0 shadow-sm hover-elevate">
-                            <div class="card-body text-center p-3">
-                                <small class="text-muted d-block mb-2">{{ related.match.match_date|date:"H:i" }}</small>
-                                <h6 class="mb-0">{{ related.match.home_team.name }}</h6>
-                                <small class="text-muted">vs</small>
-                                <h6 class="mb-0">{{ related.match.away_team.name }}</h6>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-                {% endfor %}
+            {% else %}
+            <!-- Fallback (should rarely appear now) -->
+            <div class="alert alert-info d-flex align-items-center gap-2">
+              <i class="fas fa-info-circle fa-lg"></i>
+              <span>
+                Prediction based on recent team form, head-to-head statistics,
+                ELO ratings, and player availability. Detailed factor analysis
+                is being compiled.
+              </span>
             </div>
             {% endif %}
+          </div><!-- /Key Factors -->
 
+          {% endif %}{# end unlocked #}
         </div>
+      </div><!-- /match card -->
+
+      <!-- Related predictions -->
+      {% if related_predictions %}
+      <h5 class="mb-3 fw-semibold">
+        <i class="fas fa-layer-group me-2 text-primary"></i>
+        More from {{ prediction.match.league.name }}
+      </h5>
+      <div class="row g-3">
+        {% for related in related_predictions %}
+        <div class="col-md-4">
+          <a href="{% url 'prediction_detail' pk=related.id %}" class="text-decoration-none">
+            <div class="card border-0 bg-body-secondary h-100 hover-elevate">
+              <div class="card-body text-center p-3">
+                <small class="text-muted d-block mb-2">
+                  <i class="fas fa-clock me-1"></i>{{ related.match.match_date|date:"d M · H:i" }}
+                </small>
+                <h6 class="mb-0 fw-semibold">{{ related.match.home_team.name }}</h6>
+                <small class="text-secondary">vs</small>
+                <h6 class="mb-0 fw-semibold">{{ related.match.away_team.name }}</h6>
+                {% if related.predicted_outcome %}
+                <span class="badge mt-2
+                  {% if related.predicted_outcome == 'home_win' %}bg-success
+                  {% elif related.predicted_outcome == 'away_win' %}bg-danger
+                  {% else %}bg-warning{% endif %}">
+                  {{ related.get_predicted_outcome_display }}
+                </span>
+                {% endif %}
+              </div>
+            </div>
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
     </div>
+  </div>
 </div>
 {% endblock %}

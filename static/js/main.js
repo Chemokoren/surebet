@@ -129,7 +129,7 @@ function hideLoadingSpinner() {
 window.addEventListener('error', function(e) {
     // Ignore errors from floating-ui and other third-party libraries
     if (e.filename && (e.filename.includes('floating-ui') || e.filename.includes('popper'))) {
-        console.warn('Third-party library error (suppressed):', e.message);
+        e.preventDefault();
         return;
     }
     console.error('Global error:', e.error);

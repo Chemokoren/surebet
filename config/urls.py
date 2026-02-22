@@ -14,7 +14,7 @@ from apps.api.views import (
     HomeView, PredictionsView, PredictionDetailView, TeamAnalysisView,
     SubscriptionView, ProfileView, PaymentView, LoginView, LogoutView,
     DataExportView, AccountDeleteView, UnlockPredictionView,
-    PaymentSuccessView, PaymentCancelView
+    PaymentSuccessView, PaymentCancelView, RegisterView
 )
 from apps.analytics.views import HistoricalDataView
 
@@ -43,8 +43,8 @@ urlpatterns = [
         path('password-reset/done/', auth_views.PasswordResetDoneView.as_view(), name='password_reset_done'),
         path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
         path('reset/done/', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
-        # Serve UI registration page (signup) instead of API view
-        path('register/', TemplateView.as_view(template_name='account/register.html'), name='register'),
+        # User registration (signup)
+        path('register/', RegisterView.as_view(), name='register'),
         path('signup-success/', TemplateView.as_view(template_name='account/signup_success.html'), name='signup_success'),
         path('profile/', ProfileView.as_view(), name='profile'),
         path('subscription/', SubscriptionView.as_view(), name='subscription'),

@@ -110,12 +110,13 @@ class PredictionService:
     def _heuristic_fallback(cls, match: Match) -> dict:
         """
         Simple heuristic prediction when ML models aren't trained yet.
-        Uses ELO + form to generate reasonable probabilities.
+        Uses ELO + form to generate reasonable probabilities, then
+        builds comprehensive explanations via the ExplainerService.
         """
         features = FeatureEngineeringService.generate_features(match)
-        elo_diff = features.get('elo_diff', 0)
-        home_form = features.get('home_points_last_5', 0)
-        away_form = features.get('away_points_last_5', 0)
+        elo_diff  = features.get('elo_diff', 0)
+        home_form = features.get('home_form_index', 0)
+        away_form = features.get('away_form_index', 0)
 
         # Base probabilities
         p_home = 0.35
@@ -123,33 +124,29 @@ class PredictionService:
         p_draw = 0.30
 
         # Cold Start Randomness
-        # If no history (0 points), add valid variance so predictions aren't identical
         if home_form == 0 and away_form == 0:
-             # Random bias towards home team (0.0 to 0.15)
-             home_bias = random.random() * 0.15
-             p_home += home_bias
-             # Randomize draw slightly
-             p_draw -= (home_bias / 2)
-             p_away -= (home_bias / 2)
+            home_bias = random.random() * 0.15
+            p_home += home_bias
+            p_draw -= home_bias / 2
+            p_away -= home_bias / 2
 
         # Apply features
-        p_home += (elo_diff / 1000.0) + (home_form * 0.01)
-        p_away += (0.35 - 0.35) - (elo_diff / 1000.0) + (away_form * 0.01)
-        
+        p_home += (elo_diff / 1000.0) + (home_form * 0.08)
+        p_away -= (elo_diff / 1000.0) - (away_form * 0.08)
+
         # Add general noise
         p_home += random.uniform(-0.05, 0.05)
         p_away += random.uniform(-0.05, 0.05)
-        
-        # Re-calculate p_draw to ensure sum is ~1 before normalization
+
+        # Re-calculate draw to sum to 1 before normalization
         p_draw = 1.0 - p_home - p_away
 
-        # Normalize
+        # Normalize with floor
         total = max(p_home + p_away + p_draw, 0.01)
         p_home = max(p_home / total, 0.10)
         p_away = max(p_away / total, 0.10)
         p_draw = max(p_draw / total, 0.10)
-        
-        # Re-normalize
+
         total = p_home + p_away + p_draw
         p_home /= total
         p_away /= total
@@ -164,17 +161,21 @@ class PredictionService:
 
         confidence = min(confidence, 95.0)
 
-        # Generate basic explanations
-        explanations = []
-        if abs(elo_diff) > 50:
-            team = match.home_team if elo_diff > 0 else match.away_team
-            explanations.append({
-                'factor_name': 'Team Strength (ELO)',
-                'factor_value': f"{team.name} has a rating advantage",
-                'impact_score': min(abs(elo_diff) / 500, 1.0),
-                'impact_direction': 'positive',
-                'display_order': 1,
-            })
+        # Generate comprehensive explanations via ExplainerService
+        from apps.predictions.services.explainer import ExplainerService
+        prediction_result = {
+            'predicted_outcome': outcome,
+            'confidence': round(confidence, 2),
+            'probabilities': {'home': round(p_home, 4), 'draw': round(p_draw, 4), 'away': round(p_away, 4)},
+        }
+        explanations = ExplainerService.explain(
+            features=features,
+            prediction_result=prediction_result,
+            xgboost_model=None,
+            top_n=8,
+            home_team_name=match.home_team.name,
+            away_team_name=match.away_team.name,
+        )
 
         return {
             'probabilities': {

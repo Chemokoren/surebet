@@ -111,7 +111,7 @@
                             </div>
 
                             <!-- Prediction Outcome & Confidence -->
-                            {% if pred.tier == 'free' or request.has_subscription or pred.id in unlocked_prediction_ids %}
+                            {% if not pred.is_access_locked %}
                             <div class="text-center mb-3">
                                 <div class="prediction-badge {{ pred.predicted_outcome }}">
                                     {{ pred.get_predicted_outcome_display|upper }}
