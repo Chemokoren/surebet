@@ -56,10 +56,19 @@
 
         {# Next day #}
         {% if next_date %}
-        <a href="?date={{ next_date|date:'Y-m-d' }}{% if selected_league %}&league={{ selected_league }}{% endif %}"
-           class="btn btn-outline-secondary btn-sm">
-          {{ next_date|date:"M d" }}<i class="fas fa-chevron-right ms-1"></i>
-        </a>
+          {% if next_date > today and not has_subscription %}
+          <a href="{% url 'subscription' %}"
+             class="btn btn-warning btn-sm fw-bold"
+             title="Subscribe to browse {{ lookahead_days }}-day ahead predictions">
+            <i class="fas fa-lock me-1"></i>{{ next_date|date:"M d" }}
+            <i class="fas fa-chevron-right ms-1"></i>
+          </a>
+          {% else %}
+          <a href="?date={{ next_date|date:'Y-m-d' }}{% if selected_league %}&league={{ selected_league }}{% endif %}"
+             class="btn btn-outline-secondary btn-sm">
+            {{ next_date|date:"M d" }}<i class="fas fa-chevron-right ms-1"></i>
+          </a>
+          {% endif %}
         {% else %}
         <span class="btn btn-outline-secondary btn-sm disabled opacity-40">
           No later<i class="fas fa-chevron-right ms-1"></i>
@@ -133,6 +142,21 @@
     </div>
   </div>
 
+  {# ── On-demand fetch notice ────────────────────────────────────────── #}
+  {% if fetch_triggered %}
+    {% if predictions_just_generated %}
+    <div class="alert alert-info border-0 shadow-sm mb-3 py-2 d-flex align-items-center gap-2">
+      <i class="fas fa-sync-alt fa-spin text-info fs-5"></i>
+      <span>Fixtures & predictions freshly loaded for this date.</span>
+    </div>
+    {% elif no_fixtures_found %}
+    <div class="alert alert-warning border-0 shadow-sm mb-3 py-2 d-flex align-items-center gap-2">
+      <i class="fas fa-calendar-times text-warning fs-5"></i>
+      <span>No fixtures have been announced yet for this date. Check back later.</span>
+    </div>
+    {% endif %}
+  {% endif %}
+
   {# ── Subscription info banner ──────────────────────────────────────── #}
   {% if has_subscription %}
   <div class="alert alert-success border-0 shadow-sm mb-4 py-2 d-flex align-items-center gap-2">
@@ -141,6 +165,7 @@
       <strong>Active subscription</strong> — up to
       <strong>{{ subscription_limit }} predictions</strong> unlocked today,
       distributed across leagues.
+      Browse up to <strong>{{ lookahead_days }} days ahead</strong> within your plan period.
       Games beyond your quota can be unlocked per-match with 1 credit.
     </span>
   </div>

@@ -114,13 +114,53 @@ CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 # Scheduled Tasks
 from celery.schedules import crontab
 CELERY_BEAT_SCHEDULE = {
-    'generate-predictions-daily': {
-        'task': 'apps.predictions.tasks.generate_daily_predictions_task',
-        'schedule': crontab(hour=23, minute=0),
+    # ── 00:05 – Fetch fixtures for today + next 5 days & generate predictions ──
+    'fetch-and-predict-daily': {
+        'task': 'apps.predictions.tasks.fetch_and_predict_scheduled',
+        'schedule': crontab(hour=0, minute=5),
+        'options': {'expires': 3600},
     },
+
+    # ── 00:30 – Daily accuracy snapshot (yesterday's resolved predictions) ─────
+    'compute-accuracy-stats-daily': {
+        'task': 'apps.predictions.tasks.compute_accuracy_stats_task',
+        'schedule': crontab(hour=0, minute=30),
+        'options': {'expires': 3600},
+    },
+
+    # ── 06:00 – Drift monitor: auto-retrain if accuracy dropped > 5 % ─────────
+    'check-accuracy-drift-daily': {
+        'task': 'apps.predictions.tasks.check_accuracy_drift_task',
+        'schedule': crontab(hour=6, minute=0),
+        'options': {'expires': 3600},
+    },
+
+    # ── Every 20 min (07:00–23:59) – Refresh in-play scores & lock predictions ─
+    'update-live-scores': {
+        'task': 'apps.predictions.tasks.update_live_scores_task',
+        'schedule': crontab(minute='*/20', hour='7-23'),
+        'options': {'expires': 300},
+    },
+
+    # ── 23:30 – End-of-day: resolve predictions, update ELO, maybe retrain ─────
+    'resolve-finished-matches': {
+        'task': 'apps.predictions.tasks.resolve_finished_matches_task',
+        'schedule': crontab(hour=23, minute=30),
+        'options': {'expires': 7200},
+    },
+
+    # ── Monday 03:00 – Full weekly retraining (3 seasons of history) ───────────
+    'weekly-full-retrain': {
+        'task': 'apps.predictions.tasks.weekly_full_retrain_task',
+        'schedule': crontab(hour=3, minute=0, day_of_week='monday'),
+        'options': {'expires': 14400},
+    },
+
+    # ── Legacy: verify predictions exist at midnight (safety net) ───────────────
     'verify-predictions-midnight': {
         'task': 'apps.predictions.tasks.verify_predictions_availability_task',
         'schedule': crontab(hour=0, minute=0),
+        'options': {'expires': 1800},
     },
 }
 # REST Framework

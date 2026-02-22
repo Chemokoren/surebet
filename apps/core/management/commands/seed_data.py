@@ -26,18 +26,22 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("System bootstrapping complete!"))
 
     def create_leagues(self):
+        # Display order: EPL → La Liga → Serie A → Bundesliga → Ligue 1
         leagues_data = [
-            {'name': 'Premier League', 'code': 'PL', 'country': 'England', 'priority': 1, 'api_id': 2021},
-            {'name': 'La Liga', 'code': 'LL', 'country': 'Spain', 'priority': 2, 'api_id': 2014},
-            {'name': 'Bundesliga', 'code': 'BL1', 'country': 'Germany', 'priority': 3, 'api_id': 2002},
-            {'name': 'Serie A', 'code': 'SA', 'country': 'Italy', 'priority': 4, 'api_id': 2019},
-            {'name': 'Ligue 1', 'code': 'FL1', 'country': 'France', 'priority': 5, 'api_id': 2015},
+            {'name': 'Premier League', 'code': 'PL',  'country': 'England', 'priority': 1, 'api_id': 2021},
+            {'name': 'La Liga',        'code': 'LL',  'country': 'Spain',   'priority': 2, 'api_id': 2014},
+            {'name': 'Serie A',        'code': 'SA',  'country': 'Italy',   'priority': 3, 'api_id': 2019},
+            {'name': 'Bundesliga',     'code': 'BL1', 'country': 'Germany', 'priority': 4, 'api_id': 2002},
+            {'name': 'Ligue 1',        'code': 'FL1', 'country': 'France',  'priority': 5, 'api_id': 2015},
         ]
         count = 0
         for item in leagues_data:
-            obj, created = League.objects.get_or_create(code=item['code'], defaults=item)
+            obj, created = League.objects.update_or_create(
+                code=item['code'],
+                defaults={k: v for k, v in item.items() if k != 'code'},
+            )
             if created: count += 1
-        self.stdout.write(f"Created {count} leagues.")
+        self.stdout.write(f"Created/updated {count} leagues.")
 
     def create_plans(self):
         plans = [

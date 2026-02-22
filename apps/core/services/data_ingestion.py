@@ -1,11 +1,13 @@
 """
 Data Ingestion Service.
 
-Fetches real daily fixtures from external APIs (football-data.org) with
-web scraping fallback (LiveScore). Handles postponed/cancelled matches.
+Fetches real daily fixtures from multiple external sources:
+  1. ESPN API (primary – free, no API key required)
+  2. football-data.org (secondary – free tier requires API key in settings)
+  3. OpenLigaDB (fallback for Bundesliga – free, no key)
 
 Flow:
-    1. Fetch today's fixtures from football-data.org API
+    1. Fetch today's fixtures from ESPN (all 5 leagues)
     2. Validate and normalize match data
     3. Create/update Match records
     4. Update match statuses (in_play, finished, postponed)
@@ -19,6 +21,7 @@ from typing import Optional
 
 import requests
 from django.conf import settings
+from django.db.models import Q
 from django.utils import timezone
 from django.db import transaction
 
@@ -31,6 +34,7 @@ logger = logging.getLogger(__name__)
 # API Configuration
 # ──────────────────────────────────────────────
 
+# football-data.org (needs API key for EPL / La Liga / Serie A / Ligue 1)
 FOOTBALL_DATA_BASE_URL = 'https://api.football-data.org/v4'
 
 # football-data.org league codes mapped to our League.code values
@@ -42,10 +46,37 @@ LEAGUE_CODE_MAP = {
     'FL1': 'FL1',     # Ligue 1
 }
 
+# ── ESPN API (completely free, no key needed) ─────────────────────────────────
+ESPN_BASE_URL = 'https://site.api.espn.com/apis/site/v2/sports/soccer'
+
+# Our League.code → ESPN league slug
+ESPN_LEAGUE_SLUGS = {
+    'PL':  'eng.1',   # Premier League
+    'LL':  'esp.1',   # La Liga
+    'SA':  'ita.1',   # Serie A
+    'BL1': 'ger.1',   # Bundesliga
+    'FL1': 'fra.1',   # Ligue 1
+}
+
+ESPN_STATUS_MAP = {
+    'STATUS_SCHEDULED':   'scheduled',
+    'STATUS_IN_PROGRESS': 'in_play',
+    'STATUS_HALFTIME':    'paused',
+    'STATUS_FINAL':       'finished',
+    'STATUS_FULL_TIME':   'finished',
+    'STATUS_POSTPONED':   'postponed',
+    'STATUS_CANCELLED':   'cancelled',
+    'STATUS_SUSPENDED':   'suspended',
+    'STATUS_ABANDONED':   'cancelled',
+    'STATUS_DELAYED':     'scheduled',
+}
+
 
 class DataIngestionService:
     """
     Service for fetching and storing real match data.
+    Uses ESPN API as primary source (no key needed), falls back to
+    football-data.org when an API key is configured.
     """
 
     def __init__(self):
@@ -68,43 +99,50 @@ class DataIngestionService:
         return self.fetch_fixtures_for_date(today)
 
     def fetch_fixtures_for_date(self, target_date: date) -> dict:
-        """Fetch fixtures for a specific date."""
+        """
+        Fetch fixtures for a specific date from ESPN (primary) and
+        football-data.org (fallback when key is available).
+        """
         stats = {'created': 0, 'updated': 0, 'errors': []}
-        date_str = target_date.strftime('%Y-%m-%d')
 
-        for api_code, our_code in LEAGUE_CODE_MAP.items():
+        for our_code in ESPN_LEAGUE_SLUGS.keys():
             try:
-                result = self._fetch_league_fixtures(api_code, our_code, date_str)
+                # Try ESPN first (always free, no key needed)
+                result = self._fetch_espn_fixtures(our_code, target_date)
                 stats['created'] += result['created']
                 stats['updated'] += result['updated']
+
+                # If ESPN returned nothing AND we have a football-data.org key,
+                # fall back to that API for richer data
+                if result['created'] == 0 and result['updated'] == 0 and self.api_key:
+                    api_code = {v: k for k, v in LEAGUE_CODE_MAP.items()}.get(our_code, our_code)
+                    date_str = target_date.strftime('%Y-%m-%d')
+                    result2 = self._fetch_league_fixtures(api_code, our_code, date_str)
+                    stats['created'] += result2['created']
+                    stats['updated'] += result2['updated']
+
             except Exception as e:
                 error_msg = f"Error fetching {our_code}: {e}"
                 logger.error(error_msg)
                 stats['errors'].append(error_msg)
 
         logger.info(
-            f"Ingestion complete for {date_str}: "
+            f"Ingestion complete for {target_date}: "
             f"created={stats['created']}, updated={stats['updated']}, "
             f"errors={len(stats['errors'])}"
         )
         return stats
 
     def fetch_fixtures_for_range(self, start: date, end: date) -> dict:
-        """Fetch fixtures for a date range."""
+        """Fetch fixtures for a date range (inclusive)."""
         stats = {'created': 0, 'updated': 0, 'errors': []}
-
-        for api_code, our_code in LEAGUE_CODE_MAP.items():
-            try:
-                date_from = start.strftime('%Y-%m-%d')
-                date_to = end.strftime('%Y-%m-%d')
-                result = self._fetch_league_fixtures(
-                    api_code, our_code, date_from, date_to,
-                )
-                stats['created'] += result['created']
-                stats['updated'] += result['updated']
-            except Exception as e:
-                stats['errors'].append(f"Error fetching {our_code}: {e}")
-
+        current = start
+        while current <= end:
+            day_stats = self.fetch_fixtures_for_date(current)
+            stats['created'] += day_stats['created']
+            stats['updated'] += day_stats['updated']
+            stats['errors'].extend(day_stats.get('errors', []))
+            current += timedelta(days=1)
         return stats
 
     def update_live_scores(self) -> dict:
@@ -113,10 +151,11 @@ class DataIngestionService:
         Also locks predictions for in-play matches.
         """
         stats = {'updated': 0, 'locked': 0, 'errors': []}
+        today = date.today()
 
-        for api_code, our_code in LEAGUE_CODE_MAP.items():
+        for our_code in ESPN_LEAGUE_SLUGS.keys():
             try:
-                result = self._update_scores_for_league(api_code, our_code)
+                result = self._update_scores_espn(our_code, today)
                 stats['updated'] += result['updated']
                 stats['locked'] += result['locked']
             except Exception as e:
@@ -126,40 +165,304 @@ class DataIngestionService:
 
     def sync_teams_and_leagues(self) -> dict:
         """
-        Sync league and team data from API.
-        Should be called periodically (weekly) to keep team info updated.
+        Sync league and team data.
+        Ensures all 5 leagues exist in the DB with correct priorities.
         """
         stats = {'leagues': 0, 'teams': 0, 'errors': []}
 
-        for api_code, our_code in LEAGUE_CODE_MAP.items():
-            try:
-                result = self._sync_league(api_code, our_code)
-                stats['leagues'] += result['leagues']
-                stats['teams'] += result['teams']
-            except Exception as e:
-                stats['errors'].append(f"Sync error {our_code}: {e}")
+        league_defaults = [
+            {'name': 'Premier League', 'code': 'PL',  'country': 'England', 'priority': 1, 'api_id': 2021},
+            {'name': 'La Liga',        'code': 'LL',  'country': 'Spain',   'priority': 2, 'api_id': 2014},
+            {'name': 'Serie A',        'code': 'SA',  'country': 'Italy',   'priority': 3, 'api_id': 2019},
+            {'name': 'Bundesliga',     'code': 'BL1', 'country': 'Germany', 'priority': 4, 'api_id': 2002},
+            {'name': 'Ligue 1',        'code': 'FL1', 'country': 'France',  'priority': 5, 'api_id': 2015},
+        ]
+
+        for ld in league_defaults:
+            league, created = League.objects.update_or_create(
+                code=ld['code'],
+                defaults={
+                    'name': ld['name'],
+                    'country': ld['country'],
+                    'priority': ld['priority'],
+                    'api_id': ld['api_id'],
+                    'is_active': True,
+                },
+            )
+            if created:
+                stats['leagues'] += 1
+                logger.info(f"Created league: {league.name}")
+            else:
+                logger.info(f"Updated league: {league.name} priority → {ld['priority']}")
+
+        # Also sync via football-data.org if key is available
+        if self.api_key:
+            for api_code, our_code in LEAGUE_CODE_MAP.items():
+                try:
+                    result = self._sync_league(api_code, our_code)
+                    stats['teams'] += result.get('teams', 0)
+                except Exception as e:
+                    stats['errors'].append(f"Sync error {our_code}: {e}")
 
         return stats
 
-    # ── Private Helpers ─────────────────────────
+    # ── ESPN API (Primary, Free) ─────────────────
+
+    def _fetch_espn_fixtures(self, our_code: str, target_date: date) -> dict:
+        """
+        Fetch fixtures for a league and date from the ESPN public API.
+        No API key required.
+        """
+        stats = {'created': 0, 'updated': 0}
+        espn_slug = ESPN_LEAGUE_SLUGS.get(our_code)
+        if not espn_slug:
+            return stats
+
+        league = self._ensure_league(our_code)
+        if not league:
+            return stats
+
+        date_str = target_date.strftime('%Y%m%d')
+        url = f"{ESPN_BASE_URL}/{espn_slug}/scoreboard"
+        params = {'dates': date_str}
+
+        try:
+            response = requests.get(url, params=params, timeout=15)
+            if response.status_code != 200:
+                logger.warning(f"ESPN returned {response.status_code} for {our_code} on {target_date}")
+                return stats
+
+            data = response.json()
+            events = data.get('events', [])
+
+            for event in events:
+                try:
+                    result = self._process_espn_event(event, league)
+                    if result == 'created':
+                        stats['created'] += 1
+                    elif result == 'updated':
+                        stats['updated'] += 1
+                except Exception as exc:
+                    logger.error(f"ESPN event processing error ({our_code}): {exc}")
+
+        except requests.RequestException as exc:
+            logger.error(f"ESPN request failed for {our_code}: {exc}")
+
+        return stats
+
+    @transaction.atomic
+    def _process_espn_event(self, event: dict, league: League) -> str:
+        """Process a single ESPN event and create/update a Match record."""
+        competition = event.get('competitions', [{}])[0]
+        competitors = competition.get('competitors', [])
+
+        home_data = next((c for c in competitors if c.get('homeAway') == 'home'), None)
+        away_data = next((c for c in competitors if c.get('homeAway') == 'away'), None)
+
+        if not home_data or not away_data:
+            return 'skipped'
+
+        # Parse match datetime
+        raw_date = event.get('date', '')
+        try:
+            match_date = datetime.fromisoformat(raw_date.replace('Z', '+00:00'))
+        except (ValueError, AttributeError):
+            logger.warning(f"ESPN: invalid date '{raw_date}' for event {event.get('id')}")
+            return 'skipped'
+
+        # Get/create teams
+        home_team = self._get_or_create_team_espn(home_data.get('team', {}), league)
+        away_team = self._get_or_create_team_espn(away_data.get('team', {}), league)
+        if not home_team or not away_team:
+            return 'skipped'
+
+        # Map status
+        status_type = competition.get('status', {}).get('type', {})
+        espn_status_name = status_type.get('name', 'STATUS_SCHEDULED')
+        status = ESPN_STATUS_MAP.get(espn_status_name, 'scheduled')
+
+        # Scores (only if finished/in_play)
+        home_score = None
+        away_score = None
+        if status in ('finished', 'in_play', 'paused'):
+            try:
+                home_score = int(home_data.get('score', 0) or 0)
+                away_score = int(away_data.get('score', 0) or 0)
+            except (ValueError, TypeError):
+                pass
+
+        # Dedup: match existing record by teams + date (regardless of api_id source)
+        match_date_only = match_date.date()
+        existing = Match.objects.filter(
+            home_team=home_team,
+            away_team=away_team,
+            match_date__date=match_date_only,
+        ).first()
+
+        if existing:
+            changed = False
+            if existing.status != status:
+                existing.status = status
+                changed = True
+            if home_score is not None and existing.home_score != home_score:
+                existing.home_score = home_score
+                existing.away_score = away_score
+                changed = True
+            if changed:
+                existing.save()
+            if status in ('in_play', 'paused', 'finished') and not existing.is_locked:
+                existing.lock()
+            return 'updated'
+
+        # Create new match
+        Match.objects.create(
+            league=league,
+            home_team=home_team,
+            away_team=away_team,
+            match_date=match_date,
+            status=status,
+            home_score=home_score,
+            away_score=away_score,
+        )
+        return 'created'
+
+    def _get_or_create_team_espn(self, team_data: dict, league: League) -> Optional[Team]:
+        """Get or create a Team from ESPN team data."""
+        name = team_data.get('displayName', '') or team_data.get('name', '')
+        if not name:
+            return None
+
+        short_name = team_data.get('shortDisplayName', '') or team_data.get('abbreviation', '')
+        logo_url   = team_data.get('logo', '')
+
+        # Try name-based lookup within this league first
+        team = Team.objects.filter(
+            Q(name__iexact=name) | Q(short_name__iexact=short_name),
+            league=league,
+        ).first()
+
+        if not team:
+            # Broader search across all leagues (handles teams that changed leagues)
+            team = Team.objects.filter(Q(name__iexact=name)).first()
+
+        if not team:
+            team = Team.objects.create(
+                name=name,
+                short_name=short_name,
+                league=league,
+                logo_url=logo_url,
+            )
+
+        return team
+
+    def _update_scores_espn(self, our_code: str, target_date: date) -> dict:
+        """Update scores and statuses for today's matches using ESPN."""
+        stats = {'updated': 0, 'locked': 0}
+        espn_slug = ESPN_LEAGUE_SLUGS.get(our_code)
+        if not espn_slug:
+            return stats
+
+        date_str = target_date.strftime('%Y%m%d')
+        url = f"{ESPN_BASE_URL}/{espn_slug}/scoreboard"
+        params = {'dates': date_str}
+
+        try:
+            response = requests.get(url, params=params, timeout=15)
+            if response.status_code != 200:
+                return stats
+
+            data = response.json()
+            for event in data.get('events', []):
+                try:
+                    competition = event.get('competitions', [{}])[0]
+                    competitors = competition.get('competitors', [])
+                    home_data = next((c for c in competitors if c.get('homeAway') == 'home'), None)
+                    away_data = next((c for c in competitors if c.get('homeAway') == 'away'), None)
+                    if not home_data or not away_data:
+                        continue
+
+                    home_name = home_data.get('team', {}).get('displayName', '')
+                    away_name = away_data.get('team', {}).get('displayName', '')
+
+                    match = Match.objects.filter(
+                        home_team__name__iexact=home_name,
+                        away_team__name__iexact=away_name,
+                        match_date__date=target_date,
+                    ).first()
+                    if not match:
+                        continue
+
+                    status_name = competition.get('status', {}).get('type', {}).get('name', '')
+                    new_status = ESPN_STATUS_MAP.get(status_name, match.status)
+
+                    changed = False
+                    if match.status != new_status:
+                        match.status = new_status
+                        changed = True
+
+                    if new_status in ('finished', 'in_play', 'paused'):
+                        try:
+                            hs = int(home_data.get('score', 0) or 0)
+                            as_ = int(away_data.get('score', 0) or 0)
+                            if match.home_score != hs or match.away_score != as_:
+                                match.home_score = hs
+                                match.away_score = as_
+                                changed = True
+                        except (ValueError, TypeError):
+                            pass
+
+                    if changed:
+                        match.save()
+                        stats['updated'] += 1
+
+                    if new_status in ('in_play', 'paused', 'finished') and not match.is_locked:
+                        match.lock()
+                        stats['locked'] += 1
+
+                except Exception as exc:
+                    logger.error(f"ESPN score update error: {exc}")
+
+        except requests.RequestException as exc:
+            logger.error(f"ESPN live score request failed: {exc}")
+
+        return stats
+
+    # ── League Bootstrap Helper ──────────────────
+
+    def _ensure_league(self, our_code: str) -> Optional[League]:
+        """Ensure a League record exists for the given code."""
+        defaults_map = {
+            'PL':  {'name': 'Premier League', 'country': 'England', 'priority': 1, 'api_id': 2021},
+            'LL':  {'name': 'La Liga',        'country': 'Spain',   'priority': 2, 'api_id': 2014},
+            'SA':  {'name': 'Serie A',        'country': 'Italy',   'priority': 3, 'api_id': 2019},
+            'BL1': {'name': 'Bundesliga',     'country': 'Germany', 'priority': 4, 'api_id': 2002},
+            'FL1': {'name': 'Ligue 1',        'country': 'France',  'priority': 5, 'api_id': 2015},
+        }
+        defaults = defaults_map.get(our_code)
+        if not defaults:
+            return League.objects.filter(code=our_code).first()
+
+        league, _ = League.objects.get_or_create(
+            code=our_code,
+            defaults={**defaults, 'is_active': True},
+        )
+        return league
+
+    # ── football-data.org (Secondary) ───────────
 
     def _fetch_league_fixtures(
         self, api_code: str, our_code: str,
         date_from: str, date_to: str = None,
     ) -> dict:
-        """Fetch and store fixtures for a specific league."""
-        # Use OpenLigaDB for Bundesliga (BL1) - Free, no key needed
-        if our_code == 'BL1':
+        """Fetch and store fixtures for a specific league via football-data.org."""
+        # Use OpenLigaDB for Bundesliga (BL1) as free backup
+        if our_code == 'BL1' and not self.api_key:
             return self._fetch_openligadb_bl1(date_from, date_to)
 
         stats = {'created': 0, 'updated': 0}
 
         url = f"{FOOTBALL_DATA_BASE_URL}/competitions/{api_code}/matches"
-        params = {'dateFrom': date_from}
-        if date_to:
-            params['dateTo'] = date_to
-        else:
-            params['dateTo'] = date_from
+        params = {'dateFrom': date_from, 'dateTo': date_to or date_from}
 
         response = requests.get(url, headers=self.headers, params=params, timeout=30)
 
@@ -194,61 +497,44 @@ class DataIngestionService:
     def _fetch_openligadb_bl1(self, date_from: str, date_to: str = None) -> dict:
         """Fetch BL1 fixtures from OpenLigaDB (Free API)."""
         stats = {'created': 0, 'updated': 0}
-        league = League.objects.filter(code='BL1').first()
-        
-        if not league:
-            # Create if missing
-            league = League.objects.create(
-                name='Bundesliga', code='BL1', country='Germany', 
-                is_active=True, api_id=2002
-            )
-            
-        # OpenLigaDB uses season years (e.g., 2025). Extract from date.
+        league = self._ensure_league('BL1')
+
         try:
             target_date = datetime.strptime(date_from, '%Y-%m-%d')
             year = target_date.year
-            # Basic heuristic: if after July, use year, else year-1
             if target_date.month < 7:
                 year -= 1
         except Exception:
             year = datetime.now().year
 
         url = f"https://api.openligadb.de/getmatchdata/bl1/{year}"
-        
+
         try:
             response = requests.get(url, timeout=30)
             if response.status_code != 200:
                 logger.error(f"OpenLigaDB error: {response.status_code}")
                 return stats
-                
+
             matches = response.json()
-            
-            # Filter by date range manually since API returns whole season
+
             start_dt = datetime.strptime(date_from, '%Y-%m-%d')
-            end_dt = datetime.strptime(date_from, '%Y-%m-%d')
-            if date_to:
-                end_dt = datetime.strptime(date_to, '%Y-%m-%d')
-            # Add end of day buffer
-            end_dt = end_dt.replace(hour=23, minute=59, second=59)
-                
+            end_dt = datetime.strptime(date_to or date_from, '%Y-%m-%d').replace(
+                hour=23, minute=59, second=59
+            )
+
             for m in matches:
                 match_dt_str = m.get('matchDateTimeUTC', '')
                 try:
                     match_dt = datetime.fromisoformat(match_dt_str.replace('Z', '+00:00'))
-                except:
+                except Exception:
                     continue
-                    
-                # Filter
+
                 if not (start_dt.date() <= match_dt.date() <= end_dt.date()):
                     continue
-                    
-                # Process Match (Adapt to _process_match structure or handle directly)
-                # Since structure differs, I'll map it manually here
-                
-                # Teams
+
                 t1 = m.get('team1', {})
                 t2 = m.get('team2', {})
-                
+
                 home_team, _ = Team.objects.get_or_create(
                     name=t1.get('teamName'),
                     defaults={'league': league, 'logo_url': t1.get('teamIconUrl', '')}
@@ -257,23 +543,19 @@ class DataIngestionService:
                     name=t2.get('teamName'),
                     defaults={'league': league, 'logo_url': t2.get('teamIconUrl', '')}
                 )
-                
-                # Status check
+
                 is_finished = m.get('matchIsFinished', False)
                 status = 'finished' if is_finished else 'scheduled'
-                
-                # Scores
+
                 home_score = None
                 away_score = None
                 if is_finished:
-                    # OpenLigaDB results are a list. Usually type 2 is final result
                     results = m.get('matchResults', [])
                     final = next((r for r in results if r.get('resultTypeID') == 2), None)
                     if final:
                         home_score = final.get('pointsTeam1')
                         away_score = final.get('pointsTeam2')
-                
-                # Create Match
+
                 match, created = Match.objects.update_or_create(
                     api_id=m.get('matchID'),
                     defaults={
@@ -286,25 +568,24 @@ class DataIngestionService:
                         'away_score': away_score,
                     }
                 )
-                
+
                 if created:
                     stats['created'] += 1
                 else:
                     stats['updated'] += 1
-                    
+
         except Exception as e:
             logger.error(f"OpenLigaDB fetch error: {e}")
-            
+
         return stats
 
     @transaction.atomic
     def _process_match(self, data: dict, league: League) -> str:
-        """Create or update a single match from API data."""
+        """Create or update a single match from football-data.org API data."""
         api_id = data.get('id')
         if not api_id:
             return 'skipped'
 
-        # Get or create teams
         home_data = data.get('homeTeam', {})
         away_data = data.get('awayTeam', {})
 
@@ -314,7 +595,6 @@ class DataIngestionService:
         if not home_team or not away_team:
             return 'skipped'
 
-        # Parse date
         utc_date = data.get('utcDate', '')
         try:
             match_date = datetime.fromisoformat(utc_date.replace('Z', '+00:00'))
@@ -322,16 +602,13 @@ class DataIngestionService:
             logger.error(f"Invalid date: {utc_date}")
             return 'skipped'
 
-        # Map API status to our status
         api_status = data.get('status', 'SCHEDULED')
         status = self._map_status(api_status)
 
-        # Scores
         score = data.get('score', {})
         full_time = score.get('fullTime', {})
         half_time = score.get('halfTime', {})
 
-        # Season handling
         season_data = data.get('season', {})
         season = None
         if season_data:
@@ -340,12 +617,11 @@ class DataIngestionService:
                 year=str(season_data.get('id', '')),
                 defaults={
                     'start_date': season_data.get('startDate', match_date.date()),
-                    'end_date': season_data.get('endDate', match_date.date()),
+                    'end_date':   season_data.get('endDate', match_date.date()),
                     'is_current': season_data.get('currentMatchday') is not None,
                 },
             )
 
-        # Create or update
         match, created = Match.objects.update_or_create(
             api_id=api_id,
             defaults={
@@ -363,35 +639,33 @@ class DataIngestionService:
             },
         )
 
-        # Lock if match has started
         if status in ('in_play', 'paused', 'finished') and not match.is_locked:
             match.lock()
 
         return 'created' if created else 'updated'
 
     def _get_or_create_team(self, team_data: dict, league: League) -> Optional[Team]:
-        """Get or create a team from API data."""
+        """Get or create a team from football-data.org team data."""
         api_id = team_data.get('id')
         if not api_id:
             return None
 
-        team, created = Team.objects.update_or_create(
+        team, _ = Team.objects.update_or_create(
             api_id=api_id,
             defaults={
-                'name': team_data.get('name', 'Unknown'),
+                'name':       team_data.get('name', 'Unknown'),
                 'short_name': team_data.get('shortName', ''),
-                'code': team_data.get('tla', ''),
-                'logo_url': team_data.get('crest', ''),
-                'league': league,
+                'code':       team_data.get('tla', ''),
+                'logo_url':   team_data.get('crest', ''),
+                'league':     league,
             },
         )
         return team
 
     def _update_scores_for_league(self, api_code: str, our_code: str) -> dict:
-        """Update scores for in-play and recently finished matches."""
+        """Update scores for in-play and recently finished matches via football-data.org."""
         stats = {'updated': 0, 'locked': 0}
 
-        # Get matches that are currently in-play or recently scheduled
         today = date.today()
         pending_matches = Match.objects.filter(
             league__code=our_code,
@@ -402,11 +676,10 @@ class DataIngestionService:
         if not pending_matches.exists():
             return stats
 
-        # Fetch current data from API
         url = f"{FOOTBALL_DATA_BASE_URL}/competitions/{api_code}/matches"
         params = {
             'dateFrom': today.strftime('%Y-%m-%d'),
-            'dateTo': today.strftime('%Y-%m-%d'),
+            'dateTo':   today.strftime('%Y-%m-%d'),
         }
 
         response = requests.get(url, headers=self.headers, params=params, timeout=30)
@@ -448,10 +721,9 @@ class DataIngestionService:
         return stats
 
     def _sync_league(self, api_code: str, our_code: str) -> dict:
-        """Sync league and team data."""
+        """Sync league and team data from football-data.org."""
         stats = {'leagues': 0, 'teams': 0}
 
-        # Fetch competition details
         url = f"{FOOTBALL_DATA_BASE_URL}/competitions/{api_code}/teams"
         response = requests.get(url, headers=self.headers, timeout=30)
 
@@ -461,22 +733,22 @@ class DataIngestionService:
         data = response.json()
         comp = data.get('competition', {})
 
-        # Update league
-        league, _ = League.objects.update_or_create(
+        League.objects.update_or_create(
             code=our_code,
             defaults={
-                'name': comp.get('name', our_code),
+                'name':    comp.get('name', our_code),
                 'country': comp.get('area', {}).get('name', ''),
                 'logo_url': comp.get('emblem', ''),
-                'api_id': comp.get('id'),
+                'api_id':  comp.get('id'),
             },
         )
         stats['leagues'] = 1
 
-        # Update teams
         for team_data in data.get('teams', []):
-            self._get_or_create_team(team_data, league)
-            stats['teams'] += 1
+            league = League.objects.filter(code=our_code).first()
+            if league:
+                self._get_or_create_team(team_data, league)
+                stats['teams'] += 1
 
         return stats
 
@@ -485,16 +757,16 @@ class DataIngestionService:
         """Map football-data.org status to our Match.status."""
         return {
             'SCHEDULED': 'scheduled',
-            'TIMED': 'timed',
-            'IN_PLAY': 'in_play',
-            'PAUSED': 'paused',
-            'FINISHED': 'finished',
+            'TIMED':     'timed',
+            'IN_PLAY':   'in_play',
+            'PAUSED':    'paused',
+            'FINISHED':  'finished',
             'POSTPONED': 'postponed',
             'CANCELLED': 'cancelled',
             'SUSPENDED': 'suspended',
         }.get(api_status.upper(), 'scheduled')
 
-    # ── Stale Data Prevention ───────────────────
+    # ── Stale Data Prevention ────────────────────
 
     @staticmethod
     def remove_stale_unplayed_matches(older_than_hours: int = 48) -> int:

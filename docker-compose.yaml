@@ -1,13 +1,170 @@
 version: '3.8'
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  FuturaPredict – Full Stack
+#
+#  Services:
+#    db       – PostgreSQL 15
+#    redis    – Redis 7 (broker + cache)
+#    web      – Django / Gunicorn (HTTP)
+#    worker   – Celery worker (task execution)
+#    beat     – Celery Beat (scheduler — runs exactly one instance)
+#
+#  Usage:
+#    docker compose up -d                                 # Start all
+#    docker compose run --rm web setup                   # First-time setup
+#    docker compose exec web python manage.py shell
+#    docker compose logs -f beat worker                  # Watch scheduler + tasks
+#
+#  Environment:
+#    Copy .env.example → .env and fill in secrets before starting.
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Shared environment for all Django/Celery services
+x-django-env: &django-env
+  DJANGO_SETTINGS_MODULE: config.settings.base
+  DJANGO_SECRET_KEY:       ${DJANGO_SECRET_KEY:-change-me-in-production}
+  DEBUG:                   ${DEBUG:-False}
+  ALLOWED_HOSTS:           ${ALLOWED_HOSTS:-*}
+  # Database
+  POSTGRES_DB:             ${POSTGRES_DB:-futurapredict}
+  POSTGRES_USER:           ${POSTGRES_USER:-futurapredict}
+  POSTGRES_PASSWORD:       ${POSTGRES_PASSWORD:-futurapredict_pass}
+  POSTGRES_HOST:           db
+  POSTGRES_PORT:           "5432"
+  # Redis
+  REDIS_HOST:              redis
+  REDIS_PORT:              "6379"
+  REDIS_PASSWORD:          ${REDIS_PASSWORD:-}
+  # Optional API keys
+  FOOTBALL_DATA_API_KEY:   ${FOOTBALL_DATA_API_KEY:-}
+  # Payments
+  STRIPE_PUBLIC_KEY:       ${STRIPE_PUBLIC_KEY:-}
+  STRIPE_SECRET_KEY:       ${STRIPE_SECRET_KEY:-}
+  STRIPE_WEBHOOK_SECRET:   ${STRIPE_WEBHOOK_SECRET:-}
+  MPESA_CONSUMER_KEY:      ${MPESA_CONSUMER_KEY:-}
+  MPESA_CONSUMER_SECRET:   ${MPESA_CONSUMER_SECRET:-}
+  MPESA_SHORTCODE:         ${MPESA_SHORTCODE:-}
+  MPESA_PASSKEY:           ${MPESA_PASSKEY:-}
+  PAYPAL_CLIENT_ID:        ${PAYPAL_CLIENT_ID:-}
+  PAYPAL_SECRET:           ${PAYPAL_SECRET:-}
+  PAYPAL_MODE:             ${PAYPAL_MODE:-live}
+  # Email
+  EMAIL_HOST:              ${EMAIL_HOST:-smtp.gmail.com}
+  EMAIL_HOST_USER:         ${EMAIL_HOST_USER:-}
+  EMAIL_HOST_PASSWORD:     ${EMAIL_HOST_PASSWORD:-}
+
 services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-futurapredict}
+      POSTGRES_USER:     ${POSTGRES_USER:-futurapredict}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-futurapredict_pass}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_EXTERNAL_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-futurapredict}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Redis ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    command: >
+      sh -c "redis-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      $${REDIS_PASSWORD:+--requirepass $$REDIS_PASSWORD}"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_EXTERNAL_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Django / Gunicorn ───────────────────────────────────────────────────────
   web:
     build: .
-    command: gunicorn futurapredict.wsgi:application --bind 0.0.0.0:8008 --workers 3
-    ports:
-      - "8008:8008"
+    command: web
     environment:
-      - DJANGO_SETTINGS_MODULE=futurapredict.settings
+      <<: *django-env
+      SERVICE:      web
+      PORT:         "8000"
+      WEB_WORKERS:  ${WEB_WORKERS:-3}
+    ports:
+      - "${WEB_PORT:-8000}:8000"
     volumes:
-      - .:/app:ro
+      - .:/app
+      - models_data:/app/models
+      - features_data:/app/features
+      - logs_data:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
+
+  # ── Celery Worker ───────────────────────────────────────────────────────────
+  worker:
+    build: .
+    command: worker
+    environment:
+      <<: *django-env
+      SERVICE:             worker
+      WORKER_CONCURRENCY:  ${WORKER_CONCURRENCY:-4}
+    volumes:
+      - .:/app
+      - models_data:/app/models
+      - features_data:/app/features
+      - logs_data:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Celery Beat (Scheduler) ─────────────────────────────────────────────────
+  # IMPORTANT: Always run exactly ONE replica of this service.
+  # The DatabaseScheduler persists schedule state in PostgreSQL.
+  beat:
+    build: .
+    command: beat
+    environment:
+      <<: *django-env
+      SERVICE: beat
+    volumes:
+      - .:/app
+      - logs_data:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    restart: unless-stopped
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  Persistent Volumes
+# ══════════════════════════════════════════════════════════════════════════════
+volumes:
+  postgres_data:
+  redis_data:
+  models_data:    # Trained ML model files (.joblib, .h5, etc.)
+  features_data:  # Feature cache
+  logs_data:      # Application logs

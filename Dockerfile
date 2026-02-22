@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-# install system deps
+# ── System dependencies ───────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
@@ -9,20 +9,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV DJANGO_SETTINGS_MODULE=config.settings.base
 
 WORKDIR /app
 
-# Install pip requirements
+# ── Python dependencies (cached layer) ───────────────────────────────────────
 COPY requirements.txt /app/requirements.txt
 RUN pip install --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy project
+# ── Project source ─────────────────────────────────────────────────────────────
 COPY . /app
 
-# Collect static files (if used) and apply migrations optionally
-RUN python manage.py collectstatic --noinput || true
+# ── Entrypoint ────────────────────────────────────────────────────────────────
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
-EXPOSE 8008
+# ── Runtime defaults ──────────────────────────────────────────────────────────
+EXPOSE 8000
 
-CMD ["gunicorn", "futurapredict.wsgi:application", "--bind", "0.0.0.0:8008", "--workers", "3"]
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["web"]

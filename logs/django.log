@@ -5652,3 +5652,29 @@ INFO 2026-02-22 14:31:34,527 autoreload 33576 132777481359616 /home/kibsoft/Docu
 INFO 2026-02-22 14:31:35,302 autoreload 33789 134135716225280 Watching for file changes with StatReloader
 WARNING 2026-02-22 15:28:04,335 log 33789 134135604917952 Not Found: /api/predictions/filter/
 WARNING 2026-02-22 15:28:04,337 log 33789 134135596525248 Not Found: /api/predictions/filter/
+INFO 2026-02-22 15:56:26,032 autoreload 33789 134135716225280 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-22 15:56:26,951 autoreload 57834 125525365866752 Watching for file changes with StatReloader
+INFO 2026-02-22 15:57:10,091 data_ingestion 58078 138379054649600 Updated league: Premier League priority → 1
+INFO 2026-02-22 15:57:10,099 data_ingestion 58078 138379054649600 Updated league: La Liga priority → 2
+INFO 2026-02-22 15:57:10,105 data_ingestion 58078 138379054649600 Updated league: Serie A priority → 3
+INFO 2026-02-22 15:57:10,111 data_ingestion 58078 138379054649600 Updated league: Bundesliga priority → 4
+INFO 2026-02-22 15:57:10,117 data_ingestion 58078 138379054649600 Updated league: Ligue 1 priority → 5
+INFO 2026-02-22 15:57:21,810 data_ingestion 58130 132370014904576 Ingestion complete for 2026-02-22: created=18, updated=2, errors=0
+INFO 2026-02-22 15:57:24,639 ensemble_model 58130 132370014904576 Ensemble weights: {'elo': 1.0}
+INFO 2026-02-22 15:57:24,639 model_registry 58130 132370014904576 Loaded ensemble for model version: system_default v1.0
+INFO 2026-02-22 15:57:25,270 prediction_service 58130 132370014904576 Generated 15 predictions for 2026-02-22
+INFO 2026-02-22 15:57:27,984 data_ingestion 58130 132370014904576 Ingestion complete for 2026-02-23: created=4, updated=0, errors=0
+INFO 2026-02-22 15:57:28,224 prediction_service 58130 132370014904576 Generated 4 predictions for 2026-02-23
+INFO 2026-02-22 15:57:31,611 data_ingestion 58130 132370014904576 Ingestion complete for 2026-02-24: created=0, updated=0, errors=0
+INFO 2026-02-22 15:57:34,883 data_ingestion 58130 132370014904576 Ingestion complete for 2026-02-25: created=0, updated=0, errors=0
+INFO 2026-02-22 15:57:38,485 data_ingestion 58130 132370014904576 Ingestion complete for 2026-02-26: created=0, updated=0, errors=0
+INFO 2026-02-22 15:57:42,791 data_ingestion 58130 132370014904576 Ingestion complete for 2026-02-27: created=5, updated=0, errors=0
+INFO 2026-02-22 15:57:43,054 prediction_service 58130 132370014904576 Generated 5 predictions for 2026-02-27
+INFO 2026-02-22 15:58:16,218 autoreload 57834 125525365866752 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-22 15:58:17,149 autoreload 58466 134291284861184 Watching for file changes with StatReloader
+INFO 2026-02-22 16:18:00,376 views 58466 134291177596608 PredictionsView: on-demand fetch for 2026-02-24
+INFO 2026-02-22 16:18:03,556 data_ingestion 58466 134291177596608 Ingestion complete for 2026-02-24: created=0, updated=0, errors=0
+INFO 2026-02-22 16:32:25,887 autoreload 58466 134291284861184 /home/kibsoft/Documents/dev/projects/sports/futurapredict/config/settings/base.py changed, reloading.
+INFO 2026-02-22 16:32:26,663 autoreload 67838 139163732746496 Watching for file changes with StatReloader
+INFO 2026-02-22 16:35:20,559 autoreload 67838 139163732746496 /home/kibsoft/Documents/dev/projects/sports/futurapredict/config/settings/base.py changed, reloading.
+INFO 2026-02-22 16:35:21,480 autoreload 68740 134801907716352 Watching for file changes with StatReloader

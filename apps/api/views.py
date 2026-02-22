@@ -158,6 +158,9 @@ class PredictionsView(LoginRequiredMixin, TemplateView):
         selected day (defaults to today; auto-advances to the nearest day
         with fixtures if today is empty).
       - Provides date navigation (prev / next day that has games).
+      - Monthly/quarterly/yearly subscribers can navigate up to 5 days ahead
+        within their subscription period.  Fixtures + predictions for future
+        dates are fetched on-demand when no data yet exists.
       - Applies league-aware subscription quota distribution:
           * Admin configures `LeagueAccessRule.subscription_share_pct` per league.
           * Default: Premier League 50 %, others equal share.
@@ -171,6 +174,9 @@ class PredictionsView(LoginRequiredMixin, TemplateView):
     template_name = 'pages/predictions.html'
     login_url = '/account/login/'
 
+    # How many days ahead a subscriber can look
+    SUBSCRIBER_LOOKAHEAD_DAYS = 5
+
     # ── Public entry-point ───────────────────────────────────────────────
 
     def get_context_data(self, **kwargs):
@@ -179,6 +185,36 @@ class PredictionsView(LoginRequiredMixin, TemplateView):
 
         context = super().get_context_data(**kwargs)
         today = timezone.now().date()
+
+        # ── User state (needed early for date calculations) ───────────────
+        has_subscription = getattr(self.request, 'has_subscription', False)
+        active_sub       = SubscriptionService.get_active_subscription(self.request.user)
+
+        # Re-verify subscription is genuinely usable (middleware may cache stale state)
+        if active_sub and not active_sub.is_usable:
+            active_sub = None
+            has_subscription = False
+
+        sub_daily_limit = (
+            active_sub.plan.daily_prediction_limit
+            if active_sub and has_subscription else 0
+        )
+
+        # ── Maximum browsable date ────────────────────────────────────────
+        # Non-subscribers: today only.
+        # Subscribers: up to SUBSCRIBER_LOOKAHEAD_DAYS ahead, but never past
+        #              the subscription expiry date.
+        if has_subscription and active_sub:
+            lookahead = timedelta(days=self.SUBSCRIBER_LOOKAHEAD_DAYS)
+            if active_sub.expires_at:
+                max_date = min(today + lookahead, active_sub.expires_at.date())
+            else:
+                max_date = today + lookahead
+        else:
+            max_date = today
+
+        context['max_date']          = max_date
+        context['has_subscription']  = has_subscription
 
         # ── Date selection ───────────────────────────────────────────────
         date_str = self.request.GET.get('date')
@@ -189,6 +225,10 @@ class PredictionsView(LoginRequiredMixin, TemplateView):
             )
         except ValueError:
             selected_date = today
+
+        # Clamp: never go before today-7 (historical browsing) or after max_date
+        if selected_date > max_date:
+            selected_date = max_date
 
         league_code = self.request.GET.get('league')
 
@@ -207,11 +247,21 @@ class PredictionsView(LoginRequiredMixin, TemplateView):
 
         qs = _qs_for_date(selected_date)
 
+        # ── Auto-fetch for future dates with no data (subscribers only) ──
+        fetch_triggered = False
+        if not qs.exists() and selected_date >= today:
+            if has_subscription or not date_str:
+                # Attempt to fetch + predict on demand
+                self._ensure_predictions_for_date(selected_date, context)
+                fetch_triggered = True
+                qs = _qs_for_date(selected_date)
+
         # Auto-advance to nearest future day with fixtures when today is empty
         if not qs.exists() and not date_str:
             nxt = (
                 Prediction.objects.filter(
                     match__match_date__date__gt=today,
+                    match__match_date__date__lte=max_date,
                     match__status__in=['scheduled', 'timed'],
                     match__league__is_active=True,
                 )
@@ -237,6 +287,7 @@ class PredictionsView(LoginRequiredMixin, TemplateView):
         next_row = (
             Prediction.objects.filter(
                 match__match_date__date__gt=selected_date,
+                match__match_date__date__lte=max_date,
                 match__status__in=['scheduled', 'timed'],
                 match__league__is_active=True,
             )
@@ -244,24 +295,28 @@ class PredictionsView(LoginRequiredMixin, TemplateView):
             .values('match__match_date')
             .first()
         )
+
         context['selected_date'] = selected_date
         context['today']         = today
         context['prev_date'] = prev_row['match__match_date'].date() if prev_row else None
-        context['next_date'] = next_row['match__match_date'].date() if next_row else None
+
+        # For subscribers, show the "next" arrow even when no predictions exist
+        # for tomorrow yet — it will trigger a fetch when navigated to.
+        if next_row:
+            context['next_date'] = next_row['match__match_date'].date()
+        elif has_subscription and selected_date < max_date:
+            # Offer the next calendar day even if no fixtures fetched yet
+            context['next_date'] = selected_date + timedelta(days=1)
+        else:
+            context['next_date'] = None
 
         # ── Static context ───────────────────────────────────────────────
-        context['free_count']       = qs.filter(tier='free').count()
-        context['premium_count']    = qs.filter(tier='premium').count()
-        context['leagues']          = League.objects.filter(is_active=True)
-        context['selected_league']  = league_code
-
-        # ── User state ───────────────────────────────────────────────────
-        has_subscription = getattr(self.request, 'has_subscription', False)
-        active_sub       = SubscriptionService.get_active_subscription(self.request.user)
-        sub_daily_limit  = (
-            active_sub.plan.daily_prediction_limit
-            if active_sub and has_subscription else 0
-        )
+        context['free_count']      = qs.filter(tier='free').count()
+        context['premium_count']   = qs.filter(tier='premium').count()
+        context['leagues']         = League.objects.filter(is_active=True).order_by('priority')
+        context['selected_league'] = league_code
+        context['fetch_triggered'] = fetch_triggered
+        context['lookahead_days']  = self.SUBSCRIBER_LOOKAHEAD_DAYS
 
         profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
         user_credits = profile.prediction_credits
@@ -350,11 +405,39 @@ class PredictionsView(LoginRequiredMixin, TemplateView):
         context['prediction_groups']       = prediction_groups
         context['predictions']             = flat_predictions
         context['user_credits']            = user_credits
-        context['has_subscription']        = has_subscription
         context['subscription_limit']      = sub_daily_limit
         context['unlocked_prediction_ids'] = unlocked_ids
 
         return context
+
+    # ── On-demand fetch + predict ────────────────────────────────────────
+
+    @staticmethod
+    def _ensure_predictions_for_date(target_date, context: dict):
+        """
+        Fetch fixtures from ESPN and generate predictions for `target_date`
+        when the DB has no data yet.  Runs synchronously; errors are caught
+        and surfaced via template context flags.
+        """
+        try:
+            from apps.core.services.data_ingestion import DataIngestionService
+            from apps.predictions.services.prediction_service import PredictionService
+
+            logger.info(f"PredictionsView: on-demand fetch for {target_date}")
+            service = DataIngestionService()
+            ingest = service.fetch_fixtures_for_date(target_date)
+
+            new_matches = ingest.get('created', 0)
+            if new_matches > 0:
+                count = PredictionService.generate_daily_predictions(target_date=target_date)
+                logger.info(f"PredictionsView: generated {count} predictions for {target_date}")
+                context['predictions_just_generated'] = count
+            else:
+                context['no_fixtures_found'] = True
+
+        except Exception as exc:
+            logger.error(f"PredictionsView on-demand fetch failed: {exc}")
+            context['fetch_error'] = str(exc)
 
     # ── Private helpers ──────────────────────────────────────────────────
 
