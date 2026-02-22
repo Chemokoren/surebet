@@ -56,9 +56,19 @@
                 <a href="#predictions" class="btn btn-premium btn-lg">
                     <i class="fas fa-bolt me-2"></i> Today's Picks
                 </a>
+                {% if active_sub and is_top_plan %}
+                <a href="{% url 'predictions' %}" class="btn btn-outline-success btn-lg">
+                    <i class="fas fa-trophy me-2"></i> All Predictions
+                </a>
+                {% elif active_sub %}
+                <a href="#pricing" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-arrow-up me-2"></i> Upgrade Plan
+                </a>
+                {% else %}
                 <a href="#pricing" class="btn btn-outline-primary btn-lg">
                     <i class="fas fa-crown me-2"></i> View Plans
                 </a>
+                {% endif %}
                 {% endif %}
             </div>
         </div>
@@ -246,8 +256,161 @@
 </div>
 
 <!-- Pricing Section (Sales Funnel) -->
-<!-- Pricing Section (Sales Funnel) -->
-{% if packs or monthly_tier %}
+{% if active_sub and current_plan %}
+{# ── SUBSCRIBER VIEW: Show current plan + upgrade options ── #}
+<div class="pricing-section mb-5 py-5" id="pricing">
+
+    {# Current Plan Banner #}
+    <div class="row justify-content-center mb-5">
+        <div class="col-lg-10">
+            <div class="card border-0 shadow-sm overflow-hidden"
+                style="background: linear-gradient(135deg, rgba(25, 135, 84, 0.08) 0%, rgba(25, 135, 84, 0.02) 100%); border-left: 4px solid #198754 !important;">
+                <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle bg-success bg-opacity-10 p-3 me-3">
+                            <i class="fas fa-crown fa-2x text-success"></i>
+                        </div>
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <h5 class="fw-bold mb-0">{{ current_plan.name }}</h5>
+                                <span class="badge bg-success">Active</span>
+                            </div>
+                            <p class="text-muted mb-0">
+                                {{ current_plan.daily_prediction_limit }} predictions/day
+                                · Expires {{ active_sub.expires_at|date:"d M Y" }}
+                            </p>
+                        </div>
+                    </div>
+                    <a href="{% url 'subscription' %}" class="btn btn-outline-success btn-sm">
+                        <i class="fas fa-cog me-1"></i> Manage
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if is_top_plan %}
+    {# ── TOP PLAN: Celebratory message ── #}
+    <div class="text-center mb-5 animate-fade-in-up">
+        <div class="mb-4">
+            <span class="d-inline-block p-4 rounded-circle bg-warning bg-opacity-10">
+                <i class="fas fa-trophy fa-4x text-warning"></i>
+            </span>
+        </div>
+        <h2 class="fw-bold gradient-text mb-3">You're on Our Best Plan!</h2>
+        <p class="text-muted lead mx-auto" style="max-width: 550px;">
+            Enjoy unlimited predictions, 5-day lookahead, priority support, and every feature we offer.
+            Thank you for being a valued member!
+        </p>
+        <div class="d-flex gap-3 justify-content-center mt-4">
+            <a href="{% url 'predictions' %}" class="btn btn-premium btn-lg">
+                <i class="fas fa-bolt me-2"></i> View Predictions
+            </a>
+            <a href="{% url 'team_analysis' %}" class="btn btn-outline-primary btn-lg">
+                <i class="fas fa-chart-line me-2"></i> Team Analytics
+            </a>
+        </div>
+    </div>
+
+    {% else %}
+    {# ── UPGRADE OPTIONS ── #}
+    <div class="text-center mb-5">
+        <h2 class="fw-bold gradient-text">Unlock Even More Value</h2>
+        <p class="text-muted lead">
+            You're doing great on <strong>{{ current_plan.name }}</strong> — upgrade to save more and commit to winning long-term.
+        </p>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+        {% for plan in upgrade_plans %}
+        <div class="col-md-6 col-lg-{% if upgrade_plans|length == 1 %}6{% else %}5{% endif %}">
+            <div class="card h-100 border-0 shadow-lg position-relative overflow-hidden"
+                style="border-top: 4px solid {% if forloop.last %}#ffc107{% else %}var(--bs-primary){% endif %} !important;">
+
+                {% if plan.savings_pct %}
+                <div class="position-absolute top-0 end-0 m-3">
+                    <span class="badge bg-danger fs-6 px-3 py-2 shadow-sm">
+                        <i class="fas fa-fire me-1"></i> {{ plan.savings_label }}
+                    </span>
+                </div>
+                {% endif %}
+
+                {% if forloop.last %}
+                <div class="position-absolute top-0 start-0 m-3">
+                    <span class="badge bg-warning text-dark px-3 py-2">
+                        <i class="fas fa-star me-1"></i> BEST VALUE
+                    </span>
+                </div>
+                {% endif %}
+
+                <div class="card-body text-center p-5">
+                    <div class="mb-3">
+                        {% if plan.interval == 'quarterly' %}
+                        <i class="fas fa-gem fa-3x text-primary"></i>
+                        {% elif plan.interval == 'yearly' %}
+                        <i class="fas fa-trophy fa-3x text-warning"></i>
+                        {% else %}
+                        <i class="fas fa-crown fa-3x text-primary"></i>
+                        {% endif %}
+                    </div>
+
+                    <h3 class="fw-bold mb-1">{{ plan.name }}</h3>
+                    <p class="text-muted small mb-3 text-uppercase">{{ plan.get_interval_display }}</p>
+
+                    <div class="display-5 fw-bold text-primary mb-2">
+                        <small class="fs-6 text-muted">{{ plan.currency }}</small>
+                        {{ plan.price|floatformat:0 }}
+                    </div>
+
+                    {% if plan.interval != 'monthly' and plan.per_month_price %}
+                    <p class="text-muted small mb-4">
+                        That's just <strong>{{ plan.currency }} {{ plan.per_month_price }}</strong>/month
+                    </p>
+                    {% endif %}
+
+                    <ul class="list-unstyled mb-4 text-start mx-auto" style="max-width: 260px;">
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <strong>{{ plan.daily_prediction_limit }}</strong> predictions/day
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Everything in your current plan
+                        </li>
+                        {% if plan.interval == 'quarterly' %}
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Lock in 3 months of winning</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Priority email support</li>
+                        {% elif plan.interval == 'yearly' %}
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Full season coverage</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Priority phone & email support</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Exclusive VIP insights</li>
+                        {% endif %}
+                        {% for feature in plan.features %}
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> {{ feature }}</li>
+                        {% endfor %}
+                    </ul>
+
+                    <a href="{% url 'payment' %}?plan_id={{ plan.id }}"
+                        class="btn {% if forloop.last %}btn-warning text-dark{% else %}btn-primary{% endif %} btn-lg w-100 fw-bold shadow-sm">
+                        <i class="fas fa-arrow-up me-2"></i> Upgrade Now
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="text-center mt-4">
+        <p class="text-muted small">
+            <i class="fas fa-shield-alt me-1"></i>
+            Upgrade anytime — unused days on your current plan are credited automatically.
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+{% elif packs or monthly_tier %}
+{# ── NON-SUBSCRIBER VIEW: Show all pricing tiers ── #}
 <div class="pricing-section mb-5 py-5" id="pricing">
     <div class="text-center mb-5">
         <h2 class="fw-bold gradient-text">Choose Your Winning Plan</h2>

@@ -96,37 +96,91 @@ class HomeView(TemplateView):
         # 3. Pricing Tiers (for Sales Funnel)
         region = getattr(self.request, 'user_region', 'global')
         
-        # Credit Packs (Tier 1-3)
-        context['packs'] = PricingTier.objects.filter(
-            region=region, 
-            is_active=True,
-            tier_type='credit_pack'
-        ).order_by('price')
-        
-        # Monthly Subscription (Tier 4)
-        context['monthly_tier'] = PricingTier.objects.filter(
-            region=region,
-            is_active=True,
-            tier_type='daily_quota'
-        ).first()
-        
-        # Single Tier (for "Unlock" buttons)
-        context['single_tier'] = PricingTier.objects.filter(
-            region=region,
-            tier_type='single',
-            is_active=True
-        ).first()
-        
-        # 4. User Stats
+        # 4. User Stats & Subscription-Aware Pricing
+        active_sub = None
         if self.request.user.is_authenticated:
             usage = SubscriptionService.get_daily_usage(self.request.user)
-            # Add credit balance
             profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
-            # Fix: prediction_credits already includes bonus if granted
             usage['remaining_credits'] = profile.prediction_credits 
             context['usage'] = usage
-            context['active_sub'] = SubscriptionService.get_active_subscription(self.request.user)
-            
+            active_sub = SubscriptionService.get_active_subscription(self.request.user)
+            context['active_sub'] = active_sub
+
+        if active_sub:
+            # ── Subscriber: show only HIGHER plans (upsell) ──
+            current_plan = active_sub.plan
+            context['current_plan'] = current_plan
+
+            INTERVAL_RANK = {'monthly': 1, 'quarterly': 2, 'yearly': 3}
+            MONTHS_MAP = {'monthly': 1, 'quarterly': 3, 'yearly': 12}
+            current_limit = current_plan.daily_prediction_limit
+            current_interval_rank = INTERVAL_RANK.get(current_plan.interval, 0)
+
+            def _plan_rank(plan):
+                """Composite rank: (daily_limit, interval_rank) — higher = better."""
+                return (plan.daily_prediction_limit, INTERVAL_RANK.get(plan.interval, 0))
+
+            current_rank = _plan_rank(current_plan)
+
+            # Only show plans strictly better than the current one (same currency)
+            all_plans = SubscriptionPlan.objects.filter(
+                is_active=True,
+                currency=current_plan.currency,
+            ).exclude(pk=current_plan.pk).order_by('daily_prediction_limit', 'price')
+
+            upgrade_plans = [
+                p for p in all_plans
+                if _plan_rank(p) > current_rank
+            ][:3]  # Show at most 3 best upgrade options
+            context['upgrade_plans'] = upgrade_plans
+            context['is_top_plan'] = len(upgrade_plans) == 0
+
+            # Compute per-month cost and savings messaging
+            current_months = MONTHS_MAP.get(current_plan.interval, 1)
+            current_per_month = float(current_plan.price) / current_months
+
+            for plan in upgrade_plans:
+                months = MONTHS_MAP.get(plan.interval, 1)
+                plan.per_month_price = round(float(plan.price) / months, 2)
+
+                # Show savings only if per-month is actually cheaper than current
+                if plan.per_month_price < current_per_month:
+                    plan.savings_pct = round(
+                        (1 - plan.per_month_price / current_per_month) * 100
+                    )
+                    plan.savings_label = f"Save {plan.savings_pct}% per month"
+                else:
+                    plan.savings_pct = 0
+                    plan.savings_label = ""
+
+            # Don't show credit packs / single / daily_quota to subscribers
+            context['packs'] = PricingTier.objects.none()
+            context['monthly_tier'] = None
+            context['single_tier'] = None
+        else:
+            # ── Non-subscriber: show all pricing tiers ──
+            context['packs'] = PricingTier.objects.filter(
+                region=region, 
+                is_active=True,
+                tier_type='credit_pack'
+            ).order_by('price')
+
+            context['monthly_tier'] = PricingTier.objects.filter(
+                region=region,
+                is_active=True,
+                tier_type='daily_quota'
+            ).first()
+
+            context['single_tier'] = PricingTier.objects.filter(
+                region=region,
+                tier_type='single',
+                is_active=True
+            ).first()
+
+            context['upgrade_plans'] = []
+            context['is_top_plan'] = False
+            context['current_plan'] = None
+
         return context
 
 

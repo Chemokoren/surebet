@@ -5678,3 +5678,18 @@ INFO 2026-02-22 16:32:25,887 autoreload 58466 134291284861184 /home/kibsoft/Docu
 INFO 2026-02-22 16:32:26,663 autoreload 67838 139163732746496 Watching for file changes with StatReloader
 INFO 2026-02-22 16:35:20,559 autoreload 67838 139163732746496 /home/kibsoft/Documents/dev/projects/sports/futurapredict/config/settings/base.py changed, reloading.
 INFO 2026-02-22 16:35:21,480 autoreload 68740 134801907716352 Watching for file changes with StatReloader
+INFO 2026-02-22 17:26:31,624 autoreload 68740 134801907716352 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-22 17:26:32,389 autoreload 83162 140605742387456 Watching for file changes with StatReloader
+INFO 2026-02-22 17:28:42,793 autoreload 83162 140605742387456 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-22 17:28:43,498 autoreload 83760 134883779199232 Watching for file changes with StatReloader
+INFO 2026-02-22 17:30:07,608 autoreload 83760 134883779199232 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-22 17:30:08,344 autoreload 84192 129587992572160 Watching for file changes with StatReloader
+INFO 2026-02-22 17:30:47,255 autoreload 84192 129587992572160 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-22 17:30:47,969 autoreload 84461 135036744671488 Watching for file changes with StatReloader
+INFO 2026-02-22 17:32:00,125 geolocation 84901 138838130422016 Updated geo for user 9: Unknown (global)
+INFO 2026-02-22 17:32:13,288 geolocation 85088 134367220080896 Updated geo for user 6: Unknown (global)
+INFO 2026-02-22 17:32:14,165 geolocation 85088 134367220080896 Updated geo for user 7: Unknown (global)
+INFO 2026-02-22 17:32:14,903 geolocation 85088 134367220080896 Updated geo for user 8: Unknown (global)
+INFO 2026-02-22 17:32:16,206 geolocation 85088 134367220080896 Updated geo for user 5: Unknown (global)
+INFO 2026-02-22 17:32:58,958 autoreload 84461 135036744671488 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-22 17:32:59,790 autoreload 85361 125595555959040 Watching for file changes with StatReloader
