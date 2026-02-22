@@ -5599,3 +5599,56 @@ INFO 2026-02-22 14:03:21,602 autoreload 26735 131757435957504 /home/kibsoft/Docu
 INFO 2026-02-22 14:03:22,315 autoreload 26782 124488399458560 Watching for file changes with StatReloader
 INFO 2026-02-22 14:03:54,976 autoreload 26782 124488399458560 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
 INFO 2026-02-22 14:03:55,794 autoreload 26899 137405143216384 Watching for file changes with StatReloader
+ERROR 2026-02-22 14:15:33,726 log 26899 137405035177664 Internal Server Error: /account/login/
+Traceback (most recent call last):
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/views/generic/base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py", line 458, in dispatch
+    return super().dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/views/generic/base.py", line 144, in dispatch
+    return handler(request, *args, **kwargs)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/views/generic/edit.py", line 152, in post
+    if form.is_valid():
+       ~~~~~~~~~~~~~^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/forms/forms.py", line 201, in is_valid
+    return self.is_bound and not self.errors
+                                 ^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/forms/forms.py", line 196, in errors
+    self.full_clean()
+    ~~~~~~~~~~~~~~~^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/forms/forms.py", line 433, in full_clean
+    self._clean_fields()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/forms/forms.py", line 448, in _clean_fields
+    value = getattr(self, "clean_%s" % name)()
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/users/forms.py", line 33, in clean_username
+    user = User.objects.get(email=email)
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/kibsoft/Documents/dev/projects/sports/futurapredict/venv/lib/python3.13/site-packages/django/db/models/query.py", line 642, in get
+    raise self.model.MultipleObjectsReturned(
+    ...<5 lines>...
+    )
+django.contrib.auth.models.User.MultipleObjectsReturned: get() returned more than one User -- it returned 2!
+WARNING 2026-02-22 14:15:34,284 log 26899 137405035177664 Not Found: /favicon.ico
+INFO 2026-02-22 14:25:15,879 autoreload 26899 137405143216384 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/core/models.py changed, reloading.
+INFO 2026-02-22 14:25:16,665 autoreload 31920 136635012006144 Watching for file changes with StatReloader
+INFO 2026-02-22 14:25:27,642 autoreload 31920 136635012006144 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/core/models.py changed, reloading.
+INFO 2026-02-22 14:25:28,557 autoreload 32022 134739135234304 Watching for file changes with StatReloader
+INFO 2026-02-22 14:25:44,630 autoreload 32022 134739135234304 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/core/admin.py changed, reloading.
+INFO 2026-02-22 14:25:45,413 autoreload 32134 132347478225152 Watching for file changes with StatReloader
+INFO 2026-02-22 14:28:07,874 autoreload 32134 132347478225152 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-22 14:28:08,985 autoreload 32768 140628570054912 Watching for file changes with StatReloader
+INFO 2026-02-22 14:31:06,442 autoreload 32768 140628570054912 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
+INFO 2026-02-22 14:31:07,230 autoreload 33576 132777481359616 Watching for file changes with StatReloader
+INFO 2026-02-22 14:31:34,527 autoreload 33576 132777481359616 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/core/migrations/0002_add_league_access_rule.py changed, reloading.
+INFO 2026-02-22 14:31:35,302 autoreload 33789 134135716225280 Watching for file changes with StatReloader
+WARNING 2026-02-22 15:28:04,335 log 33789 134135604917952 Not Found: /api/predictions/filter/
+WARNING 2026-02-22 15:28:04,337 log 33789 134135596525248 Not Found: /api/predictions/filter/

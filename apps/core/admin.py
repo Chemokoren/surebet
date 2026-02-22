@@ -1,11 +1,23 @@
 from django.contrib import admin
-from .models import League, Season, Team, Match
+from .models import League, Season, Team, Match, LeagueAccessRule
 
 @admin.register(League)
 class LeagueAdmin(admin.ModelAdmin):
     list_display = ('name', 'code', 'country', 'priority', 'is_active')
     list_filter = ('is_active', 'priority')
     search_fields = ('name', 'code')
+
+
+@admin.register(LeagueAccessRule)
+class LeagueAccessRuleAdmin(admin.ModelAdmin):
+    list_display = ('league', 'subscription_share_pct', 'updated_at')
+    list_editable = ('subscription_share_pct',)
+    ordering = ('-subscription_share_pct', 'league__priority')
+    help_text = (
+        "Set the % of a subscriber's daily quota allocated to each league. "
+        "Leagues set to 0 share the remaining quota equally. "
+        "If the priority league has no fixtures today, its share is redistributed."
+    )
 
 @admin.register(Season)
 class SeasonAdmin(admin.ModelAdmin):

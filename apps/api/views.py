@@ -150,69 +150,273 @@ class UnlockPredictionView(LoginRequiredMixin, View):
 
 
 class PredictionsView(LoginRequiredMixin, TemplateView):
-    """Predictions page view"""
+    """
+    Predictions listing page.
+
+    Features:
+      - Shows ALL scheduled/timed matches from all 5 active leagues for the
+        selected day (defaults to today; auto-advances to the nearest day
+        with fixtures if today is empty).
+      - Provides date navigation (prev / next day that has games).
+      - Applies league-aware subscription quota distribution:
+          * Admin configures `LeagueAccessRule.subscription_share_pct` per league.
+          * Default: Premier League 50 %, others equal share.
+          * If the priority league has no fixtures that day, falls back to
+            equal share across all leagues.
+      - Non-subscribers: first 3 predictions always visible (signup bonus).
+      - Games beyond the subscription quota are pay-per-game (1 credit each).
+      - Already-unlocked-via-credits predictions are always visible.
+    """
+
     template_name = 'pages/predictions.html'
     login_url = '/account/login/'
 
+    # ── Public entry-point ───────────────────────────────────────────────
+
     def get_context_data(self, **kwargs):
+        from apps.core.models import LeagueAccessRule
+        import math
+
         context = super().get_context_data(**kwargs)
         today = timezone.now().date()
 
-        # Filter params
+        # ── Date selection ───────────────────────────────────────────────
+        date_str = self.request.GET.get('date')
+        try:
+            selected_date = (
+                datetime.strptime(date_str, '%Y-%m-%d').date()
+                if date_str else today
+            )
+        except ValueError:
+            selected_date = today
+
         league_code = self.request.GET.get('league')
 
-        # Base Query
-        qs = Prediction.objects.filter(
-            match__match_date__date__gte=today,
-            match__status='scheduled'
-        ).select_related('match', 'match__home_team', 'match__away_team', 'match__league')
+        # ── Build base queryset for selected day ─────────────────────────
+        def _qs_for_date(d):
+            qs = Prediction.objects.filter(
+                match__match_date__date=d,
+                match__status__in=['scheduled', 'timed'],
+                match__league__is_active=True,
+            ).select_related(
+                'match', 'match__home_team', 'match__away_team', 'match__league'
+            ).order_by('match__league__priority', 'match__match_date')
+            if league_code:
+                qs = qs.filter(match__league__code=league_code)
+            return qs
 
-        if league_code:
-            qs = qs.filter(match__league__code=league_code)
+        qs = _qs_for_date(selected_date)
 
-        qs = qs.order_by('match__match_date')
-
-        # Stats for summary bar (before slicing)
-        context['free_count']    = qs.filter(tier='free').count()
-        context['premium_count'] = qs.filter(tier='premium').count()
-        context['leagues']       = League.objects.filter(is_active=True)
-        context['selected_league'] = league_code
-
-        # ── Access logic ────────────────────────────────────────────────
-        # Registered users: first 3 always visible + free-tier + unlocked + subscription
-        # Anonymous: shouldn't reach here (LoginRequiredMixin), but guard anyway
-        free_limit = 3  # signed-in users always get first 3 free
-
-        user_credits = 0
-        unlocked_ids = set()
-        has_subscription = getattr(self.request, 'has_subscription', False)
-
-        if self.request.user.is_authenticated:
-            profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
-            user_credits = profile.prediction_credits
-
-            unlocked_ids = set(
-                PredictionUsage.objects.filter(
-                    user=self.request.user,
-                    prediction__in=qs
-                ).values_list('prediction_id', flat=True)
+        # Auto-advance to nearest future day with fixtures when today is empty
+        if not qs.exists() and not date_str:
+            nxt = (
+                Prediction.objects.filter(
+                    match__match_date__date__gt=today,
+                    match__status__in=['scheduled', 'timed'],
+                    match__league__is_active=True,
+                )
+                .order_by('match__match_date')
+                .values('match__match_date')
+                .first()
             )
+            if nxt:
+                selected_date = nxt['match__match_date'].date()
+                qs = _qs_for_date(selected_date)
 
-        processed = []
-        for idx, pred in enumerate(qs):
-            if idx < free_limit:
-                pred.is_access_locked = False
-            elif pred.tier == 'free' or pred.id in unlocked_ids or has_subscription:
-                pred.is_access_locked = False
-            else:
-                pred.is_access_locked = True
-            processed.append(pred)
+        # ── Prev / Next dates with fixtures ─────────────────────────────
+        prev_row = (
+            Prediction.objects.filter(
+                match__match_date__date__lt=selected_date,
+                match__status__in=['scheduled', 'timed'],
+                match__league__is_active=True,
+            )
+            .order_by('-match__match_date')
+            .values('match__match_date')
+            .first()
+        )
+        next_row = (
+            Prediction.objects.filter(
+                match__match_date__date__gt=selected_date,
+                match__status__in=['scheduled', 'timed'],
+                match__league__is_active=True,
+            )
+            .order_by('match__match_date')
+            .values('match__match_date')
+            .first()
+        )
+        context['selected_date'] = selected_date
+        context['today']         = today
+        context['prev_date'] = prev_row['match__match_date'].date() if prev_row else None
+        context['next_date'] = next_row['match__match_date'].date() if next_row else None
 
-        context['predictions']           = processed
-        context['user_credits']          = user_credits
+        # ── Static context ───────────────────────────────────────────────
+        context['free_count']       = qs.filter(tier='free').count()
+        context['premium_count']    = qs.filter(tier='premium').count()
+        context['leagues']          = League.objects.filter(is_active=True)
+        context['selected_league']  = league_code
+
+        # ── User state ───────────────────────────────────────────────────
+        has_subscription = getattr(self.request, 'has_subscription', False)
+        active_sub       = SubscriptionService.get_active_subscription(self.request.user)
+        sub_daily_limit  = (
+            active_sub.plan.daily_prediction_limit
+            if active_sub and has_subscription else 0
+        )
+
+        profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
+        user_credits = profile.prediction_credits
+
+        unlocked_ids = set(
+            PredictionUsage.objects.filter(
+                user=self.request.user,
+                prediction__in=qs,
+            ).values_list('prediction_id', flat=True)
+        )
+
+        # ── Load league allocation rules ─────────────────────────────────
+        rules = {
+            str(r.league_id): r.subscription_share_pct
+            for r in LeagueAccessRule.objects.all()
+        }
+
+        # ── Group predictions by league ──────────────────────────────────
+        preds_by_league: dict = {}   # str(league_id) → [Prediction, ...]
+        league_order: list = []      # preserves league display order
+
+        for pred in qs:
+            lid = str(pred.match.league_id)
+            if lid not in preds_by_league:
+                preds_by_league[lid] = []
+                league_order.append(lid)
+            preds_by_league[lid].append(pred)
+
+        # ── Subscription quota per league ────────────────────────────────
+        league_quotas = self._calculate_league_quotas(
+            sub_daily_limit, preds_by_league, rules
+        )
+
+        # ── Assign access flags ──────────────────────────────────────────
+        # free_limit applies only to non-subscribers (signup bonus = 3 free)
+        FREE_LIMIT = 3
+        overall_idx = 0
+        league_sub_used = {lid: 0 for lid in preds_by_league}
+
+        prediction_groups = []
+
+        for lid in league_order:
+            preds = preds_by_league[lid]
+            league_quota = league_quotas.get(lid, 0)
+            group = []
+
+            for pred in preds:
+                if pred.id in unlocked_ids:
+                    # Already paid for individually
+                    pred.is_access_locked = False
+                    pred.unlock_type = 'paid'
+
+                elif pred.tier == 'free':
+                    pred.is_access_locked = False
+                    pred.unlock_type = 'free'
+
+                elif has_subscription and league_sub_used[lid] < league_quota:
+                    # Covered by subscription quota
+                    pred.is_access_locked = False
+                    pred.unlock_type = 'subscription'
+                    league_sub_used[lid] += 1
+
+                elif not has_subscription and overall_idx < FREE_LIMIT:
+                    # Signup-bonus free slot (no subscription)
+                    pred.is_access_locked = False
+                    pred.unlock_type = 'free_tier'
+
+                else:
+                    # Beyond quota → pay per game
+                    pred.is_access_locked = True
+                    pred.unlock_type = 'pay_per_game'
+
+                group.append(pred)
+                overall_idx += 1
+
+            prediction_groups.append({
+                'league': preds[0].match.league,
+                'predictions': group,
+                'unlocked_count': sum(1 for p in group if not p.is_access_locked),
+                'total_count': len(group),
+            })
+
+        # Flat list kept for backward-compat (stats card, etc.)
+        flat_predictions = [p for g in prediction_groups for p in g['predictions']]
+
+        context['prediction_groups']       = prediction_groups
+        context['predictions']             = flat_predictions
+        context['user_credits']            = user_credits
+        context['has_subscription']        = has_subscription
+        context['subscription_limit']      = sub_daily_limit
         context['unlocked_prediction_ids'] = unlocked_ids
 
         return context
+
+    # ── Private helpers ──────────────────────────────────────────────────
+
+    @staticmethod
+    def _calculate_league_quotas(
+        total_limit: int,
+        preds_by_league: dict,
+        rules: dict,
+    ) -> dict:
+        """
+        Distribute `total_limit` subscription slots across leagues.
+
+        Returns {league_id: quota_count}.
+        """
+        import math
+
+        if not total_limit or not preds_by_league:
+            return {lid: 0 for lid in preds_by_league}
+
+        # Separate priority (pct > 0) from equal-share (pct = 0) leagues,
+        # but only consider leagues that actually have fixtures today.
+        priority: dict = {}   # lid → pct
+        equal_share: list = []
+
+        for lid in preds_by_league:
+            pct = rules.get(lid, 0.0)
+            if pct > 0:
+                priority[lid] = pct
+            else:
+                equal_share.append(lid)
+
+        quotas: dict = {}
+        remaining = total_limit
+
+        if not priority:
+            # No priority leagues have fixtures → equal share for everyone
+            n = len(preds_by_league)
+            base, extra = divmod(remaining, n)
+            for i, lid in enumerate(preds_by_league):
+                cap = len(preds_by_league[lid])
+                quotas[lid] = min(base + (1 if i < extra else 0), cap)
+            return quotas
+
+        # Allocate priority leagues first
+        for lid, pct in priority.items():
+            alloc = min(math.floor(total_limit * pct / 100), len(preds_by_league[lid]))
+            quotas[lid] = alloc
+            remaining -= alloc
+
+        # Distribute remainder to equal-share leagues
+        active_equal = [lid for lid in equal_share if lid in preds_by_league]
+        if active_equal and remaining > 0:
+            base, extra = divmod(remaining, len(active_equal))
+            for i, lid in enumerate(active_equal):
+                cap = len(preds_by_league[lid])
+                quotas[lid] = min(base + (1 if i < extra else 0), cap)
+
+        # Ensure every league has an entry
+        for lid in preds_by_league:
+            quotas.setdefault(lid, 0)
+
+        return quotas
 
 
 

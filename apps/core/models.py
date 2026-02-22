@@ -11,6 +11,7 @@ MatchResult – Actual result after a match is finished (for accuracy tracking)
 import uuid
 from django.db import models
 from django.utils import timezone
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 # ──────────────────────────────────────────────
@@ -176,3 +177,55 @@ class Match(models.Model):
         if not self.is_locked:
             self.is_locked = True
             self.save(update_fields=['is_locked', 'updated_at'])
+
+
+# ──────────────────────────────────────────────
+# League Access Rule
+# ──────────────────────────────────────────────
+
+class LeagueAccessRule(models.Model):
+    """
+    Admin-configurable subscription quota distribution per league.
+
+    When a subscriber has a daily limit of N predictions, these rules
+    determine how many of those N slots are allocated to each league.
+
+    Rules:
+      - Leagues with subscription_share_pct > 0 receive that % of N first.
+      - Remaining slots are split equally among leagues with pct = 0.
+      - If a priority league has no fixtures that day, its share is
+        redistributed equally across the other active leagues.
+
+    Default (seeded by migration):
+      Premier League → 50 %
+      All other leagues → 0 % (equal share of the remaining 50 %)
+    """
+
+    league = models.OneToOneField(
+        League,
+        on_delete=models.CASCADE,
+        related_name='access_rule',
+    )
+    subscription_share_pct = models.FloatField(
+        default=0.0,
+        validators=[MinValueValidator(0.0), MaxValueValidator(100.0)],
+        help_text=(
+            "Percentage (0–100) of the subscriber's daily prediction limit "
+            "to allocate to this league. "
+            "0 = equal share with other zero-pct leagues. "
+            "Example: set Premier League to 50 → EPL gets half the daily quota."
+        ),
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'league_access_rules'
+        ordering = ['-subscription_share_pct', 'league__priority']
+
+    def __str__(self):
+        share = (
+            f"{self.subscription_share_pct:.0f}%"
+            if self.subscription_share_pct > 0
+            else "equal share"
+        )
+        return f"{self.league.name}: {share}"
