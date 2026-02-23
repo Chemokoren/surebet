@@ -77,8 +77,6 @@ case "$SERVICE" in
   # ── Celery Beat (Scheduler) ──────────────────────────────────────────────────
   beat)
     wait_for_postgres
-    echo "🔄 Applying migrations for Celery Beat tables..."
-    python manage.py migrate --noinput
     echo "🗓️  Starting Celery Beat scheduler..."
     exec celery -A config beat \
         --loglevel=info \
