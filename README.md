@@ -1,8 +1,11 @@
 # FuturaPredict
 
-AI-powered football match prediction platform covering the top 5 European leagues.
-Combines ensemble ML models (XGBoost + Neural Network + ELO) with a continuous
-learning pipeline that improves accuracy after every game-day.
+AI-powered football match prediction platform covering the top 5 European
+domestic leagues **plus** all 3 continental UEFA competitions (Champions League,
+Europa League, Conference League). Combines ensemble ML models
+(XGBoost + Neural Network + ELO) with a **continuous learning pipeline**,
+**external intelligence engine** (20+ prediction sites & pundits), and
+**consensus blending** to improve accuracy after every game-day.
 
 ---
 
@@ -15,12 +18,14 @@ learning pipeline that improves accuracy after every game-day.
 5. [Leagues & Priority](#leagues--priority)
 6. [Automated Pipeline](#automated-pipeline)
 7. [Continuous Learning System](#continuous-learning-system)
-8. [Prediction Access & Subscription](#prediction-access--subscription)
-9. [Payment System](#payment-system)
-10. [Management Commands](#management-commands)
-11. [Project Structure](#project-structure)
-12. [Current Compromises](#current-compromises)
-13. [Areas of Improvement](#areas-of-improvement)
+8. [External Intelligence Engine](#external-intelligence-engine)
+9. [Prediction Access & Subscription](#prediction-access--subscription)
+10. [Payment System](#payment-system)
+11. [Management Commands](#management-commands)
+12. [Project Structure](#project-structure)
+13. [Current Compromises & Weaknesses](#current-compromises--weaknesses)
+14. [What's Remaining](#whats-remaining)
+15. [Areas of Improvement](#areas-of-improvement)
 
 ---
 
@@ -44,23 +49,34 @@ learning pipeline that improves accuracy after every game-day.
   ┌──────────────────────────────────────────────────────────────────────┐
   │                  AUTOMATED  DAILY  PIPELINE                          │
   │                                                                      │
+  │  BOOT ── Sync leagues + Seed intelligence sources + Fetch & Predict  │
+  │  │  8 leagues × 6 days, 20+ external sources seeded & scraped        │
+  │  │                                                                   │
   │  00:05  ── Fetch & Predict ──────────────────────────────────────    │
-  │  │  ESPN API → 5 leagues × 6 days → Ensemble ML → Predictions       │
+  │  │  ESPN API → 8 leagues × 6 days → Ensemble ML                     │
+  │  │  → Consensus Blend → Intelligence Blend → Predictions             │
+  │  │                                                                   │
+  │  Every 6h ── Scrape External Sources ────────────────────────────   │
+  │  │  20+ sites → store predictions → accuracy tracking                │
   │  │                                                                   │
   │  07:00–23:59 (every 20 min)  ── Live Score Updates ──────────────   │
   │  │  ESPN Scoreboard → Update match status & scores → Lock at KO     │
   │  │                                                                   │
   │  23:30  ── End-of-Day Resolution ────────────────────────────────   │
   │  │  Fetch final scores → Resolve predictions (is_correct)           │
-  │  │  → Update ELO ratings → Accuracy snapshot                        │
-  │  │  → Auto-retrain if ≥ 100 new resolved or accuracy drift > 5 %   │
+  │  │  → Resolve external predictions → Update ELO ratings             │
+  │  │  → Accuracy snapshot → Auto-retrain if needed                    │
   │  │                                                                   │
-  │  Mon 03:00  ── Weekly Full Retrain ──────────────────────────────   │
-  │  │  3 seasons of data → XGBoost + Neural Network training           │
-  │  │  → Evaluate → Promote if improved                                │
+  │  04:00  ── Source Evaluation ────────────────────────────────────   │
+  │  │  Resolve external predictions → Daily accuracy records            │
+  │  │  → Auto-promote (learning → active) or retire                     │
   │  │                                                                   │
   │  06:00  ── Drift Monitor ────────────────────────────────────────   │
-  │     Compare last 7 days vs baseline → Emergency retrain if > 5 %    │
+  │  │  Compare last 7 days vs baseline → Emergency retrain if > 5%     │
+  │  │                                                                   │
+  │  Mon 03:00  ── Weekly Full Retrain ──────────────────────────────   │
+  │     3 seasons of data → XGBoost + Neural Network training            │
+  │     → Evaluate → Promote if improved                                 │
   └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -72,6 +88,8 @@ learning pipeline that improves accuracy after every game-day.
 | Task Queue | Celery + Redis (broker), django-celery-beat (scheduler) |
 | Database | PostgreSQL 15 |
 | ML Models | XGBoost, TensorFlow/Keras (Neural), ELO (always-on) |
+| Intelligence Engine | Supervised (accuracy-weighted) + Unsupervised (K-means clustering) |
+| External Sources | 20+ prediction websites + 3 expert pundits, web scraping framework |
 | Feature Store | In-DB + file-based cache (`features/`) |
 | Data Sources | ESPN API (primary, free), football-data.org (secondary), OpenLigaDB (BL1 fallback) |
 | Payments | M-Pesa (East Africa), PayPal, Stripe (global) — Strategy Pattern |
@@ -87,10 +105,16 @@ learning pipeline that improves accuracy after every game-day.
 git clone <repo_url> && cd futurapredict
 cp .env.example .env            # Edit with your secrets
 
-# 2. Build and run
+# 2. Build and run (everything runs automatically!)
 docker compose build
-docker compose run --rm web setup   # Migrate + seed + fetch 6 days
-docker compose up -d                # Start all services
+docker compose up -d
+
+# On boot, the system automatically:
+#   ✅ Applies all migrations
+#   ✅ Syncs 8 leagues (PL, LL, SA, BL1, FL1, UCL, UEL, UECL)
+#   ✅ Seeds 20+ intelligence sources (learning phase)
+#   ✅ Fetches fixtures for 6 days + generates predictions
+#   ✅ Starts Gunicorn, Celery Worker, and Celery Beat
 
 # 3. Access
 open http://localhost:8000
@@ -106,12 +130,27 @@ open http://localhost:8000
 | `redis` | 6379 | Message broker + cache |
 | `db` | 5432 | PostgreSQL 15 |
 
+### Web Startup Sequence
+
+On every `docker compose up`, the `web` service runs:
+
+| Step | What Runs | Purpose |
+|------|-----------|---------|
+| 1 | `wait_for_postgres` | Wait for DB to accept connections |
+| 2 | `ensure_migrations` | `python manage.py migrate --noinput` |
+| 3 | `sync_leagues` | `DataIngestionService.sync_teams_and_leagues()` — ensures all 8 leagues exist |
+| 4 | `seed_prediction_sources` | Seeds 20+ prediction websites & 3 pundits (idempotent) |
+| 5 | `ensure_predictions` | Fetches fixtures for 6 days + generates predictions if none exist |
+| 6 | `collectstatic` | Django static file collection |
+| 7 | `gunicorn` | Start the HTTP server |
+
 ### Useful Commands
 
 ```bash
 docker compose logs -f beat worker              # Watch scheduler + tasks
 docker compose exec web python manage.py shell  # Django shell
 docker compose exec web python manage.py fetch_and_predict --days 6
+docker compose exec web python manage.py seed_prediction_sources
 docker compose exec web python manage.py createsuperuser
 ```
 
@@ -119,82 +158,18 @@ docker compose exec web python manage.py createsuperuser
 
 ## Compose Modes
 
-Use the compose file that matches your edge-proxy setup:
-
-| File | Purpose | Nginx/SSL Management | App Port Exposure |
-|------|---------|----------------------|-------------------|
-| `docker-compose.yaml` | Full stack with optional container-edge profile | Can run containerized `nginx` + `certbot` services | `web` via `WEB_PORT` env (default 8000) |
-| `docker-compose-prd.yaml` | App-only production stack for host-managed Nginx | Host `/etc/nginx/sites-available/*` and host certbot manage TLS | Fixed `8004:8000` for host Nginx upstream |
-
-### `docker-compose.yaml` (container-edge option)
-
-```bash
-# App services only (default)
-docker compose up -d
-
-# Include container edge proxy/certbot services explicitly
-docker compose --profile container-edge up -d nginx certbot-renew
-```
-
-### `docker-compose-prd.yaml` (host Nginx recommended)
-
-```bash
-# Start app stack for host Nginx proxying to localhost:8004
-docker compose -f docker-compose-prd.yaml up -d
-
-# Optional first-time seed (only if you need baseline plans/leagues/pricing)
-docker compose -f docker-compose-prd.yaml run --rm web setup
-```
-
-When you run `docker compose -f docker-compose-prd.yaml up`, startup orchestration now runs automatically:
-- Creates a DB backup snapshot (`./backups/db/*.sql.gz`)
-- Applies migrations
-- Checks today's prediction count
-- If today's predictions are `0`, triggers `fetch_and_predict --days 1`
-- Starts `web`, `worker`, and `beat` only after bootstrap completes
-
-### Data Persistence Across Deployments
-
-- Persistent Docker volumes are pinned with fixed names (`futurapredict_postgres_data`, `futurapredict_models_data`, etc.) so redeploys from different compose files or project names still reuse the same data.
-- Use `docker compose -f docker-compose-prd.yaml down` (without `-v`) before upgrades.
-- Do **not** run `down -v` unless you intentionally want to wipe PostgreSQL, Redis, model artifacts, and feature caches.
+| File | Purpose | SSL Management | App Port |
+|------|---------|----------------|----------|
+| `docker-compose.yaml` | Full stack + optional container-edge | Container nginx + certbot | `WEB_PORT` (default 8000) |
+| `docker-compose-prd.yaml` | App-only production stack | Host nginx + certbot | Fixed `8004:8000` |
 
 ### Backup, Restore, and Automatic Rollback
 
-Deployment safety scripts are included in `scripts/`:
-
 | Script | Purpose |
 |--------|---------|
-| `scripts/backup_db.sh` | Create a compressed SQL backup from the running `db` service |
+| `scripts/backup_db.sh` | Create compressed SQL backup from running `db` |
 | `scripts/restore_db.sh` | Restore DB from a backup file |
-| `scripts/deploy_prd.sh` | Production deploy wrapper: auto-backup before deploy, health-check app, auto-restore DB on failure, and auto-backfill today's predictions if missing |
-
-Examples:
-
-```bash
-# Manual backup
-./scripts/backup_db.sh --compose-file docker-compose-prd.yaml
-
-# Manual restore
-./scripts/restore_db.sh --compose-file docker-compose-prd.yaml --input backups/db/futurapredict_YYYYmmdd_HHMMSS.sql.gz
-
-# Safe deploy with automatic backup + rollback
-./scripts/deploy_prd.sh --compose-file docker-compose-prd.yaml --health-url http://127.0.0.1:8004/
-```
-
-`deploy_prd.sh` returns non-zero on failed health check even after restore, so CI/CD can mark the deployment as failed.
-
-By default, `deploy_prd.sh` also verifies today's prediction count after a successful deploy. If count is `0`, it runs:
-
-```bash
-python manage.py fetch_and_predict --days 1
-```
-
-to backfill today immediately. You can disable this behavior for a specific run with:
-
-```bash
-AUTO_ENSURE_TODAY_PREDICTIONS=0 ./scripts/deploy_prd.sh --compose-file docker-compose-prd.yaml
-```
+| `scripts/deploy_prd.sh` | Production deploy: auto-backup → deploy → health-check → auto-rollback if failed |
 
 ---
 
@@ -207,6 +182,7 @@ pip install -r requirements.txt
 # Prerequisites: PostgreSQL + Redis running locally
 python manage.py migrate
 python manage.py seed_data
+python manage.py seed_prediction_sources
 python manage.py fetch_and_predict --days 6
 python manage.py runserver
 ```
@@ -215,30 +191,32 @@ python manage.py runserver
 
 ## Leagues & Priority
 
-All predictions are grouped and displayed by league priority:
+### 8 Leagues Covered
 
-| Priority | League | Code | Data Source |
-|----------|--------|------|-------------|
-| 1 | Premier League (EPL) | `PL` | ESPN → football-data.org |
-| 2 | La Liga | `LL` | ESPN → football-data.org |
-| 3 | Serie A | `SA` | ESPN → football-data.org |
-| 4 | Bundesliga | `BL1` | ESPN → OpenLigaDB |
-| 5 | Ligue 1 | `FL1` | ESPN → football-data.org |
+| Priority | League | Code | Type | Data Source | Season |
+|----------|--------|------|------|-------------|--------|
+| **0** | 🏆 UEFA Champions League | `UCL` | Continental | ESPN → football-data.org | Sep–Jun |
+| **0** | 🏅 UEFA Europa League | `UEL` | Continental | ESPN → football-data.org | Sep–Jun |
+| **0** | 🥉 UEFA Conference League | `UECL` | Continental | ESPN → football-data.org | Sep–Jun |
+| 1 | Premier League (EPL) | `PL` | Domestic | ESPN → football-data.org | Year-round |
+| 2 | La Liga | `LL` | Domestic | ESPN → football-data.org | Year-round |
+| 3 | Serie A | `SA` | Domestic | ESPN → football-data.org | Year-round |
+| 4 | Bundesliga | `BL1` | Domestic | ESPN → OpenLigaDB | Year-round |
+| 5 | Ligue 1 | `FL1` | Domestic | ESPN → football-data.org | Year-round |
 
-**Data source cascade**: ESPN is always tried first (free, no API key). If ESPN
-returns no data for a league, the system falls back to football-data.org (when
-an API key is configured) or OpenLigaDB (free, Bundesliga only).
+**Continental competitions (UCL, UEL, UECL):**
+- Priority 0 (highest) — they always appear above domestic leagues
+- **Seasonal**: Active September through June, skipped in off-season (July–August)
+- **League type**: `continental` — only fetched during their active months
+- Same subscription access model as domestic leagues
 
-League priorities are set via `seed_data` and can be adjusted in Django Admin
-(`/admin/core/league/`).
+**Data source cascade**: ESPN (free, no key) → football-data.org (key-based) → OpenLigaDB (free, Bundesliga only).
 
 ---
 
 ## Automated Pipeline
 
-All scheduling is handled by **Celery Beat** inside Docker — no system cron
-needed. The beat schedule is defined in `config/settings/base.py` →
-`CELERY_BEAT_SCHEDULE`.
+All scheduling is handled by **Celery Beat** — no system cron needed.
 
 ### Task Schedule (all times UTC)
 
@@ -247,19 +225,22 @@ needed. The beat schedule is defined in `config/settings/base.py` →
 | **00:00** | `verify_predictions_availability` | Safety net: generate missing predictions for today |
 | **00:05** | `fetch_and_predict_scheduled` | Fetch ESPN fixtures + generate predictions for **today + next 5 days** |
 | **00:30** | `compute_accuracy_stats_task` | Write daily `AccuracyRecord` snapshots per league |
+| **Every 6h** | `scrape_external_predictions` | Scrape 20+ external prediction sources |
+| **04:00** | `evaluate_sources` | Resolve external predictions, daily accuracy records, auto-promote/retire sources |
 | **06:00** | `check_accuracy_drift_task` | Compare recent accuracy vs baseline; auto-retrain if drift > 5% |
-| **07:00–23:59** (every 20 min) | `update_live_scores_task` | Refresh in-play scores from ESPN, lock predictions at kickoff |
-| **23:30** | `resolve_finished_matches_task` | Fetch final scores, resolve predictions, update ELO, trigger incremental retrain if needed |
+| **Every 20 min** (07–23) | `update_live_scores_task` | Refresh in-play scores from ESPN, lock predictions at kickoff |
+| **23:30** | `resolve_finished_matches_task` | Fetch final scores, resolve predictions, update ELO, trigger retrain |
 | **Monday 03:00** | `weekly_full_retrain_task` | Full model retrain on 3 seasons of historical match data |
 
-### Data Flow
+> **Note**: The intelligence engine tasks (`scrape_external_predictions`, `evaluate_sources`) need to be registered in Django Admin's Celery Beat schedule (Periodic Tasks) until they are added to `CELERY_BEAT_SCHEDULE` in settings.
+
+### Prediction Data Flow
 
 ```
 ESPN API  ──►  Match records (DB)
                     │
                     ▼
-          Feature Engineering
-          (form, ELO, H2H, congestion, goals, league stats)
+          Feature Engineering (32+ dimensions)
                     │
                     ▼
           ┌─────────────────────┐
@@ -268,62 +249,50 @@ ESPN API  ──►  Match records (DB)
           │  │ XGB  │ Neural │  │  ← Weighted average
           │  │ 0.4  │  0.3   │  │
           │  ├──────┼────────┤  │
-          │  │ ELO (always)  │  │  ← Fallback when
-          │  │     0.3       │  │    trained models
-          │  └──────┴────────┘  │    unavailable
-          └─────────────────────┘
+          │  │ ELO (always)  │  │  ← Fallback for cold start
+          │  │     0.3       │  │
+          │  └──────┴────────┘  │
+          └─────────┬───────────┘
                     │
                     ▼
-          Prediction record
-          (home_win_prob, draw_prob, away_win_prob, confidence)
+          ┌───────────────────────────────────┐
+          │   Intelligence Blending            │
+          │                                    │
+          │   If external sources available:   │
+          │     70% Model + 30% Intelligence   │
+          │   Else:                             │
+          │     75% Model + 25% Basic Consensus │
+          │     (ESPN + H2H + ELO + League)     │
+          └─────────┬─────────────────────────┘
                     │
-          ┌─────────┴──────────┐
-          ▼                    ▼
-  User sees prediction    End of day:
-  on /predictions/        resolve(actual_outcome)
-                          → is_correct = True / False
-                          → ELO update
-                          → AccuracyRecord snapshot
-                          → Retrain decision
+                    ▼
+          Final Prediction Record
+          (home_win_prob, draw_prob, away_win_prob, confidence)
 ```
 
 ---
 
 ## Continuous Learning System
 
-The platform uses a **supervised + online learning** loop to improve accuracy
-over time.
+The platform uses a **3-layer learning loop**:
 
-### How It Works
+### Layer 1: Supervised Learning (Weekly + On-Demand)
 
-1. **Supervised Learning (Weekly + On-demand)**
-   - **Full retrain** (Monday 03:00): Builds training dataset from up to 3
-     seasons of finished matches with known outcomes. Generates feature vectors
-     via `FeatureEngineeringService`, trains XGBoost + Neural Network, evaluates
-     on held-out set, and promotes the new model only if ensemble accuracy
-     improved.
-   - **Incremental retrain** (triggered automatically): Uses last 90 days of
-     resolved data. Faster than full retrain. Triggered when:
-     - ≥ 100 new resolved predictions since the last training run, **or**
-     - Accuracy drift > 5% detected by the daily drift monitor.
+- **Full retrain** (Monday 03:00): 3 seasons of finished matches → generate features → train XGBoost + Neural → promote if improved
+- **Incremental retrain**: Last 90 days of resolved data. Triggered when:
+  - ≥ 100 new resolved predictions since last training, **or**
+  - Accuracy drift > 5% detected by the daily drift monitor
 
-2. **Online Learning (ELO Ratings)**
-   - After every finished match, team ELO ratings are updated using the
-     standard ELO formula (`K=32`). This is a form of continuous online
-     learning — the ELO predictor immediately reflects the latest match
-     results in subsequent predictions.
+### Layer 2: Online Learning (ELO Ratings)
 
-3. **Drift Detection (Daily 06:00)**
-   - Compares accuracy of the last 7 days of resolved predictions against
-     the all-time baseline.
-   - If degradation exceeds the 5% threshold, an **emergency incremental
-     retrain** is triggered automatically.
+- After every finished match, team ELO ratings update instantly (K=32)
+- Immediately reflected in the next prediction cycle
 
-4. **Accuracy Tracking**
-   - Every resolved game-day produces `AccuracyRecord` snapshots per league
-     (daily granularity) stored in the `accuracy_records` table.
-   - Overall + per-outcome accuracy (home win, draw, away win) tracked.
-   - Powers the public accuracy dashboard at `/accuracy/`.
+### Layer 3: External Intelligence (Supervised + Unsupervised)
+
+- **Supervised**: 20+ external sources weighted by their historical accuracy
+- **Unsupervised**: K-means clustering detects consensus groups and filters outliers
+- **Auto-evaluation**: 90-day learning phase → auto-promote accurate sources
 
 ### ML Features (32+ dimensions)
 
@@ -337,12 +306,63 @@ over time.
 | Goal patterns | Average total goals, over-2.5 rate |
 | League context | League home win rate, draw rate, average goals |
 
-### Model Registry
+---
 
-Models are versioned in the `ModelVersion` table. Only one version is active
-at a time. The `_register_if_improved` method in `TrainingPipeline` ensures
-that a new model is only promoted if its accuracy exceeds the current active
-model. Previous model versions are retained for audit.
+## External Intelligence Engine
+
+### Overview
+
+A comprehensive system that scrapes predictions from **20+ top prediction websites and expert pundits**, tracks accuracy during a **90-day learning phase**, then dynamically weights them into the prediction pipeline.
+
+### Top Sources Integrated
+
+| # | Source | Type | Scraper Status |
+|---|--------|------|---------------|
+| 1 | Sports Mole | Website | Stub |
+| 2 | WhoScored | Website | Stub |
+| 3 | **PredictZ** | Website | ✅ Full |
+| 4 | Football Whispers | Website | Stub |
+| 5 | FootyStats | Website | Stub |
+| 6 | Understat | Website | Stub |
+| 7 | Dimers | ML Model | Stub |
+| 8 | Squawka | Website | Stub |
+| 9 | MrFixitsTips | Community | No scraper |
+| 10 | **Betensured** | Website | ✅ Full |
+| 11 | SportyTrader | Website | No scraper |
+| 12 | SoccerStats | Website | No scraper |
+| 13 | Eagle Predict | ML Model | No scraper |
+| 14 | RatingBet | Website | No scraper |
+| 15 | SoccerVista | Website | No scraper |
+| 16 | Betalyst | Website | No scraper |
+| 17 | FreeSuperTips | Website | No scraper |
+| 18 | **Vitibet** | Website | ✅ Full |
+| 19 | Tips180 | Website | No scraper |
+| 20 | Sportsgambler | Website | No scraper |
+| — | **Forebet** | ML Model | ✅ Full |
+| — | Paul Merson | Pundit | No scraper |
+| — | Mark Lawrenson | Pundit | No scraper |
+| — | Michael Owen | Pundit | No scraper |
+
+### Source Lifecycle
+
+```
+New Source → Learning Phase (90 days, tracked but not used in blending)
+                ↓
+          After 90 days + ≥ 50 predictions:
+            If accuracy ≥ 50%  → Promoted to Active (used in blending)
+            If accuracy < 50%  → Retired (not used)
+                ↓
+          Active sources can be Paused/Retired by admin at any time
+```
+
+### Admin Interface
+
+Admin can manage sources via Django Admin (`/admin/predictions/predictionsource/`):
+- Add new sources with custom scraper class
+- Configure scrape URLs, intervals, and config
+- Monitor overall and 30-day accuracy
+- Inline accuracy records (last 30 days)
+- Bulk actions: Promote, Pause, Start Learning Phase
 
 ---
 
@@ -366,21 +386,13 @@ model. Previous model versions are retained for audit.
 | Business | $20/mo | 20 predictions/day |
 | Monthly All-Access | $30/mo | 30 predictions/day |
 
-### League Quota Distribution
+### Continental League Access
 
-Subscription daily limits are distributed across leagues using
-`LeagueAccessRule` (configurable in Django Admin):
-
-- **Premier League**: 50% of daily quota (default)
-- **Other 4 leagues**: Equal share of remaining 50%
-- If the priority league has no fixtures that day, its share redistributes
-  equally across the others.
-
-### 5-Day Lookahead (Subscribers Only)
-
-Monthly subscribers can navigate up to 5 days into the future on the
-predictions page. The system auto-fetches and generates predictions on-demand
-if no data exists for the selected date.
+All three UEFA competitions share the same access model:
+- **Monthly subscribers**: Automatic access — included in plan
+- **Weekly/Daily subscribers**: Via daily quota
+- **Credit users**: On-demand purchase
+- **Free users**: Free-tier predictions only
 
 ---
 
@@ -393,8 +405,7 @@ Region-aware payment processing using the Strategy Design Pattern.
 | East Africa (KE, UG, TZ) | KES | M-Pesa |
 | Global | USD | PayPal, Stripe |
 
-See `PAYMENT_SYSTEM.md` and `IMPLEMENTATION_SUMMARY.md` for full payment
-documentation.
+See `PAYMENT_SYSTEM.md` for full details.
 
 ---
 
@@ -403,9 +414,12 @@ documentation.
 | Command | Description |
 |---------|-------------|
 | `python manage.py seed_data` | Bootstrap leagues, plans, pricing tiers |
+| `python manage.py seed_prediction_sources` | Seed 20+ external prediction sources (learning phase) |
+| `python manage.py seed_prediction_sources --reset` | Reset and re-seed all sources |
 | `python manage.py fetch_and_predict --days 6` | Fetch fixtures + generate predictions for N days |
-| `python manage.py fetch_and_predict --date 2026-03-01 --days 3` | Fetch for a specific date range |
+| `python manage.py fetch_and_predict --date 2026-03-01` | Fetch for a specific date |
 | `python manage.py fetch_and_predict --force-predict` | Regenerate predictions even if they exist |
+| `python manage.py seed_matches` | Seed test match data for all leagues |
 | `python manage.py create_test_users` | Create test accounts for every subscription tier |
 
 ---
@@ -415,19 +429,27 @@ documentation.
 ```
 futurapredict/
 ├── apps/
-│   ├── core/                  # Leagues, Teams, Matches, Seasons
-│   │   ├── models.py          # League, Team, Match, Season, LeagueAccessRule
+│   ├── core/                         # Leagues, Teams, Matches, Seasons
+│   │   ├── models.py                 # League, Team, Match, Season, LeagueAccessRule
 │   │   ├── services/
-│   │   │   ├── data_ingestion.py         # ESPN + football-data.org + OpenLigaDB
-│   │   │   ├── feature_engineering.py    # 32+ ML features + ELO update
-│   │   │   └── results_resolution.py     # End-of-day: resolve + retrain loop
-│   │   └── management/commands/
-│   │       ├── seed_data.py
-│   │       └── fetch_and_predict.py
+│   │   │   ├── data_ingestion.py     # ESPN + football-data.org + OpenLigaDB (8 leagues)
+│   │   │   ├── feature_engineering.py # 32+ ML features + ELO updates
+│   │   │   └── results_resolution.py # End-of-day: resolve + retrain loop
+│   │   ├── management/commands/
+│   │   │   ├── seed_data.py
+│   │   │   ├── seed_matches.py
+│   │   │   └── fetch_and_predict.py
+│   │   └── migrations/
+│   │       ├── 0001_initial.py
+│   │       ├── 0002_add_league_access_rule.py
+│   │       ├── 0003_add_champions_league_support.py
+│   │       ├── 0004_seed_champions_league.py
+│   │       └── 0005_seed_europa_conference_leagues.py
 │   │
-│   ├── predictions/           # ML predictions
-│   │   ├── models.py          # Prediction, ModelVersion, PredictionExplanation
-│   │   ├── tasks.py           # All 7 Celery tasks (pipeline)
+│   ├── predictions/                  # ML predictions + Intelligence Engine
+│   │   ├── models.py                 # Prediction, ModelVersion, PredictionExplanation
+│   │   ├── models_intelligence.py    # PredictionSource, ExternalPrediction, SourceAccuracyRecord
+│   │   ├── tasks.py                  # 10 Celery tasks (pipeline + intelligence)
 │   │   ├── ml/
 │   │   │   ├── models/
 │   │   │   │   ├── ensemble_model.py     # EnsemblePredictor + ELOPredictor
@@ -435,182 +457,185 @@ futurapredict/
 │   │   │   │   └── neural_model.py       # NeuralPredictor (TensorFlow)
 │   │   │   ├── training_pipeline.py      # Full + incremental training
 │   │   │   └── feature_store.py          # Feature caching
-│   │   └── services/
-│   │       ├── prediction_service.py     # Generate predictions
-│   │       ├── ensemble.py               # Wire ML + explainer
-│   │       ├── model_registry.py         # Active model selection
-│   │       └── explainer.py              # SHAP-based explanations
+│   │   ├── services/
+│   │   │   ├── prediction_service.py     # Generate predictions (with intelligence blend)
+│   │   │   ├── consensus.py              # Basic consensus: ESPN + H2H + ELO + league bias
+│   │   │   ├── learning_engine.py        # Full intelligence engine (supervised + unsupervised)
+│   │   │   ├── ensemble.py               # Wire ML + explainer
+│   │   │   ├── model_registry.py         # Active model selection
+│   │   │   └── explainer.py              # SHAP-based explanations
+│   │   ├── scrapers/                     # External prediction scrapers
+│   │   │   ├── base.py                   # BaseScraper (rate limiting, retries, fuzzy matching)
+│   │   │   ├── registry.py               # Slug → scraper class resolution
+│   │   │   └── builtin.py               # PredictZ, Forebet, Vitibet, Betensured + stubs
+│   │   └── management/commands/
+│   │       ├── seed_prediction_sources.py # Seed 20+ sources
+│   │       └── setup_prediction_schedule.py
 │   │
-│   ├── payments/              # Subscription + credits + payments
-│   │   ├── models.py          # SubscriptionPlan, PricingTier, UserSubscription
-│   │   ├── strategies/        # M-Pesa, PayPal, Stripe, WhatsApp (Strategy Pattern)
+│   ├── payments/                     # Subscription + credits + payments
+│   │   ├── models.py                 # SubscriptionPlan, PricingTier, UserSubscription
+│   │   ├── strategies/               # M-Pesa, PayPal, Stripe, WhatsApp (Strategy Pattern)
 │   │   └── services/
 │   │       ├── payment_service.py
 │   │       └── subscription_service.py
 │   │
-│   ├── users/                 # Authentication, profiles, middleware
-│   │   ├── middleware.py       # SubscriptionMiddleware, region detection
-│   │   └── models.py          # UserProfile, PredictionUsage
+│   ├── users/                        # Authentication, profiles, middleware
+│   │   ├── middleware.py             # SubscriptionMiddleware, region detection
+│   │   └── models.py                # UserProfile, PredictionUsage
 │   │
-│   ├── analytics/             # Accuracy tracking, revenue, stats
-│   │   └── models.py          # AccuracyRecord, RevenueSnapshot, PredictionStats
+│   ├── analytics/                    # Accuracy tracking, revenue, stats
+│   │   └── models.py                # AccuracyRecord, RevenueSnapshot, PredictionStats
 │   │
-│   └── api/                   # Views + REST API
-│       └── views.py           # PredictionsView, PredictionDetailView, etc.
+│   └── api/                          # Views + REST API
+│       └── views.py                  # PredictionsView, PredictionDetailView, etc.
 │
 ├── config/
-│   ├── celery.py              # Celery app
+│   ├── celery.py                     # Celery app
 │   ├── settings/
-│   │   └── base.py            # CELERY_BEAT_SCHEDULE + ML_CONFIG
+│   │   └── base.py                   # CELERY_BEAT_SCHEDULE + ML_CONFIG
 │   └── urls.py
 │
-├── templates/                 # Django templates (Bootstrap 5)
-├── static/                    # CSS, JS, images
-├── docker-compose.yaml        # 5 services: web, worker, beat, redis, db
-├── Dockerfile                 # Multi-service image
-├── entrypoint.sh              # Service dispatcher (web|worker|beat|setup)
+├── templates/                        # Django templates (Bootstrap 5)
+├── static/                           # CSS, JS, images
+├── docker-compose.yaml               # 5 services: web, worker, beat, redis, db
+├── docker-compose-prd.yaml           # Production stack (host nginx)
+├── Dockerfile                        # Multi-service image
+├── entrypoint.sh                     # Service dispatcher (web|worker|beat|setup|bootstrap)
 └── requirements.txt
 ```
 
 ---
 
-## Current Compromises
-
-These are known trade-offs made in the current implementation:
+## Current Compromises & Weaknesses
 
 ### 1. ESPN API as Primary Data Source
-- **Compromise**: ESPN's public scoreboard API is unofficial and undocumented.
-  It does not require an API key, which is convenient, but ESPN could change
-  endpoints, rate-limit, or deprecate them without notice.
-- **Mitigation**: football-data.org (key-based) and OpenLigaDB act as
-  fallbacks. The cascade pattern (`ESPN → football-data.org → OpenLigaDB`)
-  ensures resilience.
+- **Weakness**: ESPN's public scoreboard API is unofficial and undocumented. Could change or disappear without notice.
+- **Mitigation**: Cascade fallback to football-data.org and OpenLigaDB.
 
-### 2. ELO-Heavy Fallback When Trained Models Are Unavailable
-- **Compromise**: Until the system accumulates ≥ 200 resolved matches, the
-  XGBoost and Neural models cannot be trained. During this cold-start phase,
-  the ensemble effectively falls back to pure ELO predictions with random
-  noise for variety.
-- **Mitigation**: The ELO predictor includes a home-advantage bias and
-  calibrated draw margins. Once enough data accumulates, the weekly retrain
-  automatically promotes a proper ensemble.
+### 2. ELO-Heavy Fallback on Cold Start
+- **Weakness**: Until ≥ 200 resolved matches exist, XGBoost and Neural models can't train. During this phase, the system falls back to pure ELO predictions with random noise.
+- **Mitigation**: ELO includes home-advantage bias. Weekly retrain auto-promotes ensemble once enough data exists.
 
-### 3. In-Process Retrain (Not Offloaded to GPU)
-- **Compromise**: Model retraining runs inside the Celery worker process.
-  For large datasets or deep neural architectures, this could block the worker
-  for extended periods.
-- **Mitigation**: `max-tasks-per-child=200` ensures worker processes are
-  recycled. The weekly retrain runs Monday 03:00 when user traffic is lowest.
-  Incremental retrains use only 90 days of data for speed.
+### 3. In-Process Retrain (No GPU Offloading)
+- **Weakness**: Model retraining runs inside Celery worker. Could block workers for extended periods with large datasets.
+- **Mitigation**: Runs Monday 03:00 (low traffic). `max-tasks-per-child=200` recycles workers.
 
-### 4. Synchronous Fetch-on-Demand in PredictionsView
-- **Compromise**: When a subscriber navigates to a future date with no
-  predictions, the view calls `fetch_and_predict` synchronously (within the
-  HTTP request). If ESPN is slow, the page load will be slow.
-- **Mitigation**: The midnight pipeline pre-fetches 6 days ahead, so this
-  on-demand path is rarely triggered. A loading spinner is shown in the UI.
+### 4. Synchronous Fetch-on-Demand
+- **Weakness**: When a subscriber views a future date with no predictions, `fetch_and_predict` runs within the HTTP request. If ESPN is slow, the page load is slow.
+- **Mitigation**: Midnight pipeline pre-fetches 6 days ahead, so on-demand is rarely triggered.
 
-### 5. Single-Instance Celery Beat
-- **Compromise**: Only one Celery Beat instance can run at a time (it uses a
-  database-backed schedule). Running multiple beat processes would cause
-  duplicate task execution.
-- **Mitigation**: `docker compose` enforces `replicas: 1` for the beat
-  service. In production Kubernetes deployments, use a `Deployment` with
-  `replicas: 1` and a leader-election sidecar.
+### 5. Limited Scraper Coverage
+- **Weakness**: Only 4 of 20+ scrapers are fully implemented (PredictZ, Forebet, Vitibet, Betensured). 7 have stub implementations. 9 have no scraper.
+- **Mitigation**: More scrapers can be added incrementally. Admin can also configure custom scraper classes.
 
-### 6. Team Matching by Name
-- **Compromise**: ESPN team names are matched to database records using
-  case-insensitive name comparison. Different sources may use different
-  names for the same team (e.g., "Atletico Madrid" vs "Atlético de Madrid").
-- **Mitigation**: The ingestion layer does a broad cross-league search and
-  creates new records when no match is found. Over time, duplicates may need
-  manual deduplication via Django Admin.
+### 6. Regex-Based HTML Scraping
+- **Weakness**: Built-in scrapers use regex to parse HTML. This is fragile — any site redesign will break the scraper.
+- **Mitigation**: Rate limiting, error handling, and graceful degradation. Each scraper failure is logged and non-fatal.
 
-### 7. No Unsupervised Learning Component (Yet)
-- **Compromise**: The summary mentions unsupervised learning, but the current
-  implementation focuses on supervised learning (labeled outcomes) and online
-  learning (ELO). True unsupervised components (clustering, anomaly detection)
-  are planned but not yet implemented.
-- **Mitigation**: ELO rating updates provide a form of continuous,
-  label-free adaptation. The drift detection mechanism serves as a proxy
-  for distribution shift monitoring.
+### 7. No JavaScript Rendering
+- **Weakness**: Sites like WhoScored, Understat, and Dimers render data via JavaScript. The current `requests`-based scrapers can't access this data.
+- **Mitigation**: Stub scrapers exist. Can be upgraded to use Playwright or Selenium when needed.
+
+### 8. Team Matching by Name
+- **Weakness**: ESPN team names are matched using fuzzy string comparison. Different sources may use different names for the same team, leading to mismatches or duplicates.
+- **Mitigation**: Broad cross-league search + deduplication via Admin.
+
+### 9. No Unit Tests for Intelligence Engine
+- **Weakness**: The scraper framework, learning engine, and consensus service have no automated tests yet.
+- **Impact**: Refactoring risk; harder to verify correctness after changes.
+
+### 10. Intelligence Engine Tasks Not in `CELERY_BEAT_SCHEDULE`
+- **Weakness**: The 3 new intelligence engine Celery tasks (`scrape_external_predictions`, `evaluate_sources`, `resolve_external_predictions`) are defined but not yet added to `CELERY_BEAT_SCHEDULE` in `config/settings/base.py`. They must be manually registered in Django Admin's Periodic Tasks.
+- **Mitigation**: Easy fix — add 3 entries to `CELERY_BEAT_SCHEDULE`.
+
+### 11. Single-Instance Celery Beat
+- **Weakness**: Only one Beat process can run at a time. Multiple instances cause duplicate tasks.
+- **Mitigation**: `docker compose` enforces single replica. Use leader election in Kubernetes.
+
+---
+
+## What's Remaining
+
+### High Priority (Must-Have)
+
+1. **Register intelligence tasks in `CELERY_BEAT_SCHEDULE`**
+   - Add `scrape_external_predictions` (every 6h), `evaluate_sources` (4:00 daily), `resolve_external_predictions` (2h or chained after match resolution) to settings.
+   - Status: **Not done** — tasks exist but aren't scheduled.
+
+2. **Complete scraper implementations (remaining 16)**
+   - Sports Mole, WhoScored (needs JS rendering), Football Whispers, FootyStats, Understat (needs JS), Dimers (needs JS), Squawka, MrFixitsTips, SportyTrader, SoccerStats, Eagle Predict, RatingBet, SoccerVista, Betalyst, FreeSuperTips, Tips180, Sportsgambler.
+   - Status: **Stubs exist** for 7, no scraper for 9.
+
+3. **Unit & integration tests**
+   - Test the scraper framework (BaseScraper, fuzzy matching, rate limiting)
+   - Test the learning engine (resolve, accuracy tracking, auto-promotion)
+   - Test consensus blending (verify weighted averages are correct)
+   - Test intelligence service integration in PredictionService
+   - Status: **Not started**.
+
+4. **Team name alias/normalisation system**
+   - Build a `TeamAlias` model mapping variant names to canonical records
+   - Critical for scraper accuracy — different sites use different names
+   - Status: **Not started**.
+
+### Medium Priority (Should-Have)
+
+5. **Pundit prediction scraping**
+   - Paul Merson (Sky Sports), Mark Lawrenson (BBC), Michael Owen (BetVictor)
+   - Need site-specific scrapers for pundit columns
+   - Status: **Source records exist**, scrapers not implemented.
+
+6. **JavaScript-rendering scrapers**
+   - Integrate Playwright or Selenium for WhoScored, Understat, Dimers
+   - These are high-value data sources but require headless browser
+   - Status: **Not started**.
+
+7. **Async fetch-on-demand**
+   - Replace synchronous `fetch_and_predict` in PredictionsView with Celery task + WebSocket/SSE push
+   - Status: **Not started**.
+
+8. **Confidence calibration**
+   - Platt scaling or isotonic regression to calibrate confidence scores against actual observed frequencies
+   - Status: **Not started**.
+
+### Low Priority (Nice-to-Have)
+
+9. **Model explainability dashboard** — Surface SHAP values on prediction detail page
+10. **A/B testing framework** — Keep old model active for % of users, compare accuracy
+11. **Per-league sub-models** — Train separate XGBoost per league
+12. **Push notifications** — Send prediction results via email/WhatsApp after match resolution
+13. **Flower dashboard** — Real-time Celery task monitoring
+14. **Kubernetes deployment** — HPA for workers, CronJob as Beat alternative
+15. **Feature store versioning** — Tag feature snapshots with engineering version
 
 ---
 
 ## Areas of Improvement
 
-### High Priority
+### Accuracy Improvements
 
-1. **Unsupervised Learning Integration**
-   - Add K-means or DBSCAN clustering on feature vectors to group matches by
-     "profile" (e.g., top-6 clashes, relegation battles, derbies).
-   - Use Isolation Forest or autoencoders to detect **outlier matches** whose
-     feature profiles are far from the training distribution — flag these with
-     lower confidence or route to a specialised sub-model.
-   - Apply **Platt scaling** or isotonic regression to calibrate prediction
-     confidence scores against actual observed frequencies.
+1. **More external sources with full scrapers** — Currently only 4/24 sources have working scrapers. Each additional source improves the consensus signal.
+2. **JavaScript rendering** — WhoScored (Opta data), Understat (xG), and Dimers (ML models) are high-value sources locked behind JS rendering.
+3. **Per-league sub-models** — Different leagues have different dynamics (Bundesliga is higher-scoring than Serie A). Per-league models could capture these nuances.
+4. **Confidence calibration** — Current confidence scores are not calibrated against actual observed frequencies. Platt scaling would improve this.
+5. **Historical data bootstrap** — Import 3+ seasons from football-data.org or FBref on first setup to immediately train ML models instead of waiting for data accumulation.
+6. **BTTS, Over/Under markets** — FootyStats and Betalyst specialise in these. Adding these market predictions would broaden the system's appeal.
 
-2. **Async Fetch-on-Demand**
-   - Replace the synchronous `_ensure_predictions_for_date()` call in
-     `PredictionsView` with a Celery task + WebSocket/SSE push. The user
-     would see a loading state and predictions would appear when ready.
+### System Improvements
 
-3. **Team Name Normalisation**
-   - Build a `TeamAlias` model that maps variant names to canonical team
-     records. Seed it with known aliases from different data sources. This
-     prevents duplicate teams from accumulating.
+7. **Async fetch-on-demand** — Replace synchronous ESPN calls in views with background tasks + SSE/WebSocket push.
+8. **API rate limiting per source** — Token bucket rate limiters to avoid hitting ESPN/football-data.org throttle limits.
+9. **Team alias model** — Canonical team names with alias mapping for cross-source matching.
+10. **Scraper health monitoring** — Dashboard showing scraper success/failure rates, last scrape time, and data freshness.
+11. **GPU offloading** — Offload model training to a GPU worker (or external service like AWS SageMaker).
+12. **Automated scraper repair** — When a site changes its HTML structure, detect the breakage and alert admin.
 
-4. **Additional Data Sources**
-   - Integrate the **football-data.org v4 live endpoint** for richer in-play
-     data (xG, possession, shots on target).
-   - Add **historical season data import** — fetch 3+ seasons of past results
-     from football-data.org or FBref on first setup to bootstrap the training
-     pipeline with enough labelled data for immediate model training.
+### Infrastructure Improvements
 
-### Medium Priority
-
-5. **Model Explainability Dashboard**
-   - Surface SHAP values and feature importance charts on the prediction
-     detail page. The `ExplainerService` already generates them — they just
-     need a frontend.
-
-6. **A/B Testing Framework**
-   - Keep the previous ModelVersion active for a percentage of users and
-     compare real-world accuracy of old vs new model before full promotion.
-
-7. **Per-League Sub-Models**
-   - Train separate XGBoost models per league instead of a single global
-     model. Different leagues have different dynamics (e.g., Bundesliga is
-     higher-scoring than Serie A).
-
-8. **Kubernetes Deployment**
-   - The `infrastructure/kubernetes/` directory has scaffolding but needs
-     updating to match the current Docker Compose architecture. Add proper
-     HPA (Horizontal Pod Autoscaler) for workers and a CronJob resource as
-     a Celery Beat alternative.
-
-### Low Priority / Nice-to-Have
-
-9. **Prediction Confidence Calibration**
-    - Compare stated confidence vs actual accuracy at each bucket (e.g., "of
-      all predictions with 70–80% confidence, what % were actually correct?").
-      Use this to calibrate outputs.
-
-10. **Push Notifications**
-    - Send prediction results (correct/incorrect) to subscribers via email or
-      WhatsApp after match resolution.
-
-11. **API Rate Limiting per Source**
-    - Add per-source rate limiters (token bucket) to avoid hitting ESPN or
-      football-data.org throttle limits during high-traffic periods.
-
-12. **Feature Store Versioning**
-    - Tag feature snapshots with the feature engineering version that produced
-      them, so model retraining always uses consistently generated features.
-
-13. **Flower Dashboard**
-    - Add a `flower` service to `docker-compose.yaml` for real-time Celery
-      task monitoring (already in `requirements.txt` as an optional dep).
+13. **Add intelligence tasks to `CELERY_BEAT_SCHEDULE`** — Currently requires manual Django Admin setup.
+14. **Kubernetes deployment** — Proper HPA, CronJobs, and pod anti-affinity rules.
+15. **Monitoring & alerting** — Prometheus metrics for prediction accuracy, scraper health, and task latency.
+16. **Feature store versioning** — Ensure model retraining always uses consistently generated features.
 
 ---
 
@@ -625,6 +650,8 @@ See `.env.example` for the full list. Key variables:
 | `FOOTBALL_DATA_API_KEY` | No | football-data.org API key (fallback source) |
 | `STRIPE_SECRET_KEY` | For payments | Stripe API key |
 | `MPESA_CONSUMER_KEY` | For M-Pesa | Safaricom Daraja key |
+| `BOOT_FETCH_DAYS` | No | Days to fetch on boot (default: 6) |
+| `AUTO_ENSURE_TODAY_PREDICTIONS_ON_BOOT` | No | Set to `0` to skip boot-time prediction generation |
 
 ---
 

@@ -1,6 +1,7 @@
 ```
 ═══════════════════════════════════════════════════════════════════════════
                      FUTURAPREDICT – SYSTEM ARCHITECTURE
+                        Updated: 2026-02-28
 ═══════════════════════════════════════════════════════════════════════════
 
 
@@ -17,6 +18,15 @@
 │       └───────────────┴───────────────┴────────────┴───────────┘      │
 │                        Shared network + volumes                        │
 └─────────────────────────────────────────────────────────────────────────┘
+
+  WEB STARTUP SEQUENCE (on docker compose up):
+    1. wait_for_postgres
+    2. ensure_migrations (python manage.py migrate --noinput)
+    3. sync_leagues     (8 leagues: PL, LL, SA, BL1, FL1, UCL, UEL, UECL)
+    4. seed_prediction_sources (20+ sites & pundits, learning phase)
+    5. ensure_predictions      (6-day fetch + predict if none exist)
+    6. collectstatic
+    7. gunicorn start
 
 
 ═══════════════════════════════════════════════════════════════════════════
@@ -40,18 +50,22 @@
     ┌─────────────────────────────────────────────────────────────────┐
     │  1. DATA INGESTION  (DataIngestionService)                      │
     │                                                                  │
-    │  ┌──────────────────────────────────────────────────────────┐   │
-    │  │  fetch_fixtures_for_date(target_date)                     │   │
-    │  │                                                            │   │
-    │  │  For each league (PL → LL → SA → BL1 → FL1):             │   │
-    │  │    1. Try ESPN scoreboard API                              │   │
-    │  │    2. If no data + API key → football-data.org             │   │
-    │  │    3. BL1 special: OpenLigaDB fallback                     │   │
-    │  │    4. Dedup by (home_team, away_team, date)                │   │
-    │  │    5. Create/Update Match records                          │   │
-    │  └──────────────────────────────────────────────────────────┘   │
+    │  8 Leagues (Priority: Continental → Domestic):                   │
+    │                                                                  │
+    │    Priority 0: UCL (Champions League)  ← Seasonal (Sep–Jun)     │
+    │    Priority 0: UEL (Europa League)     ← Seasonal (Sep–Jun)     │
+    │    Priority 0: UECL (Conference League) ← Seasonal (Sep–Jun)    │
+    │    Priority 1: PL  (Premier League)                              │
+    │    Priority 2: LL  (La Liga)                                     │
+    │    Priority 3: SA  (Serie A)                                     │
+    │    Priority 4: BL1 (Bundesliga)                                  │
+    │    Priority 5: FL1 (Ligue 1)                                     │
+    │                                                                  │
+    │  Cascade: ESPN → football-data.org → OpenLigaDB                 │
+    │  Continental leagues only fetched during active months (Sep–Jun) │
     │                                                                  │
     │  Triggered by:                                                   │
+    │    • Docker boot (ensure_predictions, 6 days)                   │
     │    • Celery Beat at 00:05 (6 days)                              │
     │    • On-demand from PredictionsView (subscriber lookahead)       │
     │    • Management command: fetch_and_predict                       │
@@ -93,26 +107,46 @@
     │  │   Cold start: ELO + random noise for variety              │   │
     │  └──────────────────────────────────────────────────────────┘   │
     │                                                                  │
-    │  Output per match:                                               │
-    │    • home_win_prob, draw_prob, away_win_prob                     │
-    │    • predicted_outcome (argmax)                                   │
-    │    • confidence_score (0–95%)                                     │
-    │    • SHAP-based explanations (top 5 factors)                     │
-    │    • feature_snapshot (for reproducibility)                       │
+    │  Output: home_win_prob, draw_prob, away_win_prob, confidence    │
     └────────────────────────────┬────────────────────────────────────┘
                                  │
                                  ▼
     ┌─────────────────────────────────────────────────────────────────┐
-    │  4. PREDICTION STORAGE & ACCESS CONTROL                         │
+    │  4. INTELLIGENCE BLENDING  (NEW!)                                │
+    │                                                                  │
+    │  ┌──────────────────────────────────────────────────────────┐   │
+    │  │  LAYER A: External Intelligence (LearningEngine)          │   │
+    │  │  • 20+ sources with accuracy-weighted blend               │   │
+    │  │  • K-means clustering for consensus + outlier detection    │   │
+    │  │  • Only uses "active" sources (passed 90-day evaluation)  │   │
+    │  │  • If available: 70% Model + 30% Intelligence             │   │
+    │  └──────────────────────────────────────────────────────────┘   │
+    │                          │                                       │
+    │                  (if no external data)                            │
+    │                          │                                       │
+    │  ┌──────────────────────────────────────────────────────────┐   │
+    │  │  LAYER B: Basic Consensus (ConsensusService) – Fallback   │   │
+    │  │  • ESPN Predictor (w=1.0)                                 │   │
+    │  │  • H2H History (w=0.6)                                    │   │
+    │  │  • League Bias (w=0.4)                                    │   │
+    │  │  • ELO Implied (w=0.8)                                    │   │
+    │  │  • If available: 75% Model + 25% Consensus                │   │
+    │  └──────────────────────────────────────────────────────────┘   │
+    └────────────────────────────┬────────────────────────────────────┘
+                                 │
+                                 ▼
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  5. PREDICTION STORAGE & ACCESS CONTROL                         │
     │                                                                  │
     │  Prediction record → DB (predictions table)                      │
+    │  feature_snapshot stores: ML features + intelligence metadata    │
     │                                                                  │
     │  Access rules (PredictionsView):                                 │
     │    • Free tier  → 3 free predictions (signup bonus)              │
     │    • Subscriber → daily quota split across leagues               │
-    │    •              (EPL 50%, others equal share of rest)           │
     │    •              + 5-day lookahead                               │
     │    • Pay-per-game → 1 credit each beyond quota                   │
+    │    • Continental (UCL/UEL/UECL) → same access model              │
     │    • Locked at kickoff (is_locked = True)                        │
     └────────────────────────────┬────────────────────────────────────┘
                                  │
@@ -126,7 +160,7 @@
                                                        │
                                                        ▼
     ┌─────────────────────────────────────────────────────────────────┐
-    │  5. LIVE SCORE UPDATES  (every 20 min, 07:00–23:59)            │
+    │  6. LIVE SCORE UPDATES  (every 20 min, 07:00–23:59)            │
     │                                                                  │
     │  update_live_scores_task:                                        │
     │    • Poll ESPN scoreboard for today's matches                    │
@@ -137,85 +171,119 @@
                                  │
                                  ▼
     ┌─────────────────────────────────────────────────────────────────┐
-    │  6. END-OF-DAY RESOLUTION  (ResultsResolutionService, 23:30)   │
-    │                                                                  │
-    │  resolve_finished_matches_task:                                   │
+    │  7. END-OF-DAY RESOLUTION  (ResultsResolutionService, 23:30)   │
     │                                                                  │
     │  ┌─── Step A: Fetch final scores ──────────────────────────┐    │
     │  │  ESPN scoreboard → match.status = 'finished'             │    │
     │  │                    match.home_score / away_score set      │    │
     │  └──────────────────────────────────────────────────────────┘    │
     │                          │                                       │
-    │  ┌─── Step B: Resolve predictions ─────────────────────────┐    │
-    │  │  For each finished match with unresolved prediction:      │    │
-    │  │    actual_outcome = match.actual_outcome                  │    │
-    │  │    prediction.resolve(actual_outcome)                     │    │
-    │  │    → is_correct = (predicted == actual)                   │    │
-    │  │    → resolved_at = now()                                  │    │
+    │  ┌─── Step B: Resolve OUR predictions ─────────────────────┐    │
+    │  │  prediction.resolve(actual_outcome)                       │    │
+    │  │  → is_correct = True/False, resolved_at = now()           │    │
     │  └──────────────────────────────────────────────────────────┘    │
     │                          │                                       │
-    │  ┌─── Step C: Update ELO ratings (Online Learning) ────────┐    │
+    │  ┌─── Step C: Resolve EXTERNAL predictions ────────────────┐    │
+    │  │  LearningEngine.resolve_external_predictions()            │    │
+    │  │  → ExternalPrediction.is_correct = True/False             │    │
+    │  │  → Update PredictionSource accuracy metrics               │    │
+    │  └──────────────────────────────────────────────────────────┘    │
+    │                          │                                       │
+    │  ┌─── Step D: Update ELO ratings (Online Learning) ────────┐    │
     │  │  FeatureEngineeringService.update_elo(match)              │    │
-    │  │    K = 32                                                 │    │
-    │  │    home.elo += K × (actual − expected)                    │    │
-    │  │    away.elo += K × (actual − expected)                    │    │
-    │  │  → ELO immediately reflected in next prediction           │    │
+    │  │    K = 32, home/away ELO updated immediately               │    │
     │  └──────────────────────────────────────────────────────────┘    │
     │                          │                                       │
-    │  ┌─── Step D: Accuracy snapshot ───────────────────────────┐    │
-    │  │  AccuracyRecord per league + overall:                     │    │
-    │  │    total, correct, incorrect, pending                     │    │
-    │  │    accuracy_rate, home_win_acc, draw_acc, away_win_acc    │    │
-    │  │    model_version, avg_confidence                          │    │
+    │  ┌─── Step E: Accuracy snapshots ──────────────────────────┐    │
+    │  │  AccuracyRecord per league (our predictions)              │    │
+    │  │  SourceAccuracyRecord per source (external predictions)   │    │
+    │  │    → 7d/30d rolling averages                              │    │
     │  └──────────────────────────────────────────────────────────┘    │
     │                          │                                       │
-    │  ┌─── Step E: Retrain decision ────────────────────────────┐    │
-    │  │  Trigger IF:                                              │    │
-    │  │    ≥ 100 new resolved since last training   OR            │    │
-    │  │    accuracy drift > 5% (last 7d vs all-time)              │    │
-    │  │                                                            │    │
-    │  │  → TrainingPipeline.run_incremental_update(days=90)       │    │
-    │  │    → Build (X, y) from resolved matches                   │    │
-    │  │    → Retrain XGBoost + Neural                             │    │
-    │  │    → Promote only if ensemble accuracy improved           │    │
+    │  ┌─── Step F: Retrain decision ────────────────────────────┐    │
+    │  │  Trigger IF ≥ 100 new resolved OR accuracy drift > 5%    │    │
+    │  │  → Incremental retrain (90 days)                          │    │
     │  └──────────────────────────────────────────────────────────┘    │
     └─────────────────────────────────────────────────────────────────┘
 
 
     ┌─────────────────────────────────────────────────────────────────┐
-    │  7. WEEKLY FULL RETRAIN  (Monday 03:00 UTC)                     │
+    │  8. WEEKLY FULL RETRAIN  (Monday 03:00 UTC)                     │
     │                                                                  │
-    │  TrainingPipeline.run_full_training(seasons=3):                  │
-    │                                                                  │
-    │    1. Collect all finished matches (up to 3 seasons)             │
-    │    2. Generate feature matrix (32+ columns)                      │
-    │    3. Train XGBoost (gradient boosted trees)                     │
-    │    4. Train Neural Network (TensorFlow dense layers)             │
-    │    5. Evaluate: accuracy, per-outcome precision                  │
-    │    6. Compare with current active ModelVersion                   │
-    │    7. Promote if avg accuracy improved                           │
-    │    8. Save model files to /app/models/                           │
-    │                                                                  │
-    │  Model Registry:                                                 │
-    │    ModelVersion table: name, version, metrics, is_active         │
-    │    Only ONE version active at a time                             │
-    │    Previous versions retained for audit                          │
+    │  3 seasons → Features → XGBoost + Neural → Evaluate → Promote  │
     └─────────────────────────────────────────────────────────────────┘
 
 
     ┌─────────────────────────────────────────────────────────────────┐
-    │  8. DRIFT MONITOR  (Daily 06:00 UTC)                            │
+    │  9. DRIFT MONITOR  (Daily 06:00 UTC)                            │
     │                                                                  │
-    │  check_accuracy_drift(threshold=0.05):                           │
+    │  last 7d accuracy vs all-time → if drop > 5%: emergency retrain │
+    └─────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════
+               EXTERNAL INTELLIGENCE ENGINE  (NEW!)
+═══════════════════════════════════════════════════════════════════════════
+
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  EXTERNAL PREDICTION SOURCES (20+ sites + 3 pundits)            │
     │                                                                  │
-    │    recent_accuracy  = last 7 days correct / total                │
-    │    baseline_accuracy = all-time correct / total                  │
-    │    degradation = baseline − recent                               │
+    │  ┌────────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────────┐ │
+    │  │  PredictZ  │ │ Forebet  │ │ Vitibet  │ │  Betensured     │ │
+    │  │  ✅ Full   │ │ ✅ Full  │ │ ✅ Full  │ │  ✅ Full        │ │
+    │  └────────────┘ └──────────┘ └──────────┘ └──────────────────┘ │
+    │  ┌────────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────────┐ │
+    │  │ WhoScored  │ │ Understat│ │ Dimers   │ │ + 13 more       │ │
+    │  │ 🟡 Stub   │ │ 🟡 Stub  │ │ 🟡 Stub  │ │ ⭕ No scraper   │ │
+    │  └────────────┘ └──────────┘ └──────────┘ └──────────────────┘ │
+    │  ┌────────────┐ ┌──────────┐ ┌──────────────────────────────┐  │
+    │  │ P. Merson  │ │Lawrenson │ │ Michael Owen                 │  │
+    │  │ 🟢 Pundit  │ │🟢 Pundit │ │ 🟢 Pundit                   │  │
+    │  └────────────┘ └──────────┘ └──────────────────────────────┘  │
+    └────────────────────────────┬────────────────────────────────────┘
+                                 │
+                                 ▼
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  SCRAPER FRAMEWORK                                               │
     │                                                                  │
-    │    IF degradation > 5%:                                          │
-    │      → ALERT: "Accuracy dropped by X%"                          │
-    │      → TRIGGER: incremental retrain (last 90 days)              │
-    │      → LOG: retrain result + new model metrics                   │
+    │  BaseScraper:                                                    │
+    │    • Rate limiting (2-3s between requests)                      │
+    │    • Retry with exponential backoff (max 3)                      │
+    │    • User-Agent rotation (4 agents)                             │
+    │    • Fuzzy team name matching                                    │
+    │                                                                  │
+    │  ScraperRegistry:                                                │
+    │    • Maps source slugs → scraper classes                        │
+    │    • Supports admin-defined custom scraper classes               │
+    │    • Dynamic import via Python path                              │
+    └────────────────────────────┬────────────────────────────────────┘
+                                 │
+                                 ▼
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  LEARNING ENGINE                                                 │
+    │                                                                  │
+    │  ┌─── Supervised Learning ─────────────────────────────────┐    │
+    │  │  Each source weighted by:                                 │    │
+    │  │    dynamic_weight = blend_weight × recent_accuracy        │    │
+    │  │  More accurate sources → more influence                   │    │
+    │  └──────────────────────────────────────────────────────────┘    │
+    │                          │                                       │
+    │  ┌─── Unsupervised Learning ───────────────────────────────┐    │
+    │  │  K-means style clustering on prediction vectors           │    │
+    │  │    • Identify consensus groups                            │    │
+    │  │    • Detect outlier sources (> 1 σ from centroid)         │    │
+    │  │    • Compute agreement ratio                              │    │
+    │  └──────────────────────────────────────────────────────────┘    │
+    │                          │                                       │
+    │  ┌─── Source Evaluation (90-day learning phase) ───────────┐    │
+    │  │  New source → 90 days of tracking → evaluate:             │    │
+    │  │    IF accuracy ≥ 50% AND predictions ≥ 50:               │    │
+    │  │      → PROMOTE to Active (used in blending)               │    │
+    │  │      → blend_weight = accuracy × 1.5                      │    │
+    │  │    ELSE:                                                   │    │
+    │  │      → RETIRE (not used)                                  │    │
+    │  └──────────────────────────────────────────────────────────┘    │
     └─────────────────────────────────────────────────────────────────┘
 
 
@@ -223,13 +291,19 @@
                   CELERY BEAT SCHEDULE (all times UTC)
 ═══════════════════════════════════════════════════════════════════════════
 
-  00:00  verify_predictions_availability   (safety net)
-  00:05  fetch_and_predict_scheduled       (6-day fetch + predict)
-  00:30  compute_accuracy_stats_task       (accuracy snapshots)
-  06:00  check_accuracy_drift_task         (drift + auto-retrain)
-  Every 20 min (07–23)  update_live_scores_task  (live scores + lock)
-  23:30  resolve_finished_matches_task     (resolve + ELO + retrain)
-  Mon 03:00  weekly_full_retrain_task      (full deep retrain)
+  EXISTING (in CELERY_BEAT_SCHEDULE):
+    00:00  verify_predictions_availability   (safety net)
+    00:05  fetch_and_predict_scheduled       (6-day fetch + predict)
+    00:30  compute_accuracy_stats_task       (accuracy snapshots)
+    06:00  check_accuracy_drift_task         (drift + auto-retrain)
+    Every 20 min (07–23)  update_live_scores_task  (live scores + lock)
+    23:30  resolve_finished_matches_task     (resolve + ELO + retrain)
+    Mon 03:00  weekly_full_retrain_task      (full deep retrain)
+
+  NEW (tasks exist — need registering in CELERY_BEAT_SCHEDULE):
+    Every 6h  scrape_external_predictions    (scrape 20+ sources)
+    04:00     evaluate_sources               (resolve + accuracy + promote)
+    Every 2h  resolve_external_predictions   (resolve external vs actuals)
 
 
 ═══════════════════════════════════════════════════════════════════════════
@@ -251,58 +325,53 @@
                                    │
                                    ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│  PAYMENT VIEW (apps/api/views.py)                                  │
-│  ┌────────────────────────────────────────────────────────────┐    │
-│  │  IF region == 'east_africa':                                │    │
-│  │     Currency = KES │ Channels = [M-Pesa]                    │    │
-│  │  ELSE (global):                                             │    │
-│  │     Currency = USD │ Channels = [PayPal, Stripe]            │    │
-│  └────────────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────────────┘
-                                   │
-                                   ▼
-┌─────────────────────────────────────────────────────────────────────┐
 │  STRATEGY REGISTRY                                                  │
 │  {                                                                   │
-│    'mpesa':    MpesaStrategy,     ← East Africa                     │
-│    'paypal':   PayPalStrategy,    ← Global                          │
-│    'stripe':   StripeStrategy,    ← Global                          │
+│    'mpesa':    MpesaStrategy,     ← East Africa (KES)               │
+│    'paypal':   PayPalStrategy,    ← Global (USD)                    │
+│    'stripe':   StripeStrategy,    ← Global (USD)                    │
 │    'whatsapp': WhatsAppStrategy,  ← Future                          │
 │  }                                                                   │
 └─────────────────────────────────────────────────────────────────────┘
-                                   │
-                                   ▼
-                         Payment Processing
-                                   │
-                    ┌──────────────┴──────────────┐
-                    ▼                             ▼
-         Provider webhook              User completes payment
-                    │                             │
-                    └──────────────┬──────────────┘
-                                   │
-                                   ▼
-              PaymentService.confirm_payment()
-              ├─ Mark transaction completed
-              ├─ Grant credits to user
-              └─ Activate subscription
 
 
 ═══════════════════════════════════════════════════════════════════════════
-                         LEARNING FEEDBACK LOOP
+                    COMPLETE LEARNING FEEDBACK LOOP
 ═══════════════════════════════════════════════════════════════════════════
 
-  ┌─────────┐     ┌──────────┐     ┌──────────┐     ┌──────────────┐
-  │ Predict │────▶│  Match   │────▶│ Resolve  │────▶│ Train Better │
-  │ (pre-KO)│     │ Happens  │     │ Result   │     │   Model      │
-  └─────────┘     └──────────┘     └──────────┘     └──────┬───────┘
-       ▲                                                    │
-       │                                                    │
-       └────────────────────────────────────────────────────┘
-                    Improved predictions next time
+                    ┌──────────────────────┐
+                    │                      │
+  ┌─────────┐      │  ┌──────────────┐    │  ┌──────────────────┐
+  │ External │──────┤  │ Intelligence │    │  │  Train Better    │
+  │ Sources  │      │  │   Blend      │    │  │   Model          │
+  └─────────┘      │  └──────┬───────┘    │  └───────┬──────────┘
+                    │         │            │          │
+  ┌─────────┐      │         ▼            │          │
+  │ ML Model│──────┤  ┌──────────┐        │          │
+  └─────────┘      │  │ Predict  │────────┤          │
+                    │  │ (pre-KO) │        │          │
+                    │  └──────────┘        │          │
+                    │         │            │          │
+                    │         ▼            │          │
+                    │  ┌──────────┐        │          │
+                    │  │  Match   │        │          │
+                    │  │ Happens  │        │          │
+                    │  └────┬─────┘        │          │
+                    │       │              │          │
+                    │       ▼              │          │
+                    │  ┌──────────┐        │          │
+                    │  │ Resolve  │────────┘          │
+                    │  │ Result   │───────────────────┘
+                    │  └──────────┘
+                    │
+                    └──────────────────────┘
 
-  Signals that feed back into the model:
-    1. is_correct labels       → supervised training data
-    2. ELO rating updates      → online learning (immediate)
-    3. Accuracy drift detection → triggers emergency retrain
-    4. AccuracyRecord history  → long-term performance tracking
+  Feedback signals:
+    1. is_correct labels        → supervised training data
+    2. ELO rating updates       → online learning (immediate)
+    3. External source accuracy → intelligence weight adjustment
+    4. K-means clustering       → consensus group identification
+    5. Accuracy drift detection → triggers emergency retrain
+    6. AccuracyRecord history   → long-term performance tracking
+    7. Source evaluation         → auto-promote/retire external sources
 ```

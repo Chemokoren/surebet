@@ -173,6 +173,31 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=0, minute=0),
         'options': {'expires': 1800},
     },
+
+    # ══════════════════════════════════════════════════════════════════════
+    # EXTERNAL INTELLIGENCE ENGINE
+    # ══════════════════════════════════════════════════════════════════════
+
+    # ── Every 6 hours – Scrape predictions from 20+ external sources ──────────
+    'scrape-external-predictions': {
+        'task': 'predictions.scrape_external_predictions',
+        'schedule': crontab(minute=15, hour='*/6'),   # 00:15, 06:15, 12:15, 18:15
+        'options': {'expires': 7200},
+    },
+
+    # ── 04:00 daily – Evaluate sources: resolve, accuracy, promote / retire ───
+    'evaluate-sources-daily': {
+        'task': 'predictions.evaluate_sources',
+        'schedule': crontab(hour=4, minute=0),
+        'options': {'expires': 3600},
+    },
+
+    # ── Every 2 hours – Resolve external predictions against actual outcomes ──
+    'resolve-external-predictions': {
+        'task': 'predictions.resolve_external_predictions',
+        'schedule': crontab(minute=45, hour='*/2'),   # 00:45, 02:45, ... 22:45
+        'options': {'expires': 1800},
+    },
 }
 # REST Framework
 REST_FRAMEWORK = {
