@@ -192,6 +192,16 @@
             </button>
           </div>
         </form>
+        <div class="position-relative my-4">
+          <hr class="border-secondary">
+          <span class="position-absolute top-50 start-50 translate-middle bg-body px-2 text-muted"
+                style="font-size: 0.85rem;">or</span>
+        </div>
+        <div class="d-grid mb-2">
+          <a class="btn btn-outline-primary" href="{% url 'google_auth_start' %}">
+            <i class="fab fa-google me-1"></i> Sign up with Google
+          </a>
+        </div>
         <hr>
         <p class="small text-muted mt-3">By signing up you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.</p>
         <p class="small text-muted">Already have an account? <a href="{% url 'login' %}">Log in</a></p>

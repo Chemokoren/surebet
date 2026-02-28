@@ -1,7 +1,7 @@
 # ══════════════════════════════════════════════════════════════════════════════
-#  FuturaPredict – Full Stack
+#  FuturaPredict – App Stack (Host Nginx Managed Separately)
 #
-#  Services:
+#  Services (app-only):
 #    db       – PostgreSQL 15
 #    redis    – Redis 7 (broker + cache)
 #    web      – Django / Gunicorn (HTTP)
@@ -9,10 +9,8 @@
 #    beat     – Celery Beat (scheduler — runs exactly one instance)
 #
 #  Usage:
-#    docker compose up -d                                 # Start all
-#    docker compose run --rm web setup                   # First-time setup
-#    docker compose exec web python manage.py shell
-#    docker compose logs -f beat worker                  # Watch scheduler + tasks
+#    docker compose -f docker-compose-prd.yaml up -d
+#    docker compose -f docker-compose-prd.yaml run --rm web setup
 #
 #  Environment:
 #    Copy .env.example → .env and fill in secrets before starting.
@@ -103,7 +101,7 @@ services:
       PORT:         "8000"
       WEB_WORKERS:  ${WEB_WORKERS:-3}
     ports:
-      - "${WEB_PORT:-8000}:8000"
+      - "8004:8000"
     volumes:
       - .:/app
       - models_data:/app/models
@@ -114,68 +112,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    restart: unless-stopped
-
-  # ── Nginx Reverse Proxy ──────────────────────────────────────────────────────
-  nginx:
-    image: nginx:1.27-alpine
-    profiles: ["container-edge"]
-    command: >
-      /bin/sh -c "(
-      while :; do
-        sleep $${NGINX_RELOAD_INTERVAL:-24h};
-        nginx -s reload || true;
-      done
-      ) & nginx -g 'daemon off;'"
-    environment:
-      DOMAIN_NAME: ${DOMAIN_NAME:-futurapredict.online}
-    ports:
-      - "${HTTP_PORT:-8080}:80"
-      - "${HTTPS_PORT:-8443}:443"
-    volumes:
-      - .:/app:ro
-      - ./infrastructure/docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - certbot_www:/var/www/certbot
-      - certbot_conf:/etc/letsencrypt
-    depends_on:
-      web:
-        condition: service_started
-    restart: unless-stopped
-
-  # ── Certbot (run on-demand) ──────────────────────────────────────────────────
-  # Usage:
-  #   docker compose run --rm certbot
-  certbot:
-    image: certbot/certbot:latest
-    profiles: ["ops", "container-edge"]
-    command: >
-      certonly --webroot -w /var/www/certbot
-      -d ${DOMAIN_NAME:-futurapredict.online}
-      -d www.${DOMAIN_NAME:-futurapredict.online}
-      --email ${CERTBOT_EMAIL:-admin@futurapredict.online}
-      --agree-tos --no-eff-email --non-interactive
-    volumes:
-      - certbot_www:/var/www/certbot
-      - certbot_conf:/etc/letsencrypt
-
-  # ── Certbot auto-renew service ────────────────────────────────────────────────
-  # Runs renewal checks on an interval and relies on nginx periodic reload
-  # to pick up updated certificates.
-  certbot-renew:
-    image: certbot/certbot:latest
-    profiles: ["container-edge"]
-    command: >
-      /bin/sh -c "trap exit TERM;
-      while :; do
-        certbot renew --webroot -w /var/www/certbot --quiet;
-        sleep $${CERTBOT_RENEW_INTERVAL:-24h};
-      done"
-    volumes:
-      - certbot_www:/var/www/certbot
-      - certbot_conf:/etc/letsencrypt
-    depends_on:
-      nginx:
-        condition: service_started
     restart: unless-stopped
 
   # ── Celery Worker ───────────────────────────────────────────────────────────
@@ -232,5 +168,3 @@ volumes:
   models_data:    # Trained ML model files (.joblib, .h5, etc.)
   features_data:  # Feature cache
   logs_data:      # Application logs
-  certbot_www:    # ACME challenge webroot shared by nginx/certbot
-  certbot_conf:   # Let's Encrypt cert storage

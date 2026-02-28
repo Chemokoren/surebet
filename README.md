@@ -10,16 +10,17 @@ learning pipeline that improves accuracy after every game-day.
 
 1. [Architecture Overview](#architecture-overview)
 2. [Quick Start (Docker)](#quick-start-docker)
-3. [Quick Start (Local Dev)](#quick-start-local-dev)
-4. [Leagues & Priority](#leagues--priority)
-5. [Automated Pipeline](#automated-pipeline)
-6. [Continuous Learning System](#continuous-learning-system)
-7. [Prediction Access & Subscription](#prediction-access--subscription)
-8. [Payment System](#payment-system)
-9. [Management Commands](#management-commands)
-10. [Project Structure](#project-structure)
-11. [Current Compromises](#current-compromises)
-12. [Areas of Improvement](#areas-of-improvement)
+3. [Compose Modes](#compose-modes)
+4. [Quick Start (Local Dev)](#quick-start-local-dev)
+5. [Leagues & Priority](#leagues--priority)
+6. [Automated Pipeline](#automated-pipeline)
+7. [Continuous Learning System](#continuous-learning-system)
+8. [Prediction Access & Subscription](#prediction-access--subscription)
+9. [Payment System](#payment-system)
+10. [Management Commands](#management-commands)
+11. [Project Structure](#project-structure)
+12. [Current Compromises](#current-compromises)
+13. [Areas of Improvement](#areas-of-improvement)
 
 ---
 
@@ -112,6 +113,37 @@ docker compose logs -f beat worker              # Watch scheduler + tasks
 docker compose exec web python manage.py shell  # Django shell
 docker compose exec web python manage.py fetch_and_predict --days 6
 docker compose exec web python manage.py createsuperuser
+```
+
+---
+
+## Compose Modes
+
+Use the compose file that matches your edge-proxy setup:
+
+| File | Purpose | Nginx/SSL Management | App Port Exposure |
+|------|---------|----------------------|-------------------|
+| `docker-compose.yaml` | Full stack with optional container-edge profile | Can run containerized `nginx` + `certbot` services | `web` via `WEB_PORT` env (default 8000) |
+| `docker-compose-prd.yaml` | App-only production stack for host-managed Nginx | Host `/etc/nginx/sites-available/*` and host certbot manage TLS | Fixed `8004:8000` for host Nginx upstream |
+
+### `docker-compose.yaml` (container-edge option)
+
+```bash
+# App services only (default)
+docker compose up -d
+
+# Include container edge proxy/certbot services explicitly
+docker compose --profile container-edge up -d nginx certbot-renew
+```
+
+### `docker-compose-prd.yaml` (host Nginx recommended)
+
+```bash
+# Start app stack for host Nginx proxying to localhost:8004
+docker compose -f docker-compose-prd.yaml up -d
+
+# First-time setup
+docker compose -f docker-compose-prd.yaml run --rm web setup
 ```
 
 ---

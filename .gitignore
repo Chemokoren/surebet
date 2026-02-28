@@ -9,6 +9,8 @@
 # === Django ===
 *.pyc
 __pycache__/
+/__pycache__/forms.cpython-313.pyc
+**/__pycache__/forms.cpython-313.pyc
 config/settings/__pycache__/base.cpython-313.pyc
 db.sqlite3
 media/

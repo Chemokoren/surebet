@@ -33,6 +33,8 @@ ALLOWED_HOSTS = env_csv('ALLOWED_HOSTS') or ['*']
 
 # Site configuration
 SITE_URL = os.getenv('SITE_URL', 'http://127.0.0.1:8000')
+GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID', '')
+GOOGLE_OAUTH_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH_CLIENT_SECRET', '')
 
 # Application definition
 INSTALLED_APPS = [

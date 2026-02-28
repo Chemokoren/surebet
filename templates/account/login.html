@@ -97,9 +97,9 @@
 
                     <!-- Social Login -->
                     <div class="d-grid gap-2 mb-4">
-                        <button class="btn btn-outline-primary" type="button">
+                        <a class="btn btn-outline-primary" href="{% url 'google_auth_start' %}{% if next %}?next={{ next|urlencode }}{% endif %}">
                             <i class="fab fa-google"></i> Sign in with Google
-                        </button>
+                        </a>
                     </div>
 
                     <!-- Links -->

@@ -17,6 +17,7 @@ from apps.api.views import (
     PaymentSuccessView, PaymentCancelView, RegisterView
 )
 from apps.analytics.views import HistoricalDataView
+from apps.users.views import GoogleAuthStartView, GoogleAuthCallbackView
 
 # Webhook views
 from apps.payments.webhooks.mpesa_webhook import MpesaCallbackView
@@ -45,6 +46,8 @@ urlpatterns = [
         path('reset/done/', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
         # User registration (signup)
         path('register/', RegisterView.as_view(), name='register'),
+        path('google/login/', GoogleAuthStartView.as_view(), name='google_auth_start'),
+        path('google/callback/', GoogleAuthCallbackView.as_view(), name='google_auth_callback'),
         path('signup-success/', TemplateView.as_view(template_name='account/signup_success.html'), name='signup_success'),
         path('profile/', ProfileView.as_view(), name='profile'),
         path('subscription/', SubscriptionView.as_view(), name='subscription'),
