@@ -72,8 +72,27 @@
                 {% endif %}
             </div>
         </div>
-        <div class="col-lg-4 d-none d-lg-block text-center">
-            <i class="fas fa-robot fa-6x text-primary opacity-25 animate-float"></i>
+        <div class="col-lg-4 d-none d-lg-block text-center position-relative">
+            <i class="fas fa-robot fa-6x text-primary animate-float hero-main-icon"></i>
+            <style>
+                .hero-main-icon {
+                    opacity: 0.15;
+                    font-size: 8rem;
+                    background: -webkit-linear-gradient(45deg, var(--bs-primary), #764ba2);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                }
+
+                [data-bs-theme="dark"] .hero-main-icon {
+                    opacity: 0.3;
+                    filter: drop-shadow(0 0 15px rgba(67, 97, 238, 0.4));
+                }
+
+                [data-bs-theme="light"] .hero-main-icon {
+                    opacity: 0.6;
+                    filter: drop-shadow(0 0 15px rgba(67, 97, 238, 0.2));
+                }
+            </style>
         </div>
     </div>
 </div>
@@ -163,7 +182,8 @@
                     {% if single_tier %}
                     <a href="{% url 'payment' %}?tier_id={{ single_tier.id }}"
                         class="btn btn-light btn-sm mb-2 w-100 fw-bold text-dark">
-                        <i class="fas fa-bolt me-2 text-warning"></i> Unlock now: {{ single_tier.currency }} {{ single_tier.price|floatformat:0 }}
+                        <i class="fas fa-bolt me-2 text-warning"></i> Unlock now: {{ single_tier.currency }} {{
+                        single_tier.price|floatformat:0 }}
                     </a>
                     {% endif %}
                     <a href="#pricing" class="btn btn-outline-light btn-sm w-100">
@@ -317,7 +337,8 @@
     <div class="text-center mb-5">
         <h2 class="fw-bold gradient-text">Unlock Even More Value</h2>
         <p class="text-muted lead">
-            You're doing great on <strong>{{ current_plan.name }}</strong> — upgrade to save more and commit to winning long-term.
+            You're doing great on <strong>{{ current_plan.name }}</strong> — upgrade to save more and commit to winning
+            long-term.
         </p>
     </div>
 
@@ -378,12 +399,16 @@
                             Everything in your current plan
                         </li>
                         {% if plan.interval == 'quarterly' %}
-                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Lock in 3 months of winning</li>
-                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Priority email support</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Lock in 3 months of
+                            winning</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Priority email support
+                        </li>
                         {% elif plan.interval == 'yearly' %}
                         <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Full season coverage</li>
-                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Priority phone & email support</li>
-                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Exclusive VIP insights</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Priority phone & email
+                            support</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Exclusive VIP insights
+                        </li>
                         {% endif %}
                         {% for feature in plan.features %}
                         <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> {{ feature }}</li>

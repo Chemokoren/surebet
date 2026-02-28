@@ -1,6 +1,6 @@
 // static/js/main.js
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     initializeThemeToggle();
     initializeTooltips();
     initializeAjaxSetup();
@@ -10,23 +10,27 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializeThemeToggle() {
     const themeToggle = document.querySelector('.theme-toggle');
     const navThemeToggle = document.getElementById('navThemeToggle');
-    
-    const toggleTheme = function() {
+
+    const toggleTheme = function () {
+        // Read directly from the document element to get the *current* state at click time
         const currentTheme = document.documentElement.getAttribute('data-bs-theme');
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        
+
         document.documentElement.setAttribute('data-bs-theme', newTheme);
         updateThemeIcons(newTheme);
         localStorage.setItem('theme', newTheme);
     };
-    
+
     if (themeToggle) {
+        // Remove old listeners to avoid duplicates, although usually fine
+        themeToggle.removeEventListener('click', toggleTheme);
         themeToggle.addEventListener('click', toggleTheme);
     }
     if (navThemeToggle) {
+        navThemeToggle.removeEventListener('click', toggleTheme);
         navThemeToggle.addEventListener('click', toggleTheme);
     }
-    
+
     // Apply saved theme
     const savedTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-bs-theme', savedTheme);
@@ -83,7 +87,7 @@ function initializeNavigation() {
 
 function showToast(message, type = 'info') {
     const toastContainer = document.getElementById('toastContainer');
-    
+
     const toastId = 'toast-' + Date.now();
     const toastHTML = `
         <div id="${toastId}" class="toast align-items-center text-bg-${type} border-0" role="alert">
@@ -96,13 +100,13 @@ function showToast(message, type = 'info') {
             </div>
         </div>
     `;
-    
+
     toastContainer.insertAdjacentHTML('beforeend', toastHTML);
     const toastElement = document.getElementById(toastId);
     const bsToast = new bootstrap.Toast(toastElement);
     bsToast.show();
-    
-    toastElement.addEventListener('hidden.bs.toast', function() {
+
+    toastElement.addEventListener('hidden.bs.toast', function () {
         toastElement.remove();
     });
 }
@@ -126,7 +130,7 @@ function hideLoadingSpinner() {
 }
 
 // Error handling - suppress third-party library errors that don't affect functionality
-window.addEventListener('error', function(e) {
+window.addEventListener('error', function (e) {
     // Ignore errors from floating-ui and other third-party libraries
     if (e.filename && (e.filename.includes('floating-ui') || e.filename.includes('popper'))) {
         e.preventDefault();
@@ -136,7 +140,7 @@ window.addEventListener('error', function(e) {
 });
 
 // Network error handling
-document.addEventListener('ajaxError', function(e, xhr, settings, exception) {
+document.addEventListener('ajaxError', function (e, xhr, settings, exception) {
     console.error('AJAX error:', exception);
     if (xhr.status === 401) {
         showToast('Your session has expired. Please login again.', 'error');
