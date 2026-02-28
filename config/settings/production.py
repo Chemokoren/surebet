@@ -30,11 +30,12 @@ SECURE_CONTENT_SECURITY_POLICY = {
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME'),
-        'USER': os.environ.get('DB_USER'),
-        'PASSWORD': os.environ.get('DB_PASSWORD'),
-        'HOST': os.environ.get('DB_HOST'),
-        'PORT': os.environ.get('DB_PORT', '5432'),
+        # Support both legacy DB_* and current POSTGRES_* env variable names.
+        'NAME': os.environ.get('DB_NAME') or os.environ.get('POSTGRES_DB', 'futurapredict'),
+        'USER': os.environ.get('DB_USER') or os.environ.get('POSTGRES_USER', 'futurapredict'),
+        'PASSWORD': os.environ.get('DB_PASSWORD') or os.environ.get('POSTGRES_PASSWORD', 'futurapredict_pass'),
+        'HOST': os.environ.get('DB_HOST') or os.environ.get('POSTGRES_HOST', 'db'),
+        'PORT': os.environ.get('DB_PORT') or os.environ.get('POSTGRES_PORT', '5432'),
         'CONN_MAX_AGE': 600,
     }
 }
@@ -51,5 +52,5 @@ EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', True)
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 
-CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL')
-CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND')
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL') or f"redis://{os.getenv('REDIS_HOST', 'redis')}:{os.getenv('REDIS_PORT', '6379')}/2"
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND') or 'django-db'
