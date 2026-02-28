@@ -59,11 +59,13 @@ class LearningEngine:
     @classmethod
     def scrape_all_sources(cls, target_date: date = None) -> dict:
         """
-        Run scrapers for all enabled sources and store predictions.
+        Run scrapers for all enabled sources, ordered by quality_weight
+        (highest quality first). Reads site configs from sources_config.json.
 
         Returns stats dict with counts of scraped/stored/errors.
         """
         from apps.predictions.scrapers.registry import ScraperRegistry
+        from apps.predictions.scrapers.quality_manager import SourceQualityManager
         from apps.core.models import Match
 
         if target_date is None:
@@ -78,6 +80,7 @@ class LearningEngine:
             status__in=['scheduled', 'timed'],
         ).select_related('home_team', 'away_team', 'league'))
 
+        # Get sources from DB, ordered by priority
         sources = PredictionSource.objects.filter(
             scrape_enabled=True,
             status__in=['learning', 'active'],
@@ -85,7 +88,12 @@ class LearningEngine:
 
         for source in sources:
             try:
-                stored = cls._scrape_source(source, target_date, upcoming_matches)
+                # Get site-specific config from JSON
+                site_config = ScraperRegistry.get_site_config(source.slug)
+
+                stored = cls._scrape_source(
+                    source, target_date, upcoming_matches, site_config
+                )
                 stats['predictions_stored'] += stored
                 stats['sources_scraped'] += 1
 
@@ -93,9 +101,22 @@ class LearningEngine:
                 source.last_scraped_at = timezone.now()
                 source.save(update_fields=['last_scraped_at'])
 
+                # Track success in quality manager
+                SourceQualityManager.record_scrape_result(
+                    source.slug, success=True, predictions_count=stored
+                )
+
             except Exception as e:
                 stats['errors'].append(f"{source.name}: {e}")
                 logger.error(f"Scraping failed for {source.name}: {e}")
+
+                # Track failure in quality manager
+                SourceQualityManager.record_scrape_result(
+                    source.slug, success=False
+                )
+
+        # Invalidate registry cache after scraping (quality may have changed)
+        ScraperRegistry.invalidate_cache()
 
         logger.info(
             f"Scraping complete: {stats['sources_scraped']} sources, "
@@ -105,7 +126,8 @@ class LearningEngine:
         return stats
 
     @classmethod
-    def _scrape_source(cls, source: PredictionSource, target_date: date, matches: list) -> int:
+    def _scrape_source(cls, source: PredictionSource, target_date: date,
+                       matches: list, site_config: dict = None) -> int:
         """Scrape a single source and store predictions. Returns count stored."""
         from apps.predictions.scrapers.registry import ScraperRegistry
 
@@ -117,7 +139,9 @@ class LearningEngine:
             logger.warning(f"No scraper available for {source.name}")
             return 0
 
-        scraper = scraper_cls(source=source, config=source.scrape_config)
+        # Use site config from JSON if available, else DB config
+        config = site_config or source.scrape_config or {}
+        scraper = scraper_cls(source=source, config=config)
         raw_predictions = scraper.scrape_predictions(target_date)
 
         stored = 0
@@ -154,6 +178,7 @@ class LearningEngine:
                 logger.debug(f"Failed to store prediction from {source.name}: {e}")
 
         return stored
+
 
     # ══════════════════════════════════════════════════════════════════════
     # 2. ACCURACY TRACKING (Supervised Signal)

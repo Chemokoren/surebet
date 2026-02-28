@@ -5693,3 +5693,44 @@ INFO 2026-02-22 17:32:14,903 geolocation 85088 134367220080896 Updated geo for u
 INFO 2026-02-22 17:32:16,206 geolocation 85088 134367220080896 Updated geo for user 5: Unknown (global)
 INFO 2026-02-22 17:32:58,958 autoreload 84461 135036744671488 /home/kibsoft/Documents/dev/projects/sports/futurapredict/apps/api/views.py changed, reloading.
 INFO 2026-02-22 17:32:59,790 autoreload 85361 125595555959040 Watching for file changes with StatReloader
+WARNING 2026-02-28 12:07:57,555 registry 414417 136167076172032 No scraper found for slug='nonexistent-slug', custom_class=''
+INFO 2026-02-28 12:08:49,223 learning_engine 414968 139341372477696 Added new source: New Site (learning until 2026-05-29)
+INFO 2026-02-28 12:08:49,265 learning_engine 414968 139341372477696 🎓 Source 'Learner' promoted to ACTIVE (accuracy=65.0%, weight=0.98)
+INFO 2026-02-28 12:08:49,281 learning_engine 414968 139341372477696 ❌ Source 'Bad Learner' RETIRED (accuracy=30.0%, min required=50.0%)
+INFO 2026-02-28 12:08:49,411 learning_engine 414968 139341372477696 Resolved 2 external predictions
+WARNING 2026-02-28 12:08:49,561 registry 414968 139341372477696 No scraper found for slug='nonexistent-slug', custom_class=''
+INFO 2026-02-28 12:10:13,959 learning_engine 415750 137718390268160 Added new source: New Site (learning until 2026-05-29)
+INFO 2026-02-28 12:10:13,999 learning_engine 415750 137718390268160 🎓 Source 'Learner' promoted to ACTIVE (accuracy=65.0%, weight=0.98)
+INFO 2026-02-28 12:10:14,014 learning_engine 415750 137718390268160 ❌ Source 'Bad Learner' RETIRED (accuracy=30.0%, min required=50.0%)
+INFO 2026-02-28 12:10:14,128 learning_engine 415750 137718390268160 Resolved 2 external predictions
+WARNING 2026-02-28 12:10:14,551 registry 415750 137718390268160 No scraper found for slug='nonexistent-slug', custom_class=''
+INFO 2026-02-28 12:11:02,179 learning_engine 416265 124709860966656 Added new source: New Site (learning until 2026-05-29)
+INFO 2026-02-28 12:11:02,217 learning_engine 416265 124709860966656 🎓 Source 'Learner' promoted to ACTIVE (accuracy=65.0%, weight=0.98)
+INFO 2026-02-28 12:11:02,234 learning_engine 416265 124709860966656 ❌ Source 'Bad Learner' RETIRED (accuracy=30.0%, min required=50.0%)
+INFO 2026-02-28 12:11:02,347 learning_engine 416265 124709860966656 Resolved 2 external predictions
+INFO 2026-02-28 12:11:02,486 prediction_service 416265 124709860966656 Generated 1 predictions for 2026-02-28
+INFO 2026-02-28 12:11:02,506 prediction_service 416265 124709860966656 Generated 1 predictions for 2026-02-28
+WARNING 2026-02-28 12:11:02,524 prediction_service 416265 124709860966656 Ensemble unavailable, using heuristic fallback: No model
+INFO 2026-02-28 12:11:02,587 prediction_service 416265 124709860966656 Generated 1 predictions for 2026-02-28
+WARNING 2026-02-28 12:11:02,646 registry 416265 124709860966656 No scraper found for slug='nonexistent-slug', custom_class=''
+INFO 2026-02-28 15:31:24,379 learning_engine 546344 132374792052992 Added new source: New Site (learning until 2026-05-29)
+INFO 2026-02-28 15:31:24,456 learning_engine 546344 132374792052992 🎓 Source 'Learner' promoted to ACTIVE (accuracy=65.0%, weight=0.98)
+INFO 2026-02-28 15:31:24,485 learning_engine 546344 132374792052992 ❌ Source 'Bad Learner' RETIRED (accuracy=30.0%, min required=50.0%)
+INFO 2026-02-28 15:31:24,683 learning_engine 546344 132374792052992 Resolved 2 external predictions
+INFO 2026-02-28 15:31:25,048 prediction_service 546344 132374792052992 Generated 1 predictions for 2026-02-28
+INFO 2026-02-28 15:31:25,081 prediction_service 546344 132374792052992 Generated 1 predictions for 2026-02-28
+WARNING 2026-02-28 15:31:25,127 prediction_service 546344 132374792052992 Ensemble unavailable, using heuristic fallback: No model
+INFO 2026-02-28 15:31:25,301 prediction_service 546344 132374792052992 Generated 1 predictions for 2026-02-28
+WARNING 2026-02-28 15:31:25,514 registry 546344 132374792052992 No scraper config found for slug='nonexistent-slug'
+INFO 2026-02-28 15:31:25,871 learning_engine 546344 132374792052992 Added new source: WinDrawWin (learning until 2026-05-29)
+INFO 2026-02-28 15:31:25,872 quality_manager 546344 132374792052992 Quality: ADDED new source 'WinDrawWin' for observation
+INFO 2026-02-28 15:31:25,882 learning_engine 546344 132374792052992 Added new source: ZuluBet (learning until 2026-05-29)
+INFO 2026-02-28 15:31:25,883 quality_manager 546344 132374792052992 Quality: ADDED new source 'ZuluBet' for observation
+INFO 2026-02-28 15:31:25,894 learning_engine 546344 132374792052992 Added new source: BettingClosed (learning until 2026-05-29)
+INFO 2026-02-28 15:31:25,894 quality_manager 546344 132374792052992 Quality: ADDED new source 'BettingClosed' for observation
+INFO 2026-02-28 15:31:25,905 learning_engine 546344 132374792052992 Added new source: FootballPredictions.NET (learning until 2026-05-29)
+INFO 2026-02-28 15:31:25,905 quality_manager 546344 132374792052992 Quality: ADDED new source 'FootballPredictions.NET' for observation
+INFO 2026-02-28 15:31:25,916 learning_engine 546344 132374792052992 Added new source: BetStudy (learning until 2026-05-29)
+INFO 2026-02-28 15:31:25,916 quality_manager 546344 132374792052992 Quality: ADDED new source 'BetStudy' for observation
+INFO 2026-02-28 15:31:25,916 quality_manager 546344 132374792052992 Quality audit complete: {'classified': {'promoted': [], 'demoted': [], 'unchanged': []}, 'flagged': [], 'disabled': [], 'discovery': {'replaced': 5, 'candidates_added': ['windrawwin', 'zulubet', 'bettingclosed', 'footballpredictions', 'betstudy']}}
+INFO 2026-02-28 15:31:26,226 builtin 546344 132374792052992 UniversalScraper: js-site requires JS rendering — skipping

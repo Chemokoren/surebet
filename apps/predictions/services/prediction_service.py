@@ -153,6 +153,17 @@ class PredictionService:
         except Exception as e:
             logger.warning(f"Intelligence blending skipped for {match}: {e}")
 
+        # ── Confidence calibration (isotonic regression) ──
+        try:
+            from apps.predictions.services.calibration import CalibrationService
+            cal_h, cal_d, cal_a = CalibrationService.calibrate_probs(
+                probs['home'], probs['draw'], probs['away']
+            )
+            probs = {'home': cal_h, 'draw': cal_d, 'away': cal_a}
+            confidence = CalibrationService.calibrate(confidence)
+        except Exception as e:
+            logger.debug(f"Calibration skipped for {match}: {e}")
+
         # Create Prediction Record
         with transaction.atomic():
             prediction = Prediction.objects.create(
@@ -182,25 +193,22 @@ class PredictionService:
         home_form = features.get('home_form_index', 0)
         away_form = features.get('away_form_index', 0)
 
-        # Base probabilities
-        p_home = 0.35
-        p_away = 0.35
-        p_draw = 0.30
+        # ELO expected score (logistic model, handles cold start cleanly)
+        home_elo = features.get('home_elo', 1500)
+        away_elo = features.get('away_elo', 1500)
+        elo_expected = 1.0 / (1.0 + 10 ** ((away_elo - home_elo) / 400.0))
+        home_advantage = 0.04  # ~4% home advantage baseline
 
-        # Cold Start Randomness
-        if home_form == 0 and away_form == 0:
-            home_bias = random.random() * 0.15
-            p_home += home_bias
-            p_draw -= home_bias / 2
-            p_away -= home_bias / 2
+        p_home = max(0.15, min(0.75, elo_expected + home_advantage))
+        p_away = max(0.15, min(0.75, 1.0 - elo_expected - home_advantage * 0.5))
 
-        # Apply features
-        p_home += (elo_diff / 1000.0) + (home_form * 0.08)
-        p_away -= (elo_diff / 1000.0) - (away_form * 0.08)
+        # Apply form adjustments when available
+        if home_form != 0 or away_form != 0:
+            p_home += home_form * 0.06
+            p_away += away_form * 0.06
 
-        # Add general noise
-        p_home += random.uniform(-0.05, 0.05)
-        p_away += random.uniform(-0.05, 0.05)
+        # Draw base from remainder
+        p_draw = max(0.15, 1.0 - p_home - p_away)
 
         # Re-calculate draw to sum to 1 before normalization
         p_draw = 1.0 - p_home - p_away

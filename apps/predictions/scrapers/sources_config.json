@@ -1,0 +1,624 @@
+{
+  "_meta": {
+    "description": "Self-updating prediction source configuration. DO NOT manually reorder \u2014 quality_manager handles ranking automatically.",
+    "last_quality_audit": null,
+    "next_audit_due": null,
+    "total_active": 15,
+    "total_flagged": 0,
+    "total_disabled": 0
+  },
+  "quality_settings": {
+    "observation_days": 30,
+    "min_predictions_to_classify": 20,
+    "high_quality_threshold": 0.58,
+    "mid_quality_threshold": 0.45,
+    "max_consecutive_failures": 7,
+    "flag_after_days_below_mid": 14,
+    "auto_disable_after_days_flagged": 30,
+    "auto_discover_enabled": true,
+    "discover_interval_days": 7,
+    "max_sources": 30,
+    "rate_limit_seconds_default": 3.0
+  },
+  "sources": [
+    {
+      "slug": "predictz",
+      "name": "PredictZ",
+      "website": "https://www.predictz.com",
+      "description": "High-volume AI predictions with percentage probabilities",
+      "enabled": true,
+      "quality_tier": "high",
+      "quality_weight": 0.91,
+      "requires_js": false,
+      "rate_limit_seconds": 3.0,
+      "consecutive_failures": 0,
+      "last_success": "2026-02-28",
+      "flagged": false,
+      "flagged_reason": null,
+      "flagged_date": null,
+      "observation_start": null,
+      "urls": {
+        "PL": "https://www.predictz.com/predictions/england/premier-league/",
+        "LL": "https://www.predictz.com/predictions/spain/la-liga/",
+        "SA": "https://www.predictz.com/predictions/italy/serie-a/",
+        "BL1": "https://www.predictz.com/predictions/germany/bundesliga/",
+        "FL1": "https://www.predictz.com/predictions/france/ligue-1/",
+        "UCL": "https://www.predictz.com/predictions/champions-league/",
+        "UEL": "https://www.predictz.com/predictions/europa-league/",
+        "UECL": "https://www.predictz.com/predictions/conference-league/"
+      },
+      "extraction": {
+        "format": "percentage_table",
+        "row_pattern": "<tr[^>]*>.*?class=\"[^\"]*tpointed[^\"]*\"[^>]*>(.*?)</tr>",
+        "team_pattern": "<a[^>]*>([^<]+)</a>",
+        "probability_pattern": "(\\d{1,3})%",
+        "min_teams": 2,
+        "min_probabilities": 3,
+        "prob_order": [
+          "home",
+          "draw",
+          "away"
+        ]
+      }
+    },
+    {
+      "slug": "forebet",
+      "name": "Forebet",
+      "website": "https://www.forebet.com",
+      "description": "Mathematical football predictions with probabilities",
+      "enabled": true,
+      "quality_tier": "high",
+      "quality_weight": 0.88,
+      "requires_js": false,
+      "rate_limit_seconds": 3.0,
+      "consecutive_failures": 0,
+      "last_success": null,
+      "flagged": false,
+      "flagged_reason": null,
+      "flagged_date": null,
+      "observation_start": null,
+      "urls": {
+        "PL": "https://www.forebet.com/en/football-predictions/england/premier-league",
+        "LL": "https://www.forebet.com/en/football-predictions/spain/la-liga",
+        "SA": "https://www.forebet.com/en/football-predictions/italy/serie-a",
+        "BL1": "https://www.forebet.com/en/football-predictions/germany/bundesliga",
+        "FL1": "https://www.forebet.com/en/football-predictions/france/ligue-1",
+        "UCL": "https://www.forebet.com/en/football-predictions/champions-league",
+        "UEL": "https://www.forebet.com/en/football-predictions/europa-league"
+      },
+      "extraction": {
+        "format": "percentage_block",
+        "block_pattern": "<div class=\"rcnt[^\"]*\"[^>]*>(.*?)</div>\\s*</div>\\s*</div>",
+        "team_pattern": "class=\"(?:homeTeam|awayTeam)[^\"]*\"[^>]*>(.*?)</span>",
+        "probability_pattern": "class=\"fprob[^\"]*\"[^>]*>(\\d+)",
+        "min_teams": 2,
+        "min_probabilities": 3,
+        "prob_order": [
+          "home",
+          "draw",
+          "away"
+        ]
+      }
+    },
+    {
+      "slug": "whoscored",
+      "name": "WhoScored",
+      "website": "https://www.whoscored.com",
+      "description": "Opta data powered \u2013 requires JavaScript rendering",
+      "enabled": false,
+      "quality_tier": "high",
+      "quality_weight": 0.85,
+      "requires_js": true,
+      "rate_limit_seconds": 5.0,
+      "consecutive_failures": 0,
+      "last_success": null,
+      "flagged": true,
+      "flagged_reason": "requires_js_rendering",
+      "flagged_date": null,
+      "observation_start": null,
+      "urls": {},
+      "extraction": {
+        "format": "js_required"
+      }
+    },
+    {
+      "slug": "understat",
+      "name": "Understat",
+      "website": "https://understat.com",
+      "description": "Advanced xG models \u2013 requires JavaScript rendering",
+      "enabled": false,
+      "quality_tier": "high",
+      "quality_weight": 0.83,
+      "requires_js": true,
+      "rate_limit_seconds": 5.0,
+      "consecutive_failures": 0,
+      "last_success": null,
+      "flagged": true,
+      "flagged_reason": "requires_js_rendering",
+      "flagged_date": null,
+      "observation_start": null,
+      "urls": {},
+      "extraction": {
+        "format": "js_required"
+      }
+    },
+    {
+      "slug": "sports-mole",
+      "name": "Sports Mole",
+      "website": "https://www.sportsmole.co.uk",
+      "description": "News-driven match previews with score predictions",
+      "enabled": true,
+      "quality_tier": "high",
+      "quality_weight": 0.82,
+      "requires_js": false,
+      "rate_limit_seconds": 3.0,
+      "consecutive_failures": 0,
+      "last_success": null,
+      "flagged": false,
+      "flagged_reason": null,
+      "flagged_date": null,
+      "observation_start": null,
+      "urls": {
+        "_listing": "https://www.sportsmole.co.uk/football/preview/"
+      },
+      "extraction": {
+        "format": "article_listing",
+        "link_pattern": "<a[^>]+href=\"(https://www\\.sportsmole\\.co\\.uk/football/[^\"]*preview[^\"]*?)\"",
+        "title_team_pattern": "<h1[^>]*>(.*?)\\s*(?:vs\\.?|v\\.?)\\s*(.*?)\\s*[\u2013-]\\s*Preview",
+        "prediction_pattern": "(?:Our\\s+)?[Pp]rediction[:\\s]+(.*?)(?:<|$)",
+        "score_pattern": "(\\d+)\\s*[-\u2013]\\s*(\\d+)",
+        "max_articles": 15
+      }
+    },
+    {
+      "slug": "footystats",
+      "name": "FootyStats",
+      "website": "https://footystats.org",
+      "description": "xG, corners, cards data \u2013 requires JavaScript rendering",
+      "enabled": false,
+      "quality_tier": "high",
+      "quality_weight": 0.8,
+      "requires_js": true,
+      "rate_limit_seconds": 5.0,
+      "consecutive_failures": 0,
+      "last_success": null,
+      "flagged": true,
+      "flagged_reason": "requires_js_rendering",
+      "flagged_date": null,
+      "observation_start": null,
+      "urls": {},
+      "extraction": {
+        "format": "js_required"
+      }
+    },
+    {
+      "slug": "dimers",
+      "name": "Dimers",
+      "website": "https://www.dimers.com",
+      "description": "Data-driven ML probabilities \u2013 requires JavaScript rendering",
+      "enabled": false,
+      "quality_tier": "mid",
+      "quality_weight": 0.72,
+      "requires_js": true,
+      "rate_limit_seconds": 5.0,
+      "consecutive_failures": 0,
+      "last_success": null,
+      "flagged": true,
+      "flagged_reason": "requires_js_rendering",
+      "flagged_date": null,
+      "observation_start": null,
+      "urls": {},
+      "extraction": {
+        "format": "js_required"
+      }
+    },
+    {
+      "slug": "freesupertips",
+      "name": "FreeSuperTips",
+      "website": "https://www.freesupertips.co.uk",
+      "description": "Free daily tips with match analysis",
+      "enabled": true,
+      "quality_tier": "mid",
+      "quality_weight": 0.7,
+      "requires_js": false,
+      "rate_limit_seconds": 3.0,
+      "consecutive_failures": 0,
+      "last_success": null,
+      "flagged": false,
+      "flagged_reason": null,
+      "flagged_date": null,
+      "observation_start": null,
+      "urls": {
+        "_dated": "https://www.freesupertips.co.uk/predictions/{date}/"
+      },
+      "extraction": {
+        "format": "tip_card",
+        "block_pattern": "class=\"[^\"]*prediction-card[^\"]*\"[^>]*>(.*?)</(?:article|section|div)",
+        "team_pattern": "class=\"[^\"]*team-name[^\"]*\"[^>]*>([^<]+)",
+        "tip_pattern": "class=\"[^\"]*(?:tip|prediction-tip)[^\"]*\"[^>]*>([^<]+)",
+        "min_teams": 2
+      }
+    },
+    {
+      "slug": "football-whispers",
+      "name": "Football Whispers",
+      "website": "https://www.footballwhispers.com",
+      "description": "Stat-led predictions \u2013 requires JavaScript rendering",
+      "enabled": false,
+      "quality_tier": "mid",
+      "quality_weight": 0.7,
+      "requires_js": true,
+      "rate_limit_seconds": 5.0,
+      "consecutive_failures": 0,
+      "last_success": null,
+      "flagged": true,
+      "flagged_reason": "requires_js_rendering",
+      "flagged_date": null,
+      "observation_start": null,
+      "urls": {},
+      "extraction": {
+        "format": "js_required"
+      }
+    },
+    {
+      "slug": "betensured",
+      "name": "Betensured",
+      "website": "https://www.betensured.com",
+      "description": "Reliable daily forecasts with card-based layout",
+      "enabled": true,
+      "quality_tier": "mid",
+      "quality_weight": 0.68,
+      "requires_js": false,
+      "rate_limit_seconds": 3.0,
+      "consecutive_failures": 0,
+      "last_success": null,
+      "flagged": false,
+      "flagged_reason": null,
+      "flagged_date": null,
+      "observation_start": null,
+      "urls": {
+        "_dated": "https://www.betensured.com/predictions/{date}"
+      },
+      "extraction": {
+        "format": "tip_card",
+        "block_pattern": "class=\"prediction-card[^\"]*\"(.*?)</div>\\s*</div>",
+        "team_pattern": "class=\"team-name[^\"]*\"[^>]*>([^<]+)",
+        "tip_pattern": "class=\"tip[^\"]*\"[^>]*>([^<]+)",
+        "min_teams": 2
+      }
+    },
+    {
+      "slug": "squawka",
+      "name": "Squawka",
+      "website": "https://www.squawka.com",
+      "description": "Tactical comparison data \u2013 requires JavaScript rendering",
+      "enabled": false,
+      "quality_tier": "mid",
+      "quality_weight": 0.68,
+      "requires_js": true,
+      "rate_limit_seconds": 5.0,
+      "consecutive_failures": 0,
+      "last_success": null,
+      "flagged": true,
+      "flagged_reason": "requires_js_rendering",
+      "flagged_date": null,
+      "observation_start": null,
+      "urls": {},
+      "extraction": {
+        "format": "js_required"
+      }
+    },
+    {
+      "slug": "sportytrader",
+      "name": "SportyTrader",
+      "website": "https://www.sportytrader.com",
+      "description": "European-focused prediction platform",
+      "enabled": true,
+      "quality_tier": "mid",
+      "quality_weight": 0.66,
+      "requires_js": false,
+      "rate_limit_seconds": 3.0,
+      "consecutive_failures": 0,
+      "last_success": null,
+      "flagged": false,
+      "flagged_reason": null,
+      "flagged_date": null,
+      "observation_start": null,
+      "urls": {
+        "PL": "https://www.sportytrader.com/en/predictions/football/england/premier-league/",
+        "LL": "https://www.sportytrader.com/en/predictions/football/spain/la-liga/",
+        "SA": "https://www.sportytrader.com/en/predictions/football/italy/serie-a/",
+        "BL1": "https://www.sportytrader.com/en/predictions/football/germany/bundesliga/",
+        "FL1": "https://www.sportytrader.com/en/predictions/football/france/ligue-1/"
+      },
+      "extraction": {
+        "format": "tip_card",
+        "block_pattern": "class=\"[^\"]*pronostic[^\"]*\"[^>]*>(.*?)</(?:div|article)",
+        "team_pattern": "class=\"[^\"]*team[^\"]*\"[^>]*>([^<]+)",
+        "tip_pattern": "class=\"[^\"]*prediction[^\"]*\"[^>]*>([^<]+)",
+        "min_teams": 2
+      }
+    },
+    {
+      "slug": "vitibet",
+      "name": "Vitibet",
+      "website": "https://www.vitibet.com",
+      "description": "Simple index-based predictions for soccer",
+      "enabled": true,
+      "quality_tier": "mid",
+      "quality_weight": 0.65,
+      "requires_js": false,
+      "rate_limit_seconds": 2.0,
+      "consecutive_failures": 0,
+      "last_success": null,
+      "flagged": false,
+      "flagged_reason": null,
+      "flagged_date": null,
+      "observation_start": null,
+      "urls": {
+        "_all": "https://www.vitibet.com/index.php?claession=soccer&action=2"
+      },
+      "extraction": {
+        "format": "tip_table",
+        "row_pattern": "<tr[^>]*bgcolor[^>]*>(.*?)</tr>",
+        "cell_pattern": "<td[^>]*>(.*?)</td>",
+        "home_cell": 0,
+        "away_cell": 2,
+        "tip_cell": 4,
+        "min_cells": 5
+      }
+    },
+    {
+      "slug": "sportsgambler",
+      "name": "Sportsgambler",
+      "website": "https://www.sportsgambler.com",
+      "description": "Odds-based prediction analysis",
+      "enabled": true,
+      "quality_tier": "mid",
+      "quality_weight": 0.64,
+      "requires_js": false,
+      "rate_limit_seconds": 3.0,
+      "consecutive_failures": 0,
+      "last_success": null,
+      "flagged": false,
+      "flagged_reason": null,
+      "flagged_date": null,
+      "observation_start": null,
+      "urls": {
+        "_all": "https://www.sportsgambler.com/predictions/football/"
+      },
+      "extraction": {
+        "format": "percentage_table",
+        "row_pattern": "class=\"[^\"]*prediction-row[^\"]*\"[^>]*>(.*?)</(?:div|tr)",
+        "team_pattern": "class=\"[^\"]*team[^\"]*\"[^>]*>([^<]+)",
+        "probability_pattern": "(\\d{1,3})%",
+        "min_teams": 2,
+        "min_probabilities": 3,
+        "prob_order": [
+          "home",
+          "draw",
+          "away"
+        ]
+      }
+    },
+    {
+      "slug": "soccerstats",
+      "name": "SoccerStats",
+      "website": "https://www.soccerstats.com",
+      "description": "Statistics-driven predictions",
+      "enabled": true,
+      "quality_tier": "mid",
+      "quality_weight": 0.63,
+      "requires_js": false,
+      "rate_limit_seconds": 2.5,
+      "consecutive_failures": 0,
+      "last_success": null,
+      "flagged": false,
+      "flagged_reason": null,
+      "flagged_date": null,
+      "observation_start": null,
+      "urls": {
+        "PL": "https://www.soccerstats.com/latest.asp?league=england",
+        "LL": "https://www.soccerstats.com/latest.asp?league=spain",
+        "SA": "https://www.soccerstats.com/latest.asp?league=italy",
+        "BL1": "https://www.soccerstats.com/latest.asp?league=germany",
+        "FL1": "https://www.soccerstats.com/latest.asp?league=france"
+      },
+      "extraction": {
+        "format": "percentage_table",
+        "row_pattern": "<tr[^>]*>(.*?)</tr>",
+        "team_pattern": "<td[^>]*>(.*?)</td>",
+        "probability_pattern": "(\\d{1,3})%",
+        "home_cell": 1,
+        "away_cell": 3,
+        "probability_cells_start": 4,
+        "min_teams": 2,
+        "min_probabilities": 3,
+        "prob_order": [
+          "home",
+          "draw",
+          "away"
+        ]
+      }
+    },
+    {
+      "slug": "soccervista",
+      "name": "SoccerVista",
+      "website": "https://www.soccervista.com",
+      "description": "Community-backed predictions with tip format",
+      "enabled": true,
+      "quality_tier": "mid",
+      "quality_weight": 0.62,
+      "requires_js": false,
+      "rate_limit_seconds": 2.5,
+      "consecutive_failures": 0,
+      "last_success": null,
+      "flagged": false,
+      "flagged_reason": null,
+      "flagged_date": null,
+      "observation_start": null,
+      "urls": {
+        "_all": "https://www.soccervista.com/soccer-predictions.php"
+      },
+      "extraction": {
+        "format": "tip_table",
+        "row_pattern": "<tr[^>]*>(.*?)</tr>",
+        "cell_pattern": "<td[^>]*>(.*?)</td>",
+        "home_cell": 1,
+        "away_cell": 2,
+        "tip_cell": 3,
+        "min_cells": 4
+      }
+    },
+    {
+      "slug": "eagle-predict",
+      "name": "Eagle Predict",
+      "website": "https://eaglepredict.com",
+      "description": "ML-based prediction platform",
+      "enabled": true,
+      "quality_tier": "mid",
+      "quality_weight": 0.61,
+      "requires_js": false,
+      "rate_limit_seconds": 3.0,
+      "consecutive_failures": 0,
+      "last_success": null,
+      "flagged": false,
+      "flagged_reason": null,
+      "flagged_date": null,
+      "observation_start": null,
+      "urls": {
+        "_dated": "https://eaglepredict.com/prediction/{date}"
+      },
+      "extraction": {
+        "format": "percentage_card",
+        "block_pattern": "class=\"[^\"]*game-card[^\"]*\"[^>]*>(.*?)</(?:div|article)",
+        "team_pattern": "class=\"[^\"]*team[^\"]*\"[^>]*>([^<]+)",
+        "probability_pattern": "(\\d{1,3})%",
+        "tip_pattern": "class=\"[^\"]*(?:tip|predict)[^\"]*\"[^>]*>([^<]+)",
+        "min_teams": 2,
+        "min_probabilities": 3,
+        "prob_order": [
+          "home",
+          "draw",
+          "away"
+        ]
+      }
+    },
+    {
+      "slug": "tips180",
+      "name": "Tips180",
+      "website": "https://tips180.com",
+      "description": "African-focused prediction site",
+      "enabled": true,
+      "quality_tier": "mid",
+      "quality_weight": 0.6,
+      "requires_js": false,
+      "rate_limit_seconds": 3.0,
+      "consecutive_failures": 0,
+      "last_success": null,
+      "flagged": false,
+      "flagged_reason": null,
+      "flagged_date": null,
+      "observation_start": null,
+      "urls": {
+        "_dated": "https://tips180.com/predictions/{date}"
+      },
+      "extraction": {
+        "format": "tip_table",
+        "row_pattern": "<tr[^>]*class=\"[^\"]*match[^\"]*\"[^>]*>(.*?)</tr>",
+        "cell_pattern": "<td[^>]*>(.*?)</td>",
+        "home_cell": 0,
+        "away_cell": 1,
+        "tip_cell": -1,
+        "min_cells": 4
+      }
+    },
+    {
+      "slug": "mrfixitstips",
+      "name": "MrFixitsTips",
+      "website": "https://www.mrfixitstips.co.uk",
+      "description": "Community-driven football tips",
+      "enabled": true,
+      "quality_tier": "mid",
+      "quality_weight": 0.58,
+      "requires_js": false,
+      "rate_limit_seconds": 3.0,
+      "consecutive_failures": 0,
+      "last_success": null,
+      "flagged": false,
+      "flagged_reason": null,
+      "flagged_date": null,
+      "observation_start": null,
+      "urls": {
+        "_all": "https://www.mrfixitstips.co.uk/football-tips/"
+      },
+      "extraction": {
+        "format": "tip_card",
+        "block_pattern": "class=\"[^\"]*tip-card[^\"]*\"[^>]*>(.*?)</(?:div|article)",
+        "team_pattern": "class=\"[^\"]*team[^\"]*\"[^>]*>([^<]+)",
+        "tip_pattern": "class=\"[^\"]*(?:tip|bet)[^\"]*\"[^>]*>([^<]+)",
+        "min_teams": 2
+      }
+    },
+    {
+      "slug": "ratingbet",
+      "name": "RatingBet",
+      "website": "https://ratingbet.com",
+      "description": "Rating-based predictions",
+      "enabled": true,
+      "quality_tier": "low",
+      "quality_weight": 0.5,
+      "requires_js": false,
+      "rate_limit_seconds": 3.0,
+      "consecutive_failures": 0,
+      "last_success": null,
+      "flagged": false,
+      "flagged_reason": null,
+      "flagged_date": null,
+      "observation_start": null,
+      "urls": {
+        "_all": "https://ratingbet.com/predictions/football/"
+      },
+      "extraction": {
+        "format": "tip_card",
+        "block_pattern": "class=\"[^\"]*match-row[^\"]*\"[^>]*>(.*?)</(?:div|tr)",
+        "team_pattern": "class=\"[^\"]*team[^\"]*\"[^>]*>([^<]+)",
+        "tip_pattern": "class=\"[^\"]*prediction[^\"]*\"[^>]*>([^<]+)",
+        "min_teams": 2
+      }
+    },
+    {
+      "slug": "betalyst",
+      "name": "Betalyst",
+      "website": "https://betalyst.com",
+      "description": "Analytical prediction platform",
+      "enabled": true,
+      "quality_tier": "low",
+      "quality_weight": 0.48,
+      "requires_js": false,
+      "rate_limit_seconds": 3.0,
+      "consecutive_failures": 0,
+      "last_success": null,
+      "flagged": false,
+      "flagged_reason": null,
+      "flagged_date": null,
+      "observation_start": null,
+      "urls": {
+        "_dated": "https://betalyst.com/predictions/{date}"
+      },
+      "extraction": {
+        "format": "percentage_card",
+        "block_pattern": "class=\"[^\"]*prediction[^\"]*\"[^>]*>(.*?)</(?:div|article)",
+        "team_pattern": "class=\"[^\"]*team[^\"]*\"[^>]*>([^<]+)",
+        "probability_pattern": "(\\d{1,3})%",
+        "min_teams": 2,
+        "min_probabilities": 3,
+        "prob_order": [
+          "home",
+          "draw",
+          "away"
+        ]
+      }
+    }
+  ]
+}

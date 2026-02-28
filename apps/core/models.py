@@ -289,3 +289,7 @@ class LeagueAccessRule(models.Model):
             else "equal share"
         )
         return f"{self.league.name}: {share}"
+
+
+# Import alias model so Django discovers it in the same app
+from apps.core.models_aliases import TeamAlias  # noqa: E402, F401

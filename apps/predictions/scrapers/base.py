@@ -11,7 +11,9 @@ to be respectful of external sites.
 
 import logging
 import random
+import re
 import time
+import unicodedata
 from abc import ABC, abstractmethod
 from datetime import date
 from typing import List, Optional
@@ -120,20 +122,51 @@ class BaseScraper(ABC):
     def match_teams(self, scraped_home: str, scraped_away: str, matches) -> Optional[object]:
         """
         Find the matching Match object from our database.
-        Uses fuzzy name matching to handle different naming conventions.
+
+        Resolution order:
+          1. TeamAlias exact lookup (canonical fast path)
+          2. Direct Team name/short_name/code match
+          3. Fuzzy string matching (last resort)
         """
-        scraped_home_lower = scraped_home.lower().strip()
-        scraped_away_lower = scraped_away.lower().strip()
+        from apps.core.models_aliases import TeamAlias
+
+        # 1. Alias-based (fast, canonical)
+        home_team = TeamAlias.resolve_or_fuzzy(scraped_home)
+        away_team = TeamAlias.resolve_or_fuzzy(scraped_away)
+
+        if home_team and away_team:
+            for m in matches:
+                if m.home_team_id == home_team.id and m.away_team_id == away_team.id:
+                    return m
+
+        # 2. Fuzzy string match against match list
+        scraped_home_lower = self._normalise_name(scraped_home)
+        scraped_away_lower = self._normalise_name(scraped_away)
 
         for match in matches:
-            our_home = match.home_team.name.lower().strip()
-            our_away = match.away_team.name.lower().strip()
+            our_home = self._normalise_name(match.home_team.name)
+            our_away = self._normalise_name(match.away_team.name)
 
             if (self._fuzzy_match(scraped_home_lower, our_home)
                     and self._fuzzy_match(scraped_away_lower, our_away)):
+                # Auto-learn aliases for future fast lookups
+                self._auto_learn_alias(scraped_home, match.home_team)
+                self._auto_learn_alias(scraped_away, match.away_team)
                 return match
 
         return None
+
+    @staticmethod
+    def _normalise_name(name: str) -> str:
+        """Normalise team name: lowercase, strip accents, remove FC/SC etc."""
+        name = name.strip().lower()
+        # Strip accents: é→e, ü→u, etc.
+        name = unicodedata.normalize('NFKD', name)
+        name = ''.join(c for c in name if not unicodedata.combining(c))
+        # Remove common suffixes
+        for suffix in [' fc', ' cf', ' afc', ' sc', ' ac', ' fk', ' sk']:
+            name = name.replace(suffix, '')
+        return name.strip()
 
     @staticmethod
     def _fuzzy_match(name_a: str, name_b: str) -> bool:
@@ -141,12 +174,6 @@ class BaseScraper(ABC):
         if name_a == name_b:
             return True
         if name_a in name_b or name_b in name_a:
-            return True
-        # Clean common suffixes
-        for suffix in ['fc', 'cf', 'afc', 'sc', 'ac']:
-            name_a = name_a.replace(suffix, '').strip()
-            name_b = name_b.replace(suffix, '').strip()
-        if name_a == name_b:
             return True
         # Word overlap
         words_a = set(name_a.split())
@@ -156,3 +183,47 @@ class BaseScraper(ABC):
             if len(overlap) >= max(1, min(len(words_a), len(words_b)) - 1):
                 return True
         return False
+
+    @staticmethod
+    def _auto_learn_alias(scraped_name: str, team):
+        """Auto-create alias when fuzzy match succeeds."""
+        from apps.core.models_aliases import TeamAlias
+        clean = scraped_name.strip().lower()
+        if clean != team.name.strip().lower():
+            try:
+                TeamAlias.objects.get_or_create(
+                    alias=clean,
+                    defaults={'team': team, 'source': 'auto-scraper'},
+                )
+            except Exception:
+                pass  # Silently skip if alias already exists for different team
+
+    @staticmethod
+    def _clean_html(text: str) -> str:
+        """Strip all HTML tags from a string."""
+        return re.sub(r'<[^>]+>', '', text).strip()
+
+    @staticmethod
+    def _outcome_from_probs(h: float, d: float, a: float) -> str:
+        """Determine outcome from probabilities."""
+        if h >= d and h >= a:
+            return 'home_win'
+        elif a >= h and a >= d:
+            return 'away_win'
+        return 'draw'
+
+    @staticmethod
+    def _outcome_from_tip(tip: str) -> Optional[str]:
+        """Parse common tip formats: 1, X, 2, 1X, X2, Home, Away, Draw."""
+        tip = tip.strip().upper()
+        if tip in ('1', 'HOME', 'HOME WIN', 'H'):
+            return 'home_win'
+        elif tip in ('2', 'AWAY', 'AWAY WIN', 'A'):
+            return 'away_win'
+        elif tip in ('X', 'DRAW', 'D'):
+            return 'draw'
+        elif tip in ('1X',):
+            return 'home_win'  # Lean home
+        elif tip in ('X2',):
+            return 'away_win'  # Lean away
+        return None

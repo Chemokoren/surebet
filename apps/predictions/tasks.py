@@ -310,8 +310,10 @@ def evaluate_sources_task():
       1. Resolve external predictions against actual outcomes.
       2. Record daily accuracy snapshots.
       3. Check learning-phase sources for auto-promotion.
+      4. Run quality audit (classify, flag, disable, discover).
     """
     from apps.predictions.services.learning_engine import LearningEngine
+    from apps.predictions.scrapers.quality_manager import SourceQualityManager
 
     # Step 1: resolve
     resolved = LearningEngine.resolve_external_predictions()
@@ -326,9 +328,15 @@ def evaluate_sources_task():
     results = LearningEngine.evaluate_learning_sources()
     logger.info(f"[Task:eval_sources] Evaluation: {results}")
 
+    # Step 4: quality audit (classify, flag, disable, discover)
+    audit_results = SourceQualityManager.run_full_audit()
+    logger.info(f"[Task:eval_sources] Quality audit: {audit_results}")
+
     return (
         f"Resolved={resolved}, Promoted={len(results['promoted'])}, "
-        f"Remaining={len(results['remaining'])}, Rejected={len(results['rejected'])}"
+        f"Remaining={len(results['remaining'])}, Rejected={len(results['rejected'])}, "
+        f"Flagged={len(audit_results.get('flagged', []))}, "
+        f"Disabled={len(audit_results.get('disabled', []))}"
     )
 
 
