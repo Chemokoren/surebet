@@ -20,7 +20,7 @@
 
 # Shared environment for all Django/Celery services
 x-django-env: &django-env
-  DJANGO_SETTINGS_MODULE: config.settings.base
+  DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings.production}
   DJANGO_SECRET_KEY:       ${DJANGO_SECRET_KEY:-change-me-in-production}
   DEBUG:                   ${DEBUG:-False}
   ALLOWED_HOSTS:           ${ALLOWED_HOSTS:-*}

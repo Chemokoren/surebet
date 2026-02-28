@@ -10,6 +10,15 @@ from datetime import timedelta
 # Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+
+def env_csv(name: str, default: str = ""):
+    """
+    Parse a comma-separated env variable into a clean list.
+    Empty values are removed to avoid invalid Django config entries.
+    """
+    raw_value = os.getenv(name, default)
+    return [item.strip() for item in raw_value.split(',') if item.strip()]
+
 # Load .env file when available (optional dependency: python-dotenv)
 try:
     from dotenv import load_dotenv
@@ -20,7 +29,7 @@ except Exception:
 # Security
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'dev-secret-key-change-in-production')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',') if os.getenv('ALLOWED_HOSTS') else ['*']
+ALLOWED_HOSTS = env_csv('ALLOWED_HOSTS') or ['*']
 
 # Site configuration
 SITE_URL = os.getenv('SITE_URL', 'http://127.0.0.1:8000')
@@ -292,7 +301,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS
-CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
+CORS_ALLOWED_ORIGINS = env_csv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000')
 CORS_ALLOW_CREDENTIALS = True
 
 # JWT

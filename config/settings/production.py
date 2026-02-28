@@ -6,7 +6,16 @@ from .base import *
 
 DEBUG = False
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
+ALLOWED_HOSTS = env_csv('ALLOWED_HOSTS') or ['*']
+
+# Trust HTTPS info from reverse proxies (Nginx/Load Balancer).
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+
+# Accept CSRF POSTs from configured HTTPS origins (e.g. apex + www domains).
+CSRF_TRUSTED_ORIGINS = env_csv('CSRF_TRUSTED_ORIGINS')
+if not CSRF_TRUSTED_ORIGINS and SITE_URL.startswith('https://'):
+    CSRF_TRUSTED_ORIGINS = [SITE_URL]
 
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
