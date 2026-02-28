@@ -57,21 +57,37 @@ ensure_migrations() {
     exit 1
 }
 
-ensure_today_predictions() {
+# ── Sync all leagues (domestic + continental) into the database ────────────────
+sync_leagues() {
+    echo "🏟️  Syncing leagues (domestic + continental)..."
+    python manage.py shell -c "
+from apps.core.services.data_ingestion import DataIngestionService
+svc = DataIngestionService()
+result = svc.sync_teams_and_leagues()
+print(f'  leagues={result[\"leagues\"]}, teams={result[\"teams\"]}, errors={len(result.get(\"errors\", []))}')
+" || echo "⚠️  League sync encountered errors (non-fatal)."
+    echo "✅ Leagues synced."
+}
+
+# ── Fetch fixtures + generate predictions for upcoming days ───────────────────
+ensure_predictions() {
     if [[ "${AUTO_ENSURE_TODAY_PREDICTIONS_ON_BOOT:-1}" != "1" ]]; then
         echo "⏭️  Skipping boot-time prediction check."
         return 0
     fi
 
-    echo "🔎 Checking today's predictions..."
-    count="$(python manage.py shell -c "from django.utils import timezone; from apps.predictions.models import Prediction; print(Prediction.objects.filter(match__match_date__date=timezone.localdate(), match__status__in=['scheduled','timed']).count())" | tail -n1 | tr -d '\r')"
+    FETCH_DAYS="${BOOT_FETCH_DAYS:-6}"
+
+    echo "🔎 Checking predictions for upcoming ${FETCH_DAYS} days..."
+    count="$(python manage.py shell -c "from django.utils import timezone; from apps.predictions.models import Prediction; print(Prediction.objects.filter(match__match_date__date__gte=timezone.localdate(), match__status__in=['scheduled','timed']).count())" | tail -n1 | tr -d '\r')"
     if [[ "${count}" =~ ^[0-9]+$ ]] && [[ "${count}" -gt 0 ]]; then
-        echo "✅ Today's predictions already available (${count})."
+        echo "✅ Upcoming predictions already available (${count})."
         return 0
     fi
 
-    echo "⚡ No predictions for today found; generating now..."
-    python manage.py fetch_and_predict --days 1 || true
+    echo "⚡ No upcoming predictions found; fetching fixtures + generating..."
+    python manage.py fetch_and_predict --days "${FETCH_DAYS}" || true
+    echo "✅ Fixture fetch + prediction generation complete."
 }
 
 # ── Service dispatch ──────────────────────────────────────────────────────────
@@ -81,7 +97,8 @@ case "$SERVICE" in
   web)
     wait_for_postgres
     ensure_migrations
-    ensure_today_predictions
+    sync_leagues
+    ensure_predictions
     echo "📦 Collecting static files..."
     python manage.py collectstatic --noinput --clear 2>/dev/null || true
     echo "🚀 Starting Gunicorn on 0.0.0.0:${PORT:-8000}..."
@@ -121,6 +138,7 @@ case "$SERVICE" in
   setup)
     wait_for_postgres
     ensure_migrations
+    sync_leagues
 
     echo "🌱 Seeding initial data (leagues, plans, pricing)..."
     python manage.py seed_data
@@ -135,7 +153,8 @@ case "$SERVICE" in
   bootstrap)
     wait_for_postgres
     ensure_migrations
-    ensure_today_predictions
+    sync_leagues
+    ensure_predictions
     echo "✅ Bootstrap complete."
     ;;
 
