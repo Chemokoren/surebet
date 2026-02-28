@@ -44,6 +44,9 @@ LEAGUE_CODE_MAP = {
     'BL1': 'BL1',     # Bundesliga
     'SA': 'SA',       # Serie A
     'FL1': 'FL1',     # Ligue 1
+    'CL': 'UCL',      # UEFA Champions League
+    'EL': 'UEL',      # UEFA Europa League
+    'ECL': 'UECL',    # UEFA Europa Conference League
 }
 
 # ── ESPN API (completely free, no key needed) ─────────────────────────────────
@@ -51,11 +54,14 @@ ESPN_BASE_URL = 'https://site.api.espn.com/apis/site/v2/sports/soccer'
 
 # Our League.code → ESPN league slug
 ESPN_LEAGUE_SLUGS = {
-    'PL':  'eng.1',   # Premier League
-    'LL':  'esp.1',   # La Liga
-    'SA':  'ita.1',   # Serie A
-    'BL1': 'ger.1',   # Bundesliga
-    'FL1': 'fra.1',   # Ligue 1
+    'PL':   'eng.1',                     # Premier League
+    'LL':   'esp.1',                     # La Liga
+    'SA':   'ita.1',                     # Serie A
+    'BL1':  'ger.1',                     # Bundesliga
+    'FL1':  'fra.1',                     # Ligue 1
+    'UCL':  'uefa.champions',            # UEFA Champions League
+    'UEL':  'uefa.europa',               # UEFA Europa League
+    'UECL': 'uefa.europa.conf',          # UEFA Europa Conference League
 }
 
 ESPN_STATUS_MAP = {
@@ -102,11 +108,20 @@ class DataIngestionService:
         """
         Fetch fixtures for a specific date from ESPN (primary) and
         football-data.org (fallback when key is available).
+
+        Seasonal leagues (e.g. Champions League) are only fetched when
+        they are in season, unless matches already exist for that date.
         """
         stats = {'created': 0, 'updated': 0, 'errors': []}
 
         for our_code in ESPN_LEAGUE_SLUGS.keys():
             try:
+                # Check if seasonal league is in season before fetching
+                league = League.objects.filter(code=our_code, is_active=True).first()
+                if league and league.is_seasonal and not league.is_currently_in_season:
+                    logger.debug(f"Skipping {our_code}: seasonal league not in season")
+                    continue
+
                 # Try ESPN first (always free, no key needed)
                 result = self._fetch_espn_fixtures(our_code, target_date)
                 stats['created'] += result['created']
@@ -171,23 +186,43 @@ class DataIngestionService:
         stats = {'leagues': 0, 'teams': 0, 'errors': []}
 
         league_defaults = [
-            {'name': 'Premier League', 'code': 'PL',  'country': 'England', 'priority': 1, 'api_id': 2021},
-            {'name': 'La Liga',        'code': 'LL',  'country': 'Spain',   'priority': 2, 'api_id': 2014},
-            {'name': 'Serie A',        'code': 'SA',  'country': 'Italy',   'priority': 3, 'api_id': 2019},
-            {'name': 'Bundesliga',     'code': 'BL1', 'country': 'Germany', 'priority': 4, 'api_id': 2002},
-            {'name': 'Ligue 1',        'code': 'FL1', 'country': 'France',  'priority': 5, 'api_id': 2015},
+            # ── Continental (priority 0 = highest) ─────────────────────
+            {'name': 'UEFA Champions League',         'code': 'UCL',  'country': 'Europe', 'priority': 0, 'api_id': 2001,
+             'league_type': 'continental', 'is_seasonal': True,
+             'season_months': [9, 10, 11, 12, 1, 2, 3, 4, 5, 6]},
+            {'name': 'UEFA Europa League',            'code': 'UEL',  'country': 'Europe', 'priority': 0, 'api_id': 2146,
+             'league_type': 'continental', 'is_seasonal': True,
+             'season_months': [9, 10, 11, 12, 1, 2, 3, 4, 5, 6]},
+            {'name': 'UEFA Europa Conference League', 'code': 'UECL', 'country': 'Europe', 'priority': 0, 'api_id': 2154,
+             'league_type': 'continental', 'is_seasonal': True,
+             'season_months': [9, 10, 11, 12, 1, 2, 3, 4, 5, 6]},
+            # ── Domestic (priority 1–5) ────────────────────────────────
+            {'name': 'Premier League',                'code': 'PL',   'country': 'England', 'priority': 1, 'api_id': 2021,
+             'league_type': 'domestic', 'is_seasonal': False, 'season_months': []},
+            {'name': 'La Liga',                       'code': 'LL',   'country': 'Spain',   'priority': 2, 'api_id': 2014,
+             'league_type': 'domestic', 'is_seasonal': False, 'season_months': []},
+            {'name': 'Serie A',                       'code': 'SA',   'country': 'Italy',   'priority': 3, 'api_id': 2019,
+             'league_type': 'domestic', 'is_seasonal': False, 'season_months': []},
+            {'name': 'Bundesliga',                    'code': 'BL1',  'country': 'Germany', 'priority': 4, 'api_id': 2002,
+             'league_type': 'domestic', 'is_seasonal': False, 'season_months': []},
+            {'name': 'Ligue 1',                       'code': 'FL1',  'country': 'France',  'priority': 5, 'api_id': 2015,
+             'league_type': 'domestic', 'is_seasonal': False, 'season_months': []},
         ]
 
         for ld in league_defaults:
+            defaults = {
+                'name': ld['name'],
+                'country': ld['country'],
+                'priority': ld['priority'],
+                'api_id': ld['api_id'],
+                'is_active': True,
+                'league_type': ld.get('league_type', 'domestic'),
+                'is_seasonal': ld.get('is_seasonal', False),
+                'season_months': ld.get('season_months', []),
+            }
             league, created = League.objects.update_or_create(
                 code=ld['code'],
-                defaults={
-                    'name': ld['name'],
-                    'country': ld['country'],
-                    'priority': ld['priority'],
-                    'api_id': ld['api_id'],
-                    'is_active': True,
-                },
+                defaults=defaults,
             )
             if created:
                 stats['leagues'] += 1
@@ -432,11 +467,27 @@ class DataIngestionService:
     def _ensure_league(self, our_code: str) -> Optional[League]:
         """Ensure a League record exists for the given code."""
         defaults_map = {
-            'PL':  {'name': 'Premier League', 'country': 'England', 'priority': 1, 'api_id': 2021},
-            'LL':  {'name': 'La Liga',        'country': 'Spain',   'priority': 2, 'api_id': 2014},
-            'SA':  {'name': 'Serie A',        'country': 'Italy',   'priority': 3, 'api_id': 2019},
-            'BL1': {'name': 'Bundesliga',     'country': 'Germany', 'priority': 4, 'api_id': 2002},
-            'FL1': {'name': 'Ligue 1',        'country': 'France',  'priority': 5, 'api_id': 2015},
+            # Continental (priority 0)
+            'UCL':  {'name': 'UEFA Champions League',         'country': 'Europe',  'priority': 0, 'api_id': 2001,
+                     'league_type': 'continental', 'is_seasonal': True,
+                     'season_months': [9, 10, 11, 12, 1, 2, 3, 4, 5, 6]},
+            'UEL':  {'name': 'UEFA Europa League',            'country': 'Europe',  'priority': 0, 'api_id': 2146,
+                     'league_type': 'continental', 'is_seasonal': True,
+                     'season_months': [9, 10, 11, 12, 1, 2, 3, 4, 5, 6]},
+            'UECL': {'name': 'UEFA Europa Conference League', 'country': 'Europe',  'priority': 0, 'api_id': 2154,
+                     'league_type': 'continental', 'is_seasonal': True,
+                     'season_months': [9, 10, 11, 12, 1, 2, 3, 4, 5, 6]},
+            # Domestic
+            'PL':   {'name': 'Premier League',  'country': 'England', 'priority': 1, 'api_id': 2021,
+                     'league_type': 'domestic', 'is_seasonal': False, 'season_months': []},
+            'LL':   {'name': 'La Liga',         'country': 'Spain',   'priority': 2, 'api_id': 2014,
+                     'league_type': 'domestic', 'is_seasonal': False, 'season_months': []},
+            'SA':   {'name': 'Serie A',         'country': 'Italy',   'priority': 3, 'api_id': 2019,
+                     'league_type': 'domestic', 'is_seasonal': False, 'season_months': []},
+            'BL1':  {'name': 'Bundesliga',      'country': 'Germany', 'priority': 4, 'api_id': 2002,
+                     'league_type': 'domestic', 'is_seasonal': False, 'season_months': []},
+            'FL1':  {'name': 'Ligue 1',         'country': 'France',  'priority': 5, 'api_id': 2015,
+                     'league_type': 'domestic', 'is_seasonal': False, 'season_months': []},
         }
         defaults = defaults_map.get(our_code)
         if not defaults:

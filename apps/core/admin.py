@@ -3,9 +3,15 @@ from .models import League, Season, Team, Match, LeagueAccessRule
 
 @admin.register(League)
 class LeagueAdmin(admin.ModelAdmin):
-    list_display = ('name', 'code', 'country', 'priority', 'is_active')
-    list_filter = ('is_active', 'priority')
+    list_display = ('name', 'code', 'country', 'league_type', 'priority', 'is_active', 'is_seasonal', 'is_currently_in_season')
+    list_filter = ('is_active', 'league_type', 'is_seasonal', 'priority')
     search_fields = ('name', 'code')
+    list_editable = ('priority', 'is_active', 'is_seasonal')
+
+    def is_currently_in_season(self, obj):
+        return obj.is_currently_in_season
+    is_currently_in_season.boolean = True
+    is_currently_in_season.short_description = 'In Season'
 
 
 @admin.register(LeagueAccessRule)

@@ -43,6 +43,26 @@ LEAGUE_TEAMS = {
         'Paris Saint-Germain', 'Marseille', 'Monaco', 'Lyon',
         'Lille', 'Nice',
     ],
+    'UCL': [
+        'Real Madrid CF', 'FC Barcelona', 'Bayern Munich FC',
+        'Manchester City FC', 'Liverpool FC', 'Paris Saint-Germain FC',
+        'Inter Milan FC', 'Borussia Dortmund FC', 'Arsenal FC',
+        'Atletico Madrid FC', 'RB Leipzig FC', 'Napoli FC',
+        'AC Milan FC', 'Chelsea FC', 'Benfica',
+        'FC Porto', 'Celtic FC', 'FC Salzburg',
+    ],
+    'UEL': [
+        'AS Roma UEL', 'Sevilla UEL', 'Ajax', 'Fenerbahce',
+        'Galatasaray', 'Lazio UEL', 'West Ham UEL', 'Olympique Lyon UEL',
+        'Atalanta UEL', 'Freiburg', 'Real Sociedad UEL', 'Sporting CP',
+        'Rangers FC', 'Olympiacos', 'Braga', 'Rennes',
+    ],
+    'UECL': [
+        'Aston Villa ECL', 'Fiorentina ECL', 'Club Brugge', 'PAOK',
+        'Betis ECL', 'AZ Alkmaar', 'Villarreal ECL', 'FC Basel',
+        'Slavia Prague', 'Gent', 'Molde FK', 'LASK',
+        'FC Lugano', 'Djurgarden', 'HJK Helsinki', 'Partizan Belgrade',
+    ],
 }
 
 KICKOFF_HOURS = [13, 15, 17, 19, 20, 21]  # Common kickoff times (UTC)

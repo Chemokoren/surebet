@@ -5,8 +5,10 @@ Orchestrates the prediction pipeline:
 1.  Fetches scheduled matches for the day.
 2.  Generates feature vectors using FeatureEngineeringService.
 3.  Runs the active ML ensemble to get probabilities.
-4.  Stores Prediction records with confidence scores and explanations.
-5.  Assigns tiers (Free vs Premium) based on confidence/strategy.
+4.  Fetches consensus signals from external sources / historical data.
+5.  Blends ML output with consensus for improved calibration.
+6.  Stores Prediction records with confidence scores and explanations.
+7.  Assigns tiers (Free vs Premium) based on confidence/strategy.
 """
 
 import logging
@@ -88,6 +90,42 @@ class PredictionService:
         confidence = result['confidence']
         features = result.get('features', {})
         explanations_data = result.get('explanations', [])
+
+        # ── Consensus blending: cross-reference with external signals ──
+        try:
+            from apps.predictions.services.consensus import ConsensusService
+            consensus = ConsensusService.get_consensus(match)
+            if consensus:
+                probs = ConsensusService.blend_with_model(probs, consensus)
+
+                # Re-derive outcome from blended probabilities
+                if probs['home'] > probs['away'] and probs['home'] > probs['draw']:
+                    outcome = 'home_win'
+                    confidence = probs['home'] * 100
+                elif probs['away'] > probs['home'] and probs['away'] > probs['draw']:
+                    outcome = 'away_win'
+                    confidence = probs['away'] * 100
+                else:
+                    outcome = 'draw'
+                    confidence = probs['draw'] * 100
+                confidence = min(round(confidence, 2), 95.0)
+
+                # Store consensus metadata in features for traceability
+                features['consensus'] = {
+                    'sources_used': consensus['sources_used'],
+                    'consensus_home': consensus['home_win_prob'],
+                    'consensus_draw': consensus['draw_prob'],
+                    'consensus_away': consensus['away_win_prob'],
+                    'consensus_confidence': consensus['confidence'],
+                    'source_details': consensus.get('source_details', []),
+                }
+                logger.debug(
+                    f"Consensus blended for {match}: "
+                    f"sources={consensus['sources_used']}, "
+                    f"confidence={consensus['confidence']}"
+                )
+        except Exception as e:
+            logger.warning(f"Consensus blending skipped for {match}: {e}")
 
         # Create Prediction Record
         with transaction.atomic():

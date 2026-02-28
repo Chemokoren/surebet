@@ -9,9 +9,15 @@ from apps.core.models import Match, Team, League
 
 
 class LeagueSerializer(serializers.ModelSerializer):
+    is_currently_in_season = serializers.BooleanField(read_only=True)
+
     class Meta:
         model = League
-        fields = ['id', 'name', 'code', 'country', 'priority']
+        fields = [
+            'id', 'name', 'code', 'country', 'priority',
+            'is_seasonal', 'league_type', 'season_months',
+            'is_currently_in_season',
+        ]
 
 
 class TeamSerializer(serializers.ModelSerializer):
@@ -46,6 +52,7 @@ class PredictionSerializer(serializers.ModelSerializer):
     match = MatchSerializer(read_only=True)
     explanations = serializers.SerializerMethodField()
     is_access_locked = serializers.SerializerMethodField()
+    is_champions_league = serializers.SerializerMethodField()
 
     class Meta:
         model = Prediction
@@ -53,7 +60,7 @@ class PredictionSerializer(serializers.ModelSerializer):
             'id', 'match', 'predicted_outcome', 'confidence_score',
             'home_win_prob', 'draw_prob', 'away_win_prob',
             'tier', 'is_correct', 'resolved_at',
-            'explanations', 'is_access_locked'
+            'explanations', 'is_access_locked', 'is_champions_league',
         ]
 
     def get_explanations(self, obj):
@@ -89,6 +96,12 @@ class PredictionSerializer(serializers.ModelSerializer):
                 return False
         
         return True
+
+    def get_is_champions_league(self, obj):
+        """Indicate if prediction is for a continental competition (e.g. Champions League)."""
+        if hasattr(obj, 'match') and obj.match and obj.match.league:
+            return obj.match.league.league_type == 'continental'
+        return False
 
     def to_representation(self, instance):
         """

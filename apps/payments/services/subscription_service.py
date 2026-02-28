@@ -40,15 +40,27 @@ class SubscriptionService:
         """
         Determine if a user can view a prediction.
 
+        Champions League / Continental predictions:
+          - Monthly subscribers → automatic visibility (included in plan)
+          - All others → can purchase on-demand or use daily/weekly credits
+
         Returns {
             'allowed': bool,
             'reason': str,
             'remaining_credits': int,
             'requires_login': bool,
             'requires_payment': bool,
+            'is_champions_league': bool,
         }
         """
         from apps.predictions.models import Prediction
+
+        is_continental = (
+            hasattr(prediction, 'match')
+            and prediction.match
+            and prediction.match.league
+            and prediction.match.league.league_type == 'continental'
+        )
 
         # Free-tier predictions are always visible
         if prediction.tier == 'free':
@@ -58,34 +70,59 @@ class SubscriptionService:
                 'remaining_credits': -1,
                 'requires_login': False,
                 'requires_payment': False,
+                'is_champions_league': is_continental,
             }
 
         # Anonymous user gate
         if not user or not user.is_authenticated:
-            return cls._check_anonymous_access(session, prediction)
+            result = cls._check_anonymous_access(session, prediction)
+            result['is_champions_league'] = is_continental
+            return result
 
         # Authenticated user — check subscription first
         active_sub = cls.get_active_subscription(user)
         if active_sub:
-            return cls._check_subscription_access(user, active_sub)
+            # Monthly subscribers get automatic access to continental competitions
+            if is_continental and active_sub.plan.interval == 'monthly':
+                return {
+                    'allowed': True,
+                    'reason': 'Champions League included in monthly subscription',
+                    'remaining_credits': -1,
+                    'requires_login': False,
+                    'requires_payment': False,
+                    'is_champions_league': True,
+                }
+            # Regular subscription access for other leagues or non-monthly subs
+            result = cls._check_subscription_access(user, active_sub)
+            result['is_champions_league'] = is_continental
+            return result
 
-        # Check credits
+        # No subscription — check credits (works for on-demand purchase)
         profile = cls._get_profile(user)
         if profile.prediction_credits > 0:
             return {
                 'allowed': True,
-                'reason': f'{profile.prediction_credits} credits remaining',
+                'reason': (
+                    f'{profile.prediction_credits} credits remaining'
+                    + (' (Champions League on-demand)' if is_continental else '')
+                ),
                 'remaining_credits': profile.prediction_credits,
                 'requires_login': False,
                 'requires_payment': False,
+                'is_champions_league': is_continental,
             }
 
         return {
             'allowed': False,
-            'reason': 'No credits or active subscription',
+            'reason': (
+                'Subscribe monthly for Champions League access, or purchase on-demand'
+                if is_continental
+                else 'No credits or active subscription'
+            ),
             'remaining_credits': 0,
             'requires_login': False,
             'requires_payment': True,
+            'is_champions_league': is_continental,
         }
 
     @classmethod

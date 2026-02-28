@@ -21,20 +21,50 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 class League(models.Model):
     """
     Represents a football competition.
-    Initial set: Premier League, La Liga, Bundesliga, Serie A, Ligue 1.
+    Supports both year-round domestic leagues (Premier League, La Liga, etc.)
+    and seasonal/continental competitions (Champions League, Europa League).
 
     `api_id` maps to external data sources (e.g. football-data.org league ID).
     `is_active` lets admin enable/disable leagues without code changes.
+    `is_seasonal` marks competitions that only occur during certain months.
+    `league_type` categorises between domestic, continental, and international.
+    `season_months` is a JSON list of months (1–12) when the league is in season.
     """
+
+    LEAGUE_TYPE_CHOICES = [
+        ('domestic', 'Domestic League'),
+        ('continental', 'Continental Competition'),
+        ('international', 'International Competition'),
+    ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100, unique=True)
-    code = models.CharField(max_length=10, unique=True, help_text="Short code, e.g. PL, LL, BL1")
+    code = models.CharField(max_length=10, unique=True, help_text="Short code, e.g. PL, LL, BL1, UCL")
     country = models.CharField(max_length=60)
     logo_url = models.URLField(blank=True, default='')
     api_id = models.IntegerField(null=True, blank=True, unique=True, help_text="External API league ID")
     is_active = models.BooleanField(default=True)
     priority = models.IntegerField(default=0, help_text="Display order – lower = higher priority")
+
+    # Seasonal / Continental support
+    is_seasonal = models.BooleanField(
+        default=False,
+        help_text="True for competitions that only occur during certain months (e.g. Champions League)",
+    )
+    league_type = models.CharField(
+        max_length=15,
+        choices=LEAGUE_TYPE_CHOICES,
+        default='domestic',
+        help_text="Category of competition",
+    )
+    season_months = models.JSONField(
+        default=list, blank=True,
+        help_text=(
+            "JSON list of month numbers (1-12) when this league is active. "
+            "Empty = year-round. E.g. [9,10,11,12,1,2,3,4,5,6] for Champions League."
+        ),
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -43,6 +73,36 @@ class League(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.code})"
+
+    # ── helpers ─────────────────────────────────
+
+    @property
+    def is_currently_in_season(self) -> bool:
+        """
+        Check if this league is currently in season.
+        Year-round leagues (season_months=[]) are always in season.
+        Seasonal leagues check against current month.
+        """
+        if not self.is_seasonal or not self.season_months:
+            return True
+        current_month = timezone.now().month
+        return current_month in self.season_months
+
+    def has_matches_this_week(self) -> bool:
+        """
+        Check if the league has any scheduled matches within the current week
+        (Mon-Sun). Used to give seasonal leagues priority when they have games.
+        """
+        from datetime import timedelta
+        now = timezone.now()
+        # Get Monday of this week
+        monday = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+        sunday = monday + timedelta(days=7)
+        return self.matches.filter(
+            match_date__gte=monday,
+            match_date__lt=sunday,
+            status__in=['scheduled', 'timed'],
+        ).exists()
 
 
 # ──────────────────────────────────────────────

@@ -60,7 +60,8 @@ class PredictionViewSet(viewsets.ReadOnlyModelViewSet):
                 'error': 'Access Denied',
                 'reason': access['reason'],
                 'requires_payment': access['requires_payment'],
-                'requires_login': access['requires_login']
+                'requires_login': access['requires_login'],
+                'is_champions_league': access.get('is_champions_league', False),
             }, status=status.HTTP_403_FORBIDDEN)
         
         # Consume if needed (POST action usually preferred, but for retrieve view logging usage)
