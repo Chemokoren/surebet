@@ -88,51 +88,79 @@ class TeamAnalyticsService:
         cutoff = timezone.now() - timedelta(days=days)
 
         # Get all matches for team (home and away)
-        home_matches = Match.objects.filter(
+        home_matches = list(Match.objects.filter(
             home_team=team,
             status='finished',
             match_date__gte=cutoff,
-        )
-        away_matches = Match.objects.filter(
+        ))
+        away_matches = list(Match.objects.filter(
             away_team=team,
             status='finished',
             match_date__gte=cutoff,
-        )
+        ))
 
-        # Calculate wins/draws/losses
+        all_matches = sorted(home_matches + away_matches, key=lambda m: m.match_date)
+
+        # Calculate metrics
         wins = 0
         draws = 0
         losses = 0
         goals_for = 0
         goals_against = 0
         clean_sheets = 0
+        btts_count = 0
+        failed_to_score = 0
+        over_2_5 = 0
+        first_half_goals = 0
+        second_half_goals = 0
 
-        for match in home_matches:
-            goals_for += match.home_score or 0
-            goals_against += match.away_score or 0
+        current_win_streak = 0
+        current_unbeaten_streak = 0
+        current_losing_streak = 0
 
-            if match.home_score > match.away_score:
+        for match in all_matches:
+            is_home = match.home_team_id == team.id
+            
+            gf = match.home_score if is_home else match.away_score
+            ga = match.away_score if is_home else match.home_score
+            
+            hf_gf = match.home_half_score if is_home else match.away_half_score
+            hf_ga = match.away_half_score if is_home else match.home_half_score
+            
+            gf = gf or 0
+            ga = ga or 0
+
+            goals_for += gf
+            goals_against += ga
+
+            if hf_gf is not None and hf_ga is not None:
+                first_half_goals += (hf_gf + hf_ga)
+                second_half_goals += ((gf + ga) - (hf_gf + hf_ga))
+
+            if gf > 0 and ga > 0:
+                btts_count += 1
+            if gf == 0:
+                failed_to_score += 1
+            if (gf + ga) > 2.5:
+                over_2_5 += 1
+
+            if gf > ga:
                 wins += 1
-            elif match.home_score == match.away_score:
+                current_win_streak += 1
+                current_unbeaten_streak += 1
+                current_losing_streak = 0
+            elif gf == ga:
                 draws += 1
+                current_win_streak = 0
+                current_unbeaten_streak += 1
+                current_losing_streak = 0
             else:
                 losses += 1
+                current_win_streak = 0
+                current_unbeaten_streak = 0
+                current_losing_streak += 1
 
-            if match.away_score == 0:
-                clean_sheets += 1
-
-        for match in away_matches:
-            goals_for += match.away_score or 0
-            goals_against += match.home_score or 0
-
-            if match.away_score > match.home_score:
-                wins += 1
-            elif match.away_score == match.home_score:
-                draws += 1
-            else:
-                losses += 1
-
-            if match.home_score == 0:
+            if ga == 0:
                 clean_sheets += 1
 
         total_matches = wins + draws + losses
@@ -155,6 +183,14 @@ class TeamAnalyticsService:
             'conceded_per_match': round(goals_against / total_matches, 2) if total_matches > 0 else 0,
             'clean_sheets': clean_sheets,
             'clean_sheet_rate': round(clean_sheets / total_matches * 100, 1) if total_matches > 0 else 0,
+            'btts_rate': round(btts_count / total_matches * 100, 1) if total_matches > 0 else 0,
+            'failed_to_score_rate': round(failed_to_score / total_matches * 100, 1) if total_matches > 0 else 0,
+            'over_2_5_rate': round(over_2_5 / total_matches * 100, 1) if total_matches > 0 else 0,
+            'first_half_goals': first_half_goals,
+            'second_half_goals': second_half_goals,
+            'current_win_streak': current_win_streak,
+            'current_unbeaten_streak': current_unbeaten_streak,
+            'current_losing_streak': current_losing_streak,
             'period_days': days,
         }
 

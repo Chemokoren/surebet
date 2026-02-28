@@ -36,9 +36,8 @@
                                     <i class="fas fa-search"></i>
                                 </span>
                                 <input type="text" class="form-control" id="team-search"
-                                       placeholder="Enter team name (e.g., Manchester United, Barcelona)"
-                                       list="team-list"
-                                       value="{{ team.name|default:'' }}">
+                                    placeholder="Enter team name (e.g., Manchester United, Barcelona)" list="team-list"
+                                    value="{{ team.name|default:'' }}">
                                 <datalist id="team-list">
                                     {% for t in teams %}
                                     <option value="{{ t.name }}">{{ t.name }}</option>
@@ -56,8 +55,30 @@
                 </div>
             </div>
 
+            <!-- Loading State -->
+            <div id="loading-state" style="display: none;">
+                <div class="card mb-4 border-0 shadow-sm"
+                    style="background: linear-gradient(to right, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));">
+                    <div class="card-body text-center py-5">
+                        <div class="spinner-border text-primary mb-3" role="status"
+                            style="width: 3.5rem; height: 3.5rem;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <h3 class="gradient-text mb-2">Analyzing Data</h3>
+                        <p class="text-muted fs-5" id="loading-message">Gathering initial statistics...</p>
+
+                        <div class="progress mx-auto mt-4"
+                            style="height: 12px; width: 60%; border-radius: 6px; background-color: #e9ecef;">
+                            <div id="loading-progress"
+                                class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                                role="progressbar" style="width: 0%; transition: width 0.5s ease;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Team Analysis Results -->
-            <div id="analysis-container">
+            <div id="analysis-container" style="display: none;">
                 <!-- Team Header -->
                 <div class="card mb-4" id="team-header">
                     <div class="card-body text-center py-4">
@@ -72,7 +93,8 @@
                             </small>
                             {% if team_analysis %}
                             <small class="text-muted">
-                                <i class="fas fa-gamepad"></i> Matches: <span id="total-matches">{{ team_analysis.season_stats.total_matches }}</span>
+                                <i class="fas fa-gamepad"></i> Matches: <span id="total-matches">{{
+                                    team_analysis.season_stats.total_matches }}</span>
                             </small>
                             {% endif %}
                         </div>
@@ -86,11 +108,13 @@
                         <div>
                             <i class="fas fa-lock"></i>
                             <strong>Premium Features Locked</strong>
-                            <p class="mb-0 small mt-2">Advanced analytics (Head-to-Head, Home/Away splits, Prediction accuracy) require premium access.</p>
+                            <p class="mb-0 small mt-2">Advanced analytics (Head-to-Head, Home/Away splits, Prediction
+                                accuracy) require premium access.</p>
                         </div>
                         <div class="text-end">
                             {% if user_credits > 0 %}
-                            <button class="btn btn-sm btn-warning" id="unlock-premium-btn" data-team-id="{{ team.id|default:'' }}">
+                            <button class="btn btn-sm btn-warning" id="unlock-premium-btn"
+                                data-team-id="{{ team.id|default:'' }}">
                                 <i class="fas fa-crown"></i> Unlock ({{ user_credits }} credits)
                             </button>
                             {% else %}
@@ -194,18 +218,92 @@
 
                     <!-- Recent Form (FREE) -->
                     <div class="col-lg-4">
-                        <div class="card">
+                        <div class="card h-100">
                             <div class="card-header">
                                 <h5 class="mb-0">
                                     <i class="fas fa-history"></i> Recent Form
                                 </h5>
                             </div>
-                            <div class="card-body">
-                                <div id="recent-form" class="d-flex justify-content-center gap-2">
+                            <div class="card-body d-flex flex-column justify-content-center">
+                                <div id="recent-form" class="d-flex justify-content-center gap-2 mb-3">
                                     <!-- Form indicators will be populated here -->
                                 </div>
-                                <div class="text-center mt-3">
+                                <div class="text-center mt-auto">
                                     <small class="text-muted">Last 5 matches</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Analytical Insights -->
+                <div class="row g-4 mt-1">
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm rounded-4 overflow-hidden"
+                            style="background: linear-gradient(145deg, #f8f9fa 0%, #ffffff 100%);">
+                            <div class="card-header bg-transparent border-0 pt-4 pb-0 px-4">
+                                <h5 class="mb-0 gradient-text fw-bold">
+                                    <i class="fas fa-microscope"></i> Advanced Analytical Insights
+                                </h5>
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="row g-4">
+                                    <div class="col-md-3 col-sm-6">
+                                        <div
+                                            class="p-3 bg-white rounded-3 shadow-sm text-center border h-100 transition-hover">
+                                            <i class="fas fa-fire fa-2x text-danger mb-2"></i>
+                                            <h6 class="text-muted fw-bold mb-1">Current Win Streak</h6>
+                                            <h3 class="mb-0 fw-bold" id="current-win-streak">-</h3>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6">
+                                        <div
+                                            class="p-3 bg-white rounded-3 shadow-sm text-center border h-100 transition-hover">
+                                            <i class="fas fa-shield-alt fa-2x text-success mb-2"></i>
+                                            <h6 class="text-muted fw-bold mb-1">Unbeaten Run</h6>
+                                            <h3 class="mb-0 fw-bold" id="current-unbeaten-streak">-</h3>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6">
+                                        <div
+                                            class="p-3 bg-white rounded-3 shadow-sm text-center border h-100 transition-hover">
+                                            <i class="fas fa-futbol fa-2x text-primary mb-2"></i>
+                                            <h6 class="text-muted fw-bold mb-1">Over 2.5 Goals (Season)</h6>
+                                            <h3 class="mb-0 fw-bold" id="over-2-5-rate">-%</h3>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 col-sm-6">
+                                        <div
+                                            class="p-3 bg-white rounded-3 shadow-sm text-center border h-100 transition-hover">
+                                            <i class="fas fa-exchange-alt fa-2x text-warning mb-2"></i>
+                                            <h6 class="text-muted fw-bold mb-1">BTTS Rate (Season)</h6>
+                                            <h3 class="mb-0 fw-bold" id="btts-rate">-%</h3>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row mt-4 pt-3 border-top">
+                                    <div class="col-md-12">
+                                        <h6 class="text-muted fw-bold mb-3"><i class="fas fa-stopwatch text-info"></i>
+                                            Goals Timing Distribution (Recorded Halves)</h6>
+                                        <div class="d-flex justify-content-between mb-2 small fw-bold">
+                                            <span class="text-info"><i class="fas fa-sun"></i> 1st Half Goals: <span
+                                                    id="first-half-goals">0</span></span>
+                                            <span class="text-primary"><i class="fas fa-moon"></i> 2nd Half Goals: <span
+                                                    id="second-half-goals">0</span></span>
+                                        </div>
+                                        <div class="progress shadow-sm"
+                                            style="height: 24px; border-radius: 12px; background-color: #e9ecef;">
+                                            <div id="first-half-bar"
+                                                class="progress-bar bg-info progress-bar-striped progress-bar-animated"
+                                                role="progressbar" style="width: 50%" aria-valuenow="50"
+                                                aria-valuemin="0" aria-valuemax="100"></div>
+                                            <div id="second-half-bar"
+                                                class="progress-bar bg-primary progress-bar-striped progress-bar-animated"
+                                                role="progressbar" style="width: 50%" aria-valuenow="50"
+                                                aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -397,39 +495,39 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const searchBtn = document.getElementById('search-btn');
-    const teamSearch = document.getElementById('team-search');
-    const analysisContainer = document.getElementById('analysis-container');
-    const noResults = document.getElementById('no-results');
-    
-    // Get teams data from HTML
-    const teamsData = JSON.parse(document.getElementById('teams-json').textContent || '[]');
-    
-    console.log('Team Analysis page loaded');
-    console.log('Teams data:', teamsData);
-    console.log('Teams count:', teamsData.length);
-    
-    // Current analysis data (if available from server)
-    let currentAnalysis = {% if team_analysis %}{{ team_analysis|safe }}{% else %}null{% endif %};
-    let canAccessPremium = {% if can_access_premium %}true{% else %}false{% endif %};
-    
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchBtn = document.getElementById('search-btn');
+        const teamSearch = document.getElementById('team-search');
+        const analysisContainer = document.getElementById('analysis-container');
+        const noResults = document.getElementById('no-results');
+
+        // Get teams data from HTML
+        const teamsData = JSON.parse(document.getElementById('teams-json').textContent || '[]');
+
+        console.log('Team Analysis page loaded');
+        console.log('Teams data:', teamsData);
+        console.log('Teams count:', teamsData.length);
+
+        // Current analysis data (if available from server)
+        let currentAnalysis = {% if team_analysis %}{{ team_analysis| safe }}{% else %}null{% endif %};
+    let canAccessPremium = {% if can_access_premium %}true{% else %} false{% endif %};
+
     let goalsChart = null;
     let resultsChart = null;
 
     function displayAnalysis(teamData) {
         try {
             console.log('displayAnalysis called with:', teamData);
-            
+
             // Update team header
             const teamNameEl = document.getElementById('team-name');
             const teamLeagueEl = document.getElementById('team-league');
             const teamEloEl = document.getElementById('team-elo');
-            
+
             if (!teamNameEl) console.error('Missing element: team-name');
             if (!teamLeagueEl) console.error('Missing element: team-league');
             if (!teamEloEl) console.error('Missing element: team-elo');
-            
+
             if (teamNameEl) teamNameEl.textContent = teamData.team.name;
             if (teamLeagueEl) teamLeagueEl.textContent = teamData.team.league ? teamData.team.league.name : 'Unknown';
             if (teamEloEl) teamEloEl.textContent = teamData.team.elo_rating.toFixed(0);
@@ -438,27 +536,69 @@ document.addEventListener('DOMContentLoaded', function() {
             const stats = teamData.season_stats;
             const winRateEl = document.getElementById('win-rate');
             if (winRateEl) winRateEl.textContent = stats.win_rate.toFixed(1) + '%';
-            
+
             const cleanSheetsEl = document.getElementById('clean-sheets');
             if (cleanSheetsEl) cleanSheetsEl.textContent = stats.clean_sheets;
-            
+
             const goalsForEl = document.getElementById('goals-scored');
             if (goalsForEl) goalsForEl.textContent = stats.goals_for;
-            
+
             const goalsAgainstEl = document.getElementById('goals-conceded');
             if (goalsAgainstEl) goalsAgainstEl.textContent = stats.goals_against;
-            
+
             const totalMatchesEl = document.getElementById('total-matches');
             if (totalMatchesEl) totalMatchesEl.textContent = stats.total_matches;
-            
+
             const gpgEl = document.getElementById('gpg');
             if (gpgEl) gpgEl.textContent = stats.goals_per_match.toFixed(2);
-            
+
             const cpgEl = document.getElementById('cpg');
             if (cpgEl) cpgEl.textContent = stats.conceded_per_match.toFixed(2);
-            
+
             const gdEl = document.getElementById('gd');
             if (gdEl) gdEl.textContent = (stats.goal_difference > 0 ? '+' : '') + stats.goal_difference;
+
+            // Advanced stats
+            const winStreakEl = document.getElementById('current-win-streak');
+            if (winStreakEl) winStreakEl.textContent = stats.current_win_streak;
+
+            const unbeatenEl = document.getElementById('current-unbeaten-streak');
+            if (unbeatenEl) unbeatenEl.textContent = stats.current_unbeaten_streak;
+
+            const over25El = document.getElementById('over-2-5-rate');
+            if (over25El) over25El.textContent = stats.over_2_5_rate.toFixed(1) + '%';
+
+            const bttsEl = document.getElementById('btts-rate');
+            if (bttsEl) bttsEl.textContent = stats.btts_rate.toFixed(1) + '%';
+
+            const fhGoals = stats.first_half_goals || 0;
+            const shGoals = stats.second_half_goals || 0;
+            const totalHalves = fhGoals + shGoals;
+
+            const fhEl = document.getElementById('first-half-goals');
+            if (fhEl) fhEl.textContent = fhGoals;
+
+            const shEl = document.getElementById('second-half-goals');
+            if (shEl) shEl.textContent = shGoals;
+
+            const fhBar = document.getElementById('first-half-bar');
+            const shBar = document.getElementById('second-half-bar');
+
+            if (totalHalves > 0) {
+                if (fhBar) {
+                    const fhPct = (fhGoals / totalHalves * 100).toFixed(1);
+                    fhBar.style.width = fhPct + '%';
+                    fhBar.textContent = fhPct + '%';
+                }
+                if (shBar) {
+                    const shPct = (shGoals / totalHalves * 100).toFixed(1);
+                    shBar.style.width = shPct + '%';
+                    shBar.textContent = shPct + '%';
+                }
+            } else {
+                if (fhBar) { fhBar.style.width = '0%'; fhBar.textContent = ''; }
+                if (shBar) { shBar.style.width = '0%'; shBar.textContent = ''; }
+            }
 
             // Update recent form
             const formContainer = document.getElementById('recent-form');
@@ -466,7 +606,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 formContainer.innerHTML = teamData.form.map(match => {
                     let bgClass = '';
                     let icon = '';
-                    switch(match.result) {
+                    switch (match.result) {
                         case 'W': bgClass = 'bg-success'; icon = '<i class="fas fa-check"></i>'; break;
                         case 'D': bgClass = 'bg-warning'; icon = '<i class="fas fa-minus"></i>'; break;
                         case 'L': bgClass = 'bg-danger'; icon = '<i class="fas fa-times"></i>'; break;
@@ -484,9 +624,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Show analysis container
+            const loadingState = document.getElementById('loading-state');
+            if (loadingState) loadingState.style.display = 'none';
             analysisContainer.style.display = 'block';
             noResults.style.display = 'none';
-            
+
             // Scroll to results
             setTimeout(() => {
                 analysisContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -499,7 +641,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateCharts(teamData) {
         const stats = teamData.season_stats;
-        
+
         // Goals chart
         const goalsCtx = document.getElementById('goals-chart').getContext('2d');
         if (goalsChart) goalsChart.destroy();
@@ -556,7 +698,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const homeAwayData = premiumData.home_away_split;
         document.getElementById('home-wr').textContent = homeAwayData.home.win_rate.toFixed(1) + '%';
         document.getElementById('home-stats').textContent = `${homeAwayData.home.wins}W ${homeAwayData.home.draws}D ${homeAwayData.home.losses}L`;
-        
+
         document.getElementById('away-wr').textContent = homeAwayData.away.win_rate.toFixed(1) + '%';
         document.getElementById('away-stats').textContent = `${homeAwayData.away.wins}W ${homeAwayData.away.draws}D ${homeAwayData.away.losses}L`;
 
@@ -574,13 +716,23 @@ document.addEventListener('DOMContentLoaded', function() {
         const predAccuracy = premiumData.prediction_accuracy;
         document.getElementById('pred-accuracy').textContent = predAccuracy.accuracy_rate.toFixed(1) + '%';
         document.getElementById('pred-count').textContent = `${predAccuracy.correct}/${predAccuracy.total_predictions} predictions correct`;
-        
+
         document.getElementById('free-accuracy').textContent = predAccuracy.by_tier.free.accuracy.toFixed(1) + '%';
         document.getElementById('free-count').textContent = `${predAccuracy.by_tier.free.correct}/${predAccuracy.by_tier.free.total}`;
-        
+
         document.getElementById('prem-accuracy').textContent = predAccuracy.by_tier.premium.accuracy.toFixed(1) + '%';
         document.getElementById('prem-count').textContent = `${predAccuracy.by_tier.premium.correct}/${predAccuracy.by_tier.premium.total}`;
     }
+
+    let loadingInterval;
+    const loadingMessages = [
+        "Gathering historical match data...",
+        "Crunching performance metrics...",
+        "Analyzing recent form...",
+        "Calculating goal probabilities...",
+        "Evaluating head-to-head records...",
+        "Finalizing analysis report..."
+    ];
 
     function searchTeam() {
         const query = teamSearch.value.trim().toLowerCase();
@@ -590,22 +742,50 @@ document.addEventListener('DOMContentLoaded', function() {
         const foundTeam = teamsData.find(t => (t && t.name && t.name.toLowerCase().includes(query)));
         if (!foundTeam) {
             analysisContainer.style.display = 'none';
+            const loadingState = document.getElementById('loading-state');
+            if (loadingState) loadingState.style.display = 'none';
             noResults.style.display = 'block';
             return;
         }
 
-        // Show loading indicator
-        document.getElementById('team-name').textContent = 'Loading...';
-        analysisContainer.style.display = 'block';
+        // Setup loading UI
+        const originalBtnHtml = searchBtn.innerHTML;
+        searchBtn.disabled = true;
+        searchBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Analyzing...';
+
+        analysisContainer.style.display = 'none';
         noResults.style.display = 'none';
+
+        const loadingState = document.getElementById('loading-state');
+        const loadingMessageEl = document.getElementById('loading-message');
+        const loadingProgressEl = document.getElementById('loading-progress');
+
+        if (loadingState) loadingState.style.display = 'block';
+
+        let msgIndex = 0;
+        let progress = 5;
+        if (loadingProgressEl) loadingProgressEl.style.width = progress + '%';
+        if (loadingMessageEl) loadingMessageEl.textContent = loadingMessages[0];
+
+        // Ensure clear of previous interval
+        if (loadingInterval) clearInterval(loadingInterval);
+
+        loadingInterval = setInterval(() => {
+            msgIndex = (msgIndex + 1) % loadingMessages.length;
+            if (loadingMessageEl) loadingMessageEl.textContent = loadingMessages[msgIndex];
+
+            if (progress < 90) {
+                progress += Math.floor(Math.random() * 15) + 5;
+                if (progress > 90) progress = 90;
+                if (loadingProgressEl) loadingProgressEl.style.width = progress + '%';
+            }
+        }, 800);
 
         // Fetch analysis via API (v1 base) with session credentials
         const url = `/v1/teams/${foundTeam.id}/analysis/`;
-        
+
         console.log('Fetching team analysis from:', url);
-        console.log('Teams data available:', teamsData.length);
-        console.log('Found team:', foundTeam);
-        
+
         fetch(url, {
             credentials: 'include',
             headers: {
@@ -613,28 +793,30 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
             .then(response => {
-                console.log('Response status:', response.status);
-                console.log('Response headers:', response.headers);
-                
                 if (!response.ok) {
                     return response.text().then(text => {
-                        console.error('Error response body:', text);
                         throw new Error(`HTTP ${response.status}: ${text}`);
                     });
                 }
                 return response.json();
             })
             .then(data => {
-                console.log('API Response data:', data);
-                currentAnalysis = data.data;
-                canAccessPremium = data.can_access_premium;
-                displayAnalysis(currentAnalysis);
+                clearInterval(loadingInterval);
+                if (loadingProgressEl) loadingProgressEl.style.width = '100%';
+
+                setTimeout(() => {
+                    searchBtn.disabled = false;
+                    searchBtn.innerHTML = originalBtnHtml;
+                    currentAnalysis = data.data;
+                    canAccessPremium = data.can_access_premium;
+                    displayAnalysis(currentAnalysis);
+                }, 600); // 600ms to visually show 100% complete
             })
             .catch(error => {
-                console.error('Fetch error:', error);
-                console.error('Error message:', error.message);
-                console.error('Error stack:', error.stack);
-                document.getElementById('team-name').textContent = 'Error loading team';
+                clearInterval(loadingInterval);
+                if (loadingState) loadingState.style.display = 'none';
+                searchBtn.disabled = false;
+                searchBtn.innerHTML = originalBtnHtml;
                 alert('Failed to load team analysis: ' + error.message);
             });
     }
@@ -643,7 +825,7 @@ document.addEventListener('DOMContentLoaded', function() {
     searchBtn.addEventListener('click', searchTeam);
 
     // Enter key in search input
-    teamSearch.addEventListener('keypress', function(e) {
+    teamSearch.addEventListener('keypress', function (e) {
         if (e.key === 'Enter') searchTeam();
     });
 
@@ -653,106 +835,109 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         noResults.style.display = 'block';
         analysisContainer.style.display = 'none';
+        const loadingState = document.getElementById('loading-state');
+        if (loadingState) loadingState.style.display = 'none';
     }
 
     // Unlock premium button
     const unlockBtn = document.getElementById('unlock-premium-btn');
     if (unlockBtn) {
-        unlockBtn.addEventListener('click', function() {
+        unlockBtn.addEventListener('click', function () {
             if (confirm('This will consume 1 credit to unlock premium features for this team. Continue?')) {
                 fetch('/v1/teams/' + this.dataset.teamId + '/unlock_premium/', {
                     method: 'POST',
                     credentials: 'include',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken') 
+                        'X-CSRFToken': getCookie('csrftoken')
                     }
                 })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        location.reload();
-                    } else {
-                        alert('Failed to unlock: ' + data.message);
-                    }
-                })
-                .catch(error => alert('Error: ' + error.message));
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            alert('Failed to unlock: ' + data.message);
+                        }
+                    })
+                    .catch(error => alert('Error: ' + error.message));
             }
         });
     }
 });
 
-// Helper to get CSRF token
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
+    // Helper to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
             }
         }
+        return cookieValue;
     }
-    return cookieValue;
-}
 </script>
 
 <style>
-.metric-card {
-    padding: 1rem;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border: 1px solid #dee2e6;
-    transition: all 0.3s ease;
-}
-
-.metric-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-.metric-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.gradient-text {
-    background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.opacity-50 {
-    opacity: 0.5;
-    pointer-events: none;
-}
-
-.border-primary {
-    border: 2px solid #667eea !important;
-}
-
-#analysis-container {
-    animation: slideIn 0.4s ease-out;
-}
-
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
+    .metric-card {
+        padding: 1rem;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border: 1px solid #dee2e6;
+        transition: all 0.3s ease;
     }
-    to {
-        opacity: 1;
-        transform: translateY(0);
+
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
-}
+
+    .metric-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .gradient-text {
+        background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .opacity-50 {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    .border-primary {
+        border: 2px solid #667eea !important;
+    }
+
+    #analysis-container {
+        animation: slideIn 0.4s ease-out;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
 </style>
 {% endblock %}
