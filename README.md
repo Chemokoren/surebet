@@ -146,6 +146,49 @@ docker compose -f docker-compose-prd.yaml up -d
 docker compose -f docker-compose-prd.yaml run --rm web setup
 ```
 
+### Data Persistence Across Deployments
+
+- Persistent Docker volumes are pinned with fixed names (`futurapredict_postgres_data`, `futurapredict_models_data`, etc.) so redeploys from different compose files or project names still reuse the same data.
+- Use `docker compose -f docker-compose-prd.yaml down` (without `-v`) before upgrades.
+- Do **not** run `down -v` unless you intentionally want to wipe PostgreSQL, Redis, model artifacts, and feature caches.
+
+### Backup, Restore, and Automatic Rollback
+
+Deployment safety scripts are included in `scripts/`:
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/backup_db.sh` | Create a compressed SQL backup from the running `db` service |
+| `scripts/restore_db.sh` | Restore DB from a backup file |
+| `scripts/deploy_prd.sh` | Production deploy wrapper: auto-backup before deploy, health-check app, auto-restore DB on failure, and auto-backfill today's predictions if missing |
+
+Examples:
+
+```bash
+# Manual backup
+./scripts/backup_db.sh --compose-file docker-compose-prd.yaml
+
+# Manual restore
+./scripts/restore_db.sh --compose-file docker-compose-prd.yaml --input backups/db/futurapredict_YYYYmmdd_HHMMSS.sql.gz
+
+# Safe deploy with automatic backup + rollback
+./scripts/deploy_prd.sh --compose-file docker-compose-prd.yaml --health-url http://127.0.0.1:8004/
+```
+
+`deploy_prd.sh` returns non-zero on failed health check even after restore, so CI/CD can mark the deployment as failed.
+
+By default, `deploy_prd.sh` also verifies today's prediction count after a successful deploy. If count is `0`, it runs:
+
+```bash
+python manage.py fetch_and_predict --days 1
+```
+
+to backfill today immediately. You can disable this behavior for a specific run with:
+
+```bash
+AUTO_ENSURE_TODAY_PREDICTIONS=0 ./scripts/deploy_prd.sh --compose-file docker-compose-prd.yaml
+```
+
 ---
 
 ## Quick Start (Local Dev)

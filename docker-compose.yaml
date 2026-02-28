@@ -228,9 +228,16 @@ services:
 # ══════════════════════════════════════════════════════════════════════════════
 volumes:
   postgres_data:
+    name: futurapredict_postgres_data
   redis_data:
+    name: futurapredict_redis_data
   models_data:    # Trained ML model files (.joblib, .h5, etc.)
+    name: futurapredict_models_data
   features_data:  # Feature cache
+    name: futurapredict_features_data
   logs_data:      # Application logs
+    name: futurapredict_logs_data
   certbot_www:    # ACME challenge webroot shared by nginx/certbot
+    name: futurapredict_certbot_www
   certbot_conf:   # Let's Encrypt cert storage
+    name: futurapredict_certbot_conf

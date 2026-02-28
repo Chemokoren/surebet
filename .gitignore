@@ -67,6 +67,7 @@ htmlcov/
 # === Logs ===
 *.log
 logs/
+backups/
 
 # === Cache ===
 .cache/
