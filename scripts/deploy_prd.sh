@@ -51,7 +51,7 @@ done
 
 get_today_prediction_count() {
   docker compose -f "${COMPOSE_FILE}" exec -T web python manage.py shell -c \
-    "from django.utils import timezone; from apps.predictions.models import Prediction; print(Prediction.objects.filter(match__match_date__date=timezone.localdate()).count())" \
+    "from django.utils import timezone; from apps.predictions.models import Prediction; print(Prediction.objects.filter(match__match_date__date=timezone.localdate(), match__status__in=['scheduled','timed']).count())" \
     | tr -d '\r' | tail -n1
 }
 

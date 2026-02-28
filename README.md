@@ -142,9 +142,16 @@ docker compose --profile container-edge up -d nginx certbot-renew
 # Start app stack for host Nginx proxying to localhost:8004
 docker compose -f docker-compose-prd.yaml up -d
 
-# First-time setup
+# Optional first-time seed (only if you need baseline plans/leagues/pricing)
 docker compose -f docker-compose-prd.yaml run --rm web setup
 ```
+
+When you run `docker compose -f docker-compose-prd.yaml up`, startup orchestration now runs automatically:
+- Creates a DB backup snapshot (`./backups/db/*.sql.gz`)
+- Applies migrations
+- Checks today's prediction count
+- If today's predictions are `0`, triggers `fetch_and_predict --days 1`
+- Starts `web`, `worker`, and `beat` only after bootstrap completes
 
 ### Data Persistence Across Deployments
 

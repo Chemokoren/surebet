@@ -91,6 +91,54 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # ── Startup DB Backup (automatic) ────────────────────────────────────────────
+  # Runs once per `up` lifecycle before app services.
+  db_backup:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-futurapredict}
+      POSTGRES_USER:     ${POSTGRES_USER:-futurapredict}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-futurapredict_pass}
+    volumes:
+      - ./backups/db:/backups
+    command: >
+      sh -c "set -e;
+      mkdir -p /backups;
+      TS=$$(date +%Y%m%d_%H%M%S);
+      FILE=/backups/futurapredict_$${TS}.sql.gz;
+      echo 'Creating startup DB backup: '$${FILE};
+      PGPASSWORD=$${POSTGRES_PASSWORD}
+      pg_dump -h db -U $${POSTGRES_USER} -d $${POSTGRES_DB}
+      --clean --if-exists --no-owner --no-privileges
+      | gzip > $${FILE};
+      echo 'Startup DB backup complete: '$${FILE};"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  # ── Startup Bootstrap (automatic) ────────────────────────────────────────────
+  # Ensures migrations + today's predictions exist before app starts serving.
+  bootstrap:
+    build: .
+    command: bootstrap
+    environment:
+      <<: *django-env
+      SERVICE: bootstrap
+    volumes:
+      - .:/app
+      - models_data:/app/models
+      - features_data:/app/features
+      - logs_data:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      db_backup:
+        condition: service_completed_successfully
+    restart: "no"
+
   # ── Django / Gunicorn ───────────────────────────────────────────────────────
   web:
     build: .
@@ -112,6 +160,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      bootstrap:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/ >/dev/null || exit 1"]
       interval: 15s
@@ -138,6 +188,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      bootstrap:
+        condition: service_completed_successfully
       web:
         condition: service_healthy
     restart: unless-stopped
@@ -159,6 +211,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      bootstrap:
+        condition: service_completed_successfully
       web:
         condition: service_healthy
       worker:

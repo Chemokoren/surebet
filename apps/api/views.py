@@ -49,7 +49,7 @@ class HomeView(TemplateView):
         if is_released:
             qs = Prediction.objects.filter(
                 match__match_date__date__gte=today,
-                match__status='scheduled'
+                match__status__in=['scheduled', 'timed']
             ).select_related('match', 'match__home_team', 'match__away_team', 'match__league').order_by('match__match_date', '-confidence_score')[:6]
             
         if not qs.exists():

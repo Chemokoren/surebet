@@ -57,6 +57,23 @@ ensure_migrations() {
     exit 1
 }
 
+ensure_today_predictions() {
+    if [[ "${AUTO_ENSURE_TODAY_PREDICTIONS_ON_BOOT:-1}" != "1" ]]; then
+        echo "⏭️  Skipping boot-time prediction check."
+        return 0
+    fi
+
+    echo "🔎 Checking today's predictions..."
+    count="$(python manage.py shell -c "from django.utils import timezone; from apps.predictions.models import Prediction; print(Prediction.objects.filter(match__match_date__date=timezone.localdate(), match__status__in=['scheduled','timed']).count())" | tail -n1 | tr -d '\r')"
+    if [[ "${count}" =~ ^[0-9]+$ ]] && [[ "${count}" -gt 0 ]]; then
+        echo "✅ Today's predictions already available (${count})."
+        return 0
+    fi
+
+    echo "⚡ No predictions for today found; generating now..."
+    python manage.py fetch_and_predict --days 1 || true
+}
+
 # ── Service dispatch ──────────────────────────────────────────────────────────
 case "$SERVICE" in
 
@@ -64,6 +81,7 @@ case "$SERVICE" in
   web)
     wait_for_postgres
     ensure_migrations
+    ensure_today_predictions
     echo "📦 Collecting static files..."
     python manage.py collectstatic --noinput --clear 2>/dev/null || true
     echo "🚀 Starting Gunicorn on 0.0.0.0:${PORT:-8000}..."
@@ -111,6 +129,14 @@ case "$SERVICE" in
     python manage.py fetch_and_predict --days 6
 
     echo "✅ Setup complete."
+    ;;
+
+  # ── Bootstrap for compose startup orchestration ──────────────────────────────
+  bootstrap)
+    wait_for_postgres
+    ensure_migrations
+    ensure_today_predictions
+    echo "✅ Bootstrap complete."
     ;;
 
   # ── Django shell / management commands ───────────────────────────────────────
