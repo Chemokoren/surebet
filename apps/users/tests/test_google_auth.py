@@ -91,3 +91,4 @@ class GoogleAuthTests(TestCase):
         self.assertEqual(User.objects.filter(email="existing@example.com").count(), 1)
         self.assertEqual(int(self.client.session["_auth_user_id"]), user.id)
 
+

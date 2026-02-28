@@ -42,14 +42,28 @@ except Exception:
     exit 1
 }
 
+# ── Ensure migrations are applied (important for beat/worker startup) ─────────
+ensure_migrations() {
+    echo "🔄 Ensuring database migrations are applied..."
+    for i in $(seq 1 10); do
+        if python manage.py migrate --noinput; then
+            echo "✅ Migrations ready."
+            return 0
+        fi
+        echo "   migrate attempt ${i}/10 failed; retrying in 3s..."
+        sleep 3
+    done
+    echo "❌ Could not apply migrations after multiple attempts." >&2
+    exit 1
+}
+
 # ── Service dispatch ──────────────────────────────────────────────────────────
 case "$SERVICE" in
 
   # ── HTTP / Gunicorn ─────────────────────────────────────────────────────────
   web)
     wait_for_postgres
-    echo "🔄 Applying migrations..."
-    python manage.py migrate --noinput
+    ensure_migrations
     echo "📦 Collecting static files..."
     python manage.py collectstatic --noinput --clear 2>/dev/null || true
     echo "🚀 Starting Gunicorn on 0.0.0.0:${PORT:-8000}..."
@@ -66,6 +80,7 @@ case "$SERVICE" in
   # ── Celery Worker ────────────────────────────────────────────────────────────
   worker)
     wait_for_postgres
+    ensure_migrations
     echo "⚙️  Starting Celery worker (concurrency=${WORKER_CONCURRENCY:-4})..."
     exec celery -A config worker \
         --loglevel=info \
@@ -77,6 +92,7 @@ case "$SERVICE" in
   # ── Celery Beat (Scheduler) ──────────────────────────────────────────────────
   beat)
     wait_for_postgres
+    ensure_migrations
     echo "🗓️  Starting Celery Beat scheduler..."
     exec celery -A config beat \
         --loglevel=info \
@@ -86,8 +102,7 @@ case "$SERVICE" in
   # ── One-time Setup ───────────────────────────────────────────────────────────
   setup)
     wait_for_postgres
-    echo "🔄 Running migrations..."
-    python manage.py migrate --noinput
+    ensure_migrations
 
     echo "🌱 Seeding initial data (leagues, plans, pricing)..."
     python manage.py seed_data
@@ -110,4 +125,5 @@ case "$SERVICE" in
     exit 1
     ;;
 esac
+
 

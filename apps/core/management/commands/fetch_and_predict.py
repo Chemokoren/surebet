@@ -162,3 +162,4 @@ class Command(BaseCommand):
             f"{total_predicted} predictions generated"
         ))
 
+

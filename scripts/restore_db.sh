@@ -53,3 +53,4 @@ gunzip -c "${BACKUP_FILE}" | docker compose -f "${COMPOSE_FILE}" exec -T db sh -
 
 echo "Restore complete."
 
+

@@ -56,3 +56,4 @@ docker compose -f "${COMPOSE_FILE}" exec -T db sh -lc \
 
 echo "Backup complete: ${BACKUP_FILE}"
 
+

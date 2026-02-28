@@ -112,6 +112,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/ >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 45s
     restart: unless-stopped
 
   # ── Celery Worker ───────────────────────────────────────────────────────────
@@ -133,7 +139,7 @@ services:
       redis:
         condition: service_healthy
       web:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
 
   # ── Celery Beat (Scheduler) ─────────────────────────────────────────────────
@@ -154,7 +160,7 @@ services:
       redis:
         condition: service_healthy
       web:
-        condition: service_started
+        condition: service_healthy
       worker:
         condition: service_started
     restart: unless-stopped
