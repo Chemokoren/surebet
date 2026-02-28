@@ -268,3 +268,81 @@ def verify_predictions_availability_task():
         return f"Emergency: generated {count} predictions"
 
     return f"OK: {pred_count} predictions for {target_date}"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 8.  EXTERNAL INTELLIGENCE SCRAPING  (every 6 hours)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@shared_task(
+    bind=True,
+    name='predictions.scrape_external_predictions',
+    max_retries=2,
+    default_retry_delay=300,
+)
+def scrape_external_predictions(self):
+    """
+    Scrape predictions from all enabled external sources.
+    Runs every 6 hours to collect fresh predictions.
+    """
+    try:
+        from apps.predictions.services.learning_engine import LearningEngine
+        stats = LearningEngine.scrape_all_sources()
+        logger.info(f"[Task:scrape_ext] {stats}")
+        return (
+            f"Scraped {stats['sources_scraped']} sources, "
+            f"stored {stats['predictions_stored']} predictions, "
+            f"{len(stats['errors'])} errors"
+        )
+    except Exception as exc:
+        logger.error(f"[Task:scrape_ext] Failed: {exc}")
+        raise self.retry(exc=exc)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 9.  SOURCE EVALUATION  (daily at 04:00)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@shared_task(name='predictions.evaluate_sources')
+def evaluate_sources_task():
+    """
+    Daily evaluation of prediction sources:
+      1. Resolve external predictions against actual outcomes.
+      2. Record daily accuracy snapshots.
+      3. Check learning-phase sources for auto-promotion.
+    """
+    from apps.predictions.services.learning_engine import LearningEngine
+
+    # Step 1: resolve
+    resolved = LearningEngine.resolve_external_predictions()
+    logger.info(f"[Task:eval_sources] Resolved {resolved} external predictions")
+
+    # Step 2: daily accuracy record
+    from datetime import timedelta
+    yesterday = timezone.now().date() - timedelta(days=1)
+    LearningEngine.record_daily_accuracy(yesterday)
+
+    # Step 3: auto-promote / retire
+    results = LearningEngine.evaluate_learning_sources()
+    logger.info(f"[Task:eval_sources] Evaluation: {results}")
+
+    return (
+        f"Resolved={resolved}, Promoted={len(results['promoted'])}, "
+        f"Remaining={len(results['remaining'])}, Rejected={len(results['rejected'])}"
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 10.  RESOLVE EXTERNAL PREDICTIONS  (after match results)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@shared_task(name='predictions.resolve_external_predictions')
+def resolve_external_predictions_task():
+    """
+    Resolve pending external predictions against actual match outcomes.
+    Can be chained after resolve_finished_matches_task.
+    """
+    from apps.predictions.services.learning_engine import LearningEngine
+    resolved = LearningEngine.resolve_external_predictions()
+    return f"Resolved {resolved} external predictions"
+

@@ -91,41 +91,67 @@ class PredictionService:
         features = result.get('features', {})
         explanations_data = result.get('explanations', [])
 
-        # ── Consensus blending: cross-reference with external signals ──
+        # ── Intelligence Engine: blend with external source consensus ──
         try:
-            from apps.predictions.services.consensus import ConsensusService
-            consensus = ConsensusService.get_consensus(match)
-            if consensus:
-                probs = ConsensusService.blend_with_model(probs, consensus)
+            # Try the full learning engine first (supervised + unsupervised)
+            from apps.predictions.services.learning_engine import LearningEngine
+            intelligence = LearningEngine.get_weighted_consensus(match)
 
-                # Re-derive outcome from blended probabilities
-                if probs['home'] > probs['away'] and probs['home'] > probs['draw']:
-                    outcome = 'home_win'
-                    confidence = probs['home'] * 100
-                elif probs['away'] > probs['home'] and probs['away'] > probs['draw']:
-                    outcome = 'away_win'
-                    confidence = probs['away'] * 100
-                else:
-                    outcome = 'draw'
-                    confidence = probs['draw'] * 100
-                confidence = min(round(confidence, 2), 95.0)
+            if intelligence:
+                # Blend: 70% our model + 30% intelligence (higher trust for vetted sources)
+                blend_w = 0.30
+                blended = {
+                    'home': (1 - blend_w) * probs['home'] + blend_w * intelligence['home_win_prob'],
+                    'draw': (1 - blend_w) * probs['draw'] + blend_w * intelligence['draw_prob'],
+                    'away': (1 - blend_w) * probs['away'] + blend_w * intelligence['away_win_prob'],
+                }
+                total = blended['home'] + blended['draw'] + blended['away']
+                probs = {k: v / total for k, v in blended.items()}
 
-                # Store consensus metadata in features for traceability
-                features['consensus'] = {
-                    'sources_used': consensus['sources_used'],
-                    'consensus_home': consensus['home_win_prob'],
-                    'consensus_draw': consensus['draw_prob'],
-                    'consensus_away': consensus['away_win_prob'],
-                    'consensus_confidence': consensus['confidence'],
-                    'source_details': consensus.get('source_details', []),
+                features['intelligence'] = {
+                    'engine': 'learning_engine',
+                    'sources_used': intelligence['sources_used'],
+                    'agreement_ratio': intelligence['agreement_ratio'],
+                    'outliers': intelligence.get('outliers', []),
+                    'intel_home': intelligence['home_win_prob'],
+                    'intel_draw': intelligence['draw_prob'],
+                    'intel_away': intelligence['away_win_prob'],
                 }
                 logger.debug(
-                    f"Consensus blended for {match}: "
-                    f"sources={consensus['sources_used']}, "
-                    f"confidence={consensus['confidence']}"
+                    f"Intelligence Engine blended for {match}: "
+                    f"sources={intelligence['sources_used']}, "
+                    f"agreement={intelligence['agreement_ratio']}"
                 )
+            else:
+                # Fallback: basic consensus (ESPN + H2H + ELO)
+                from apps.predictions.services.consensus import ConsensusService
+                consensus = ConsensusService.get_consensus(match)
+                if consensus:
+                    probs = ConsensusService.blend_with_model(probs, consensus)
+                    features['consensus'] = {
+                        'engine': 'basic_consensus',
+                        'sources_used': consensus['sources_used'],
+                        'consensus_home': consensus['home_win_prob'],
+                        'consensus_draw': consensus['draw_prob'],
+                        'consensus_away': consensus['away_win_prob'],
+                        'consensus_confidence': consensus['confidence'],
+                        'source_details': consensus.get('source_details', []),
+                    }
+
+            # Re-derive outcome from blended probabilities
+            if probs['home'] > probs['away'] and probs['home'] > probs['draw']:
+                outcome = 'home_win'
+                confidence = probs['home'] * 100
+            elif probs['away'] > probs['home'] and probs['away'] > probs['draw']:
+                outcome = 'away_win'
+                confidence = probs['away'] * 100
+            else:
+                outcome = 'draw'
+                confidence = probs['draw'] * 100
+            confidence = min(round(confidence, 2), 95.0)
+
         except Exception as e:
-            logger.warning(f"Consensus blending skipped for {match}: {e}")
+            logger.warning(f"Intelligence blending skipped for {match}: {e}")
 
         # Create Prediction Record
         with transaction.atomic():

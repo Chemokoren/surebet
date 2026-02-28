@@ -98,6 +98,8 @@ case "$SERVICE" in
     wait_for_postgres
     ensure_migrations
     sync_leagues
+    echo "🧠 Seeding intelligence sources..."
+    python manage.py seed_prediction_sources --learning-days 90 || true
     ensure_predictions
     echo "📦 Collecting static files..."
     python manage.py collectstatic --noinput --clear 2>/dev/null || true
